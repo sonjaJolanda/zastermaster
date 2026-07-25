@@ -7,7 +7,7 @@ Visual and UX requirements for the UI. Product behavior lives in [`../README.md`
 | Asset | Path | Use |
 |---|---|---|
 | Logo | [`Design/Zaster_Master_Logo.svg`](../../Design/Zaster_Master_Logo.svg) | Header brand mark; clickable home → Transaktionen. Black circular “Z” monogram — keep crisp, don’t recolor arbitrarily. |
-| Background | [`Design/BackgroundImage_Office.JPEG`](../../Design/BackgroundImage_Office.JPEG) | **Full-app** background on every view (fixed/cover). Warm daylight office: light wood, soft walls, greenery, natural light. |
+| Background | [`Design/BackgroundImage_Office.JPEG`](../../Design/BackgroundImage_Office.JPEG) | **Full-app** background on every view (fixed/cover). Softly blurred (~6px) so the photo stays atmosphere, not competition for the content panel. Warm daylight office: light wood, soft walls, greenery, natural light. |
 
 Do not replace these with generic gradients or stock “fintech purple” themes. The office photo *is* the atmosphere.
 
@@ -35,7 +35,7 @@ Do not replace these with generic gradients or stock “fintech purple” themes
 │   (readable over photo)                                 │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
-     background image: cover, fixed, full viewport
+     background image: cover, fixed, full viewport, soft blur
 ```
 
 - **Header:** one slim bar — logo left, balance, icon nav right. Active route icon highlighted. Tooltips on icons (German labels).

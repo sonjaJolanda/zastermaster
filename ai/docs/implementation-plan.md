@@ -26,7 +26,7 @@ Actionable runbook for building Zaster Master. **Behavior details live in featur
 
 | Slice | Name | Thin | Thick |
 |---|---|---|---|
-| 0 | Foundation | ☐ | ☐ |
+| 0 | Foundation | ☑ | ☐ |
 | 1 | Categories | ☐ | ☐ |
 | 2 | Import DKB + list | ☐ | ☐ |
 | 3 | Categorize | ☐ | ☐ |
@@ -59,9 +59,9 @@ Actionable runbook for building Zaster Master. **Behavior details live in featur
 
 ### Thin DoD
 
-- [ ] Four pages open via header icons
-- [ ] Background + logo visible; German labels
-- [ ] No auth gates
+- [x] Four pages open via header icons
+- [x] Background + logo visible; German labels
+- [x] No auth gates
 
 ### Thick (later)
 
