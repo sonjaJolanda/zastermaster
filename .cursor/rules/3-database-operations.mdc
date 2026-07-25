@@ -1,0 +1,22 @@
+---
+description: Prisma schema, PostgreSQL, migrations, entities
+alwaysApply: true
+---
+
+# Database (Prisma + PostgreSQL)
+
+- Models live in [schema.prisma](mdc:schema.prisma) only (not as entities in `main.wasp`)
+- Provider: **postgresql**; `DATABASE_URL` in `.env.server`
+- Run a **local PostgreSQL** instance (inside WSL on Windows; no Docker in v1)
+- After schema edits: `wasp db migrate-dev`
+- Define `@relation`s in Prisma; categories/transactions/learned rules/accounts as in README
+
+## Operations + entities
+
+- List every Entity an operation needs in `main.wasp` (`entities: [...]`) so `context.entities.X` works
+- Import entity **types** from `wasp/entities`
+- Import Prisma enum **values** from `@prisma/client` (not `wasp/entities`)
+
+## Seed
+
+- Category defaults: seed file once on first run → Postgres (not JSON as live source of truth)

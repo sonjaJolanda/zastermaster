@@ -1,0 +1,26 @@
+---
+description: Wasp queries/actions patterns and common troubleshooting
+alwaysApply: true
+---
+
+# Operations & troubleshooting
+
+## Patterns
+
+- Queries = read; actions = write; implement together in `src/features/.../operations.ts`
+- Client: `useQuery(queryFn, args)` · `await myAction(args)`
+- Throw `HttpError` from `wasp/server` for expected failures; log unexpected errors
+- Paginate transaction lists; net related pairs in analysis queries
+- Prefer operations over custom `api` routes (APIs only for external webhooks if ever)
+
+## Jobs
+
+- **v1: no Wasp Jobs / PgBoss.** Long related-detect/import = action + UI progress.
+- Add Jobs later if requests time out or work is too heavy.
+
+## If broken
+
+- Restart `wasp start` after `main.wasp` / schema changes (stale types)
+- Check `entities: [...]` on the operation
+- Confirm Postgres is up and `DATABASE_URL` is correct
+- Verify `@src/...` paths in `main.wasp` and `wasp/...` imports in TS

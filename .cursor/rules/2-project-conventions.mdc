@@ -1,0 +1,27 @@
+---
+description: Project structure, imports, ai/docs, TypeScript conventions
+alwaysApply: true
+---
+
+# Project conventions
+
+## Layout
+
+- Features under `src/features/{featureName}/` with `operations.ts` for queries/actions
+- Shared UI in `src/components/` (Shadcn patterns)
+- Root shell (`App.tsx` or equivalent) renders header + `<Outlet />` from `react-router-dom`
+- Group `main.wasp` declarations with `//#region FeatureName` / `//#endregion`
+- Document features in existing `ai/docs/*.md` (or the README domain sections). Add a new doc only when a feature outgrows the README; don’t reference files that don’t exist yet.
+
+## Imports
+
+- In `.ts`/`.tsx`: `wasp/...` for Wasp; **relative** paths inside `src/`
+- In `main.wasp`: imports of app code must use `@src/...`
+- ❌ `@wasp/...` · ❌ `@src/...` inside `.ts`/`.tsx`
+
+## General
+
+- TypeScript only for app code
+- Install deps with `npm install` (not by stuffing them into `main.wasp`)
+- After `main.wasp` / `schema.prisma` changes, restart `wasp start` if types look stale
+- Keep `.cursor/rules` aligned with [ai/README.md](mdc:ai/README.md)

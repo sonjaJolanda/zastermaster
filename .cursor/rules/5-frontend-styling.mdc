@@ -1,0 +1,31 @@
+---
+description: React, Tailwind, Shadcn UI and Zaster design system
+globs: "**/*.{tsx,jsx,css}"
+alwaysApply: false
+---
+
+# Frontend & styling
+
+Full design requirements: [ai/docs/design.md](mdc:ai/docs/design.md).
+
+## React
+
+- Relative imports within `src/`
+- Server state via Wasp `useQuery`; actions with `async/await` (avoid `useAction` unless optimistic updates)
+- Local UI state: `useState` / `useReducer`; light Context only for shell (nav, modals)
+
+## Brand & layout
+
+- Full-app background: `Design/BackgroundImage_Office.JPEG` (cover; fixed on desktop)
+- Logo: `Design/Zaster_Master_Logo.svg` in header
+- Content on **frosted/semi-opaque surfaces** — never small text on bare photo
+- Header: logo + balance + icon nav only (no tab carousel, no income/expense in header)
+- Einstellungen/Kategorien: edit category = subcategories + keywords (main and/or sub), not name-only
+- Wire **IBM Plex Sans** as `font-sans` (see design.md); Lucide icons; German UI; desktop-primary
+
+## UI kit & Tailwind
+
+- Shadcn/ui in `src/components`, themed with Zaster CSS variables (see design.md)
+- No purple/indigo SaaS defaults; warm accent sparingly from the office mood
+- Avoid inline `style` unless necessary; amounts `de-DE` EUR with income/expense colors
+- Confidence colors: manual green · learned blue · keyword yellow · none gray

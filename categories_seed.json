@@ -1,0 +1,345 @@
+{
+  "Einkaufen": {
+    "color": "#E53E3E",
+    "keywords": [],
+    "subcategories": {      
+      "Supermärkte": {
+        "color": "#DC2626",
+        "keywords": ["rewe", "aldi", "penny", "lidl", "netto", "kaufland", "edeka", "supermercati", "supermercato", "supermarket", "go asia", "konsum", "biomarkt", "denn s", "im angebot", "alnatura", "FRISCHEMAERKTE", "biedronka", "eurospin", "despar", "interspar", "eurospar", "macis", "SKLAVENITIS", "MASOUTIS"]
+      },
+      "Mensa": {
+        "color": "#B91C1C",
+        "keywords": ["mensa"]
+      },
+      "Drogerie": {
+        "color": "#991B1B",
+        "keywords": ["dm", "rossmann", "budni", "mueller"]
+      },
+      "Bäcker": {
+        "color": "#7F1D1D",
+        "keywords": ["back", "yormas", "baeckerei", "baecker", "ditsch", "laib seele", "bakery"]
+      },
+      "Gesundheit": {
+        "color": "#F87171",
+        "keywords": ["apotheke", "arzt", "praxis", "behandelte", "gynak", "amplifon", "dr med", "zahnarzt", "optiker"]
+      },
+      "Wohnen": {
+        "color": "#EF4444",
+        "keywords": ["wohnmacher", "möbel", "kleinanzeigen", "obi", "ikea", "hornbach", "toom", "landratsamt", "stadt leipzig", "lattn"]
+      },
+      "Elektrogeräte": {
+        "color": "#FCA5A5",
+        "keywords": ["elektro", "saturn", "mediamarkt", "lenovo", "apple", "samsung", "dell"]
+      },
+      "Kleidung": {
+        "color": "#FECACA",
+        "keywords": ["kleidung", "schmuck", "vinted", "bershka", "hunkemoller", "zalando", "siemes", "H M DE0169", "H amp M"]
+      },
+      "Abos und Apps": {
+        "color": "#A91A1A",
+        "keywords": ["cartograph", "icloud", "netflix", "spotify", "chatgpt"]
+      },
+      "Mobilfunk": {
+        "color": "#FEE2E2",
+        "keywords": ["fraenk"]
+      },
+      "Uni und Bildung": {
+        "color": "#DC2626",
+        "keywords": ["uni", "bildung", "Studium", "studieren", "sprachstandstest", "HTWG"]
+      },
+      "Online-Shopping": {
+        "color": "#B91C1C",
+        "keywords": ["Amazon", "Etsy", "SKROUTZ"]
+      }
+    }
+  },
+  "Fixkosten Alltag": {
+    "color": "#805AD5",
+    "keywords": [],
+    "subcategories": {
+      "Miete": {
+        "color": "#7C3AED",
+        "keywords": [
+          "miete",
+          "kaution",
+          "nebenkosten",
+          "hausverwaltung"
+        ]
+      },
+      "Abos und Apps": {
+        "color": "#6B46C1",
+        "keywords": [
+          "cartograph",
+          "icloud",
+          "netflix",
+          "spotify"
+        ]
+      },
+      "Mobilfunk": {
+        "color": "#553C9A",
+        "keywords": [
+          "fraenk"
+        ]
+      },
+      "Einkommen": {
+        "color": "#8B5CF6",
+        "keywords": [
+          "lohn",
+          "gehalt",
+          "abrechnung",
+          "fako",
+          "seitenbau",
+          "explicatis",
+          "johner"
+        ]
+      },
+      "Sparen und Investieren": {
+        "color": "#A78BFA",
+        "keywords": ["sparen", "Verschiebung", "etoro", "etf", "sparplan", "trade republic"]
+      },
+      "Altersvorsorge": {
+        "color": "#C4B5FD",
+        "keywords": [
+          "rente"
+        ]
+      },
+      "Versicherungen": {
+        "color": "#9333EA",
+        "keywords": [
+          "reiserücktritt",
+          "krankenversicherung",
+          "dak",
+          "heilpraktiker",
+          "arbeitsunfähigkeitsversicherung"
+        ]
+      },
+      "Kontokosten": {
+        "color": "#7E22CE",
+        "keywords": [
+          "kontoführungsgebühren"
+        ]
+      },
+      "Paypal": {
+        "color": "#6B21A8",
+        "keywords": [
+          "paypal"
+        ]
+      },
+      "Abonnements": {
+        "color": "#581C87",
+        "keywords": [
+          "beitrag",
+          "abo"
+        ]
+      }
+    }
+  },
+  "Freizeit": {
+    "color": "#38A169",
+    "keywords": [],
+    "subcategories": {
+      "Restaurant": {
+        "color": "#059669",
+        "keywords": [
+        "bar",
+        "restaurant",
+        "RESTAURACJA",
+        "Restaurace",
+        "ristorante",
+        "pizzeria",
+        "wirtshaus",
+        "café",
+        "cafe",
+        "Kafeterija",
+        "coffee",
+        "Absolventenfeier",
+        "Taverna",
+        "Food",
+        "Essen",
+        "roots",
+        "Für griiiechischen Wein",
+        "Taverne",
+        "wein+essen",
+        "little big house",
+        "eightball",
+        "hans im gluck",
+        "olivetree",
+        "ramen",
+        "mc donalds", 
+        "mcdonalds",
+        "burgerking",
+        "burger king",
+        "instant noodles",
+        "burro burro",
+        "house of vegan",
+        "neotaste",
+        "moritzbastei",
+        "kimi korea",
+        "Killiwilly",
+        "beyerhaus",
+        "eli event",
+        "bloggers",
+        "voglhaus",
+        "dimsum",
+        "doener",
+        "schnellbuffet",
+        "Saigon",
+        "kiosk",
+        "Kaffeeros",
+        "horns erben",
+        "lena s am see",
+        "tabya",
+        "tarantoula",
+        "wolt",
+        "gastronomie",
+        "tag mahal",
+        "CHOUREAL",
+        "vegan",
+        "pub"
+        ]
+      },
+      "Kino": {
+        "color": "#047857",
+        "keywords": [
+          "kino",
+          "cineplex",
+          "rex am ring",
+          "cinestar",
+          "filmpalast"
+        ]
+      },
+      "Sport": {
+        "color": "#065F46",
+        "keywords": [
+          "unisport",
+          "hochschulsport",
+          "bouldern",
+          "boulderwelt",
+          "onyx",
+          "steinbock",
+          "elements",
+          "boulder",
+          "zfh",
+          "handstand",
+          "mobility",
+          "tricking",
+          "circl",
+          "bloc",
+          "decathlon",
+          "tapir"
+        ]
+      },
+      "Hobby": {
+        "color": "#10B981",
+        "keywords": ["hobby", "spieleladen", "bowling"]
+      },
+      "Geschenke": {
+        "color": "#34D399",
+        "keywords": ["geschenke", "blume 2000", "maulwurf"]
+      },
+      "Kunst": {
+        "color": "#6EE7B7",
+        "keywords": ["panometer", "museum", "gewandhausorchester", "theater", "kunst", "kunstkraftwerk", "oper", "ballett", "tixforgigs"]
+      },
+      "Bücher": {
+        "color": "#A7F3D0",
+        "keywords": ["thalia", "buchhandlung", "buch", "libri", "hugendubel", "osiander", "medimops", "bookstore"]
+      },
+      "Spenden": {
+        "color": "#D1FAE5",
+        "keywords": ["spenden"]
+      },
+      "Reisen": {
+        "color": "#16A085",
+        "keywords": [
+          "booking com",
+          "hostelworld",
+          "istanbul",
+          "airbnb",
+          "aegean",
+          "OLYMPUS",
+          "Sonja Klein booking",
+          "Urlaub",
+          "flug",
+          "malcesine",
+          "maut",
+          "mainau",
+          "rotterdam",
+          "rotter",
+          "den haag",
+          "salzburg",
+          "brennero",
+          "toblach",
+          "GetYourGuide",
+          "praha",
+          "prague",
+          "wien",
+          "budapest",
+          "beograd",
+          "skopje",
+          "car rental"
+        ]
+      },
+      "Therme": {
+        "color": "#0F766E",
+        "keywords": [
+          "trimini",
+          "erlebniswelt alpen"
+        ]
+      },
+      "Freunde": {
+        "color": "#0D9488",
+        "keywords": [
+          "deutchban",
+          "thankyou",
+          "uzair",
+          "johnny",
+          "pozar",
+          "sugar mommy",
+          "kathi"
+        ]
+      }
+    }
+  },
+  "Verkehr und Mobilität": {
+    "color": "#3182CE",
+    "keywords": [],
+    "subcategories": {
+      "Öffentliche Verkehrsmittel": {
+        "color": "#2563EB",
+        "keywords": ["bahn", "bus", "flixbus", "deutsche bahn", "db", "lvs", "kvb", "lime", "uber"]
+      },
+      "Auto": {
+        "color": "#1D4ED8",
+        "keywords": ["tank", "parkautomat", "parkhaus", "parkautomaten", "parking", "parkraum", "autostrada", "shell", "esso", "aral", "jet", "agip", "aral"]
+      }
+    }
+  },
+  "Barabhebungen": {
+    "color": "#D69E2E",
+    "keywords": [
+      "geldautomat",
+      "atm",
+      "bargeld",
+      "abhebung",
+      "auszahlung"
+    ],
+    "subcategories": {}
+  },
+  "Sonstiges": {
+    "color": "#718096",
+    "keywords": [],
+    "subcategories": {
+      "Erasmus": {
+        "color": "#6B7280",
+        "keywords": [
+          "erasmus"
+        ]
+      },
+      "Unbekannt": {
+        "color": "#4B5563",
+        "keywords": []
+      }
+    }
+  }
+}

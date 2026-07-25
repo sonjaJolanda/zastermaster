@@ -1,0 +1,19 @@
+---
+description: Auth policy for Zaster Master (none in v1; path for later)
+alwaysApply: true
+---
+
+# Authentication
+
+## v1
+
+- **No auth.** Single-user local app. Do not require `context.user` or add Login/Signup pages yet.
+- Do not block operations with 401 for missing user in v1.
+
+## Later (keep models ready)
+
+- Prefer Wasp built-in `auth` in `main.wasp` when needed
+- Minimal `User` model (`id` + app fields); let Wasp manage identity tables
+- When adding auth: scope data by `userId` on Account/Transaction (or equivalent) and protect operations
+
+Until then: design FKs/docs so a future `userId` is additive, not a rewrite.

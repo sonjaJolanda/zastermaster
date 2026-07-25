@@ -1,0 +1,27 @@
+---
+description: Zaster Master product overview and locked stack (Wasp)
+alwaysApply: true
+---
+
+# Zaster Master — Overview
+
+Personal finance app (German UI): import bank exports, hybrid free categorization, related-tx linking, spending analysis. Local-only in v1.
+
+## Source of truth
+
+- Product/architecture: [ai/README.md](mdc:ai/README.md)
+- **When coding:** follow [ai/docs/implementation-plan.md](mdc:ai/docs/implementation-plan.md) (active slice). Read the linked feature docs on that slice card (`design.md`, `transactions.md`, `analysis.md`, `categorization.md`, `prd.md`) — do not re-derive requirements from memory.
+- App config: `main.wasp.ts` · data models: `schema.prisma`
+
+## Locked stack
+
+- **Wasp** + React + TypeScript + Prisma + **PostgreSQL** (local, inside WSL on Windows)
+- Client ↔ server: **Wasp operations** (queries/actions)
+- UI: Tailwind + **Shadcn/ui**
+- App via `wasp start` · **no Docker in v1**
+- **Windows: WSL required** (Wasp has no native Windows install)
+- **No auth in v1** · **No cloud deploy in v1** · **No job queue in v1** (actions + UI progress)
+
+## Do not
+
+- Assume native Windows Wasp, Docker-as-substitute-for-WSL, FastAPI/Vue, or Fly.io as required for v1
