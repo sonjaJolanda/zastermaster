@@ -18,8 +18,8 @@ Personal finance app (German UI): import bank exports, hybrid free categorizatio
 - **Wasp** + React + TypeScript + Prisma + **PostgreSQL** (local, inside WSL on Windows)
 - Client ↔ server: **Wasp operations** (queries/actions)
 - UI: Tailwind + **Shadcn/ui**
-- App via `wasp start` · **no Docker in v1**
-- **Windows: WSL required** (Wasp has no native Windows install)
+- App via `wasp start` in WSL · **Postgres via Docker Compose** (`docker compose up -d db`)
+- **Windows: WSL required** for Wasp (no native Windows install)
 - **No auth in v1** · **No cloud deploy in v1** · **No job queue in v1** (actions + UI progress)
 
 ## Do not

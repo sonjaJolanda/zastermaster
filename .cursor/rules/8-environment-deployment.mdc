@@ -1,5 +1,5 @@
 ---
-description: Local Postgres in WSL, wasp start, no Docker v1, local-only deploy
+description: Docker Postgres, wasp start in WSL, local-only deploy
 alwaysApply: true
 ---
 
@@ -7,22 +7,23 @@ alwaysApply: true
 
 ## Local (v1)
 
-On Windows, work **inside WSL** (Ubuntu). Project path should be on the Linux filesystem, not `/mnt/c/...`.
-
 ```bash
-# Local PostgreSQL in WSL; DATABASE_URL in .env.server
+# From repo root: Postgres in Docker
+docker compose up -d db
+
+# In WSL, project directory:
 wasp db migrate-dev
 wasp start
 ```
 
-- **No Docker / Compose in v1.** WSL ≠ Docker; Wasp needs WSL on Windows, not a Dockerized Wasp CLI for normal dev.
-- Never commit `.env.server` secrets or private `Bankauszüge/` data.
+- **Docker = PostgreSQL only** (`docker-compose.yml` service `db`). App = **Wasp CLI in WSL**.
+- `DATABASE_URL` in `.env.server` (see `.env.server.example`). Never commit secrets or private `Bankauszüge/` data.
 
 ## Deploy
 
-- **v1: local-only.** Later: optional Docker packaging and/or Fly if goals change.
+- **v1: local-only.** Later: optional full packaging and/or Fly if goals change.
 
 ## Do not
 
 - Suggest installing Wasp on native Windows PowerShell/CMD
-- Assume Docker Compose is required to run Wasp
+- Put the whole Wasp app in Docker for normal dev

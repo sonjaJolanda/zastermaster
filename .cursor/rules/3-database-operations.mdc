@@ -7,7 +7,7 @@ alwaysApply: true
 
 - Models live in [schema.prisma](mdc:schema.prisma) only (not as entities in `main.wasp`)
 - Provider: **postgresql**; `DATABASE_URL` in `.env.server`
-- Run a **local PostgreSQL** instance (inside WSL on Windows; no Docker in v1)
+- Run Postgres with **Docker Compose** (`docker compose up -d db`); `DATABASE_URL` in `.env.server`
 - After schema edits: `wasp db migrate-dev`
 - Define `@relation`s in Prisma; categories/transactions/learned rules/accounts as in README
 

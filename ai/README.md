@@ -9,8 +9,8 @@ Local personal finance app for importing German bank exports, categorizing trans
 | **Privacy** | Local-only — data stays on your machine |
 | **Auth** | None in v1 (single-user); may be added later |
 | **Stack** | [Wasp](https://wasp.sh) + React + Prisma + PostgreSQL |
-| **DB runtime** | Local PostgreSQL inside WSL (no Docker in v1) |
-| **Windows** | **WSL required** — Wasp does not run natively on Windows |
+| **DB runtime** | PostgreSQL via Docker Compose (`docker compose up -d db`) |
+| **Windows** | **WSL required** for Wasp; Docker Desktop for the DB |
 
 Sample exports: [`Bankauszüge/`](../Bankauszüge/). Design assets: [`Design/`](../Design/). Feature specs: [`docs/`](docs/) (filled as features are built).
 
@@ -31,7 +31,7 @@ This README ([ai/README.md](ai/README.md)) is the product and architecture sourc
 - Authentication / multi-user (roadmap: may come later)
 - Public cloud hosting (roadmap: may come later; not Fly.io in v1)
 - Background job queue (import/related-detect use actions + UI progress instead)
-- Docker / Compose (WSL + local Postgres + `wasp start` only)
+- Full-app Docker packaging (Compose is **Postgres only**)
 - Paid cloud AI as the default categorizer
 - Replacing your bank’s official app or doing payments
 
@@ -48,13 +48,13 @@ This README ([ai/README.md](ai/README.md)) is the product and architecture sourc
 | Backend | Node.js (Wasp server), TypeScript |
 | Client ↔ server | **Wasp operations** (queries = read, actions = write) |
 | Database | **PostgreSQL** via Prisma (`schema.prisma`) |
-| DB process | **Local PostgreSQL** (install inside WSL on Windows); `DATABASE_URL` in `.env.server` |
+| DB process | **PostgreSQL in Docker** (`docker compose up -d db`); `DATABASE_URL` in `.env.server` |
 | App process | `wasp start` (dev) — on Windows, run this **inside WSL** |
 | Network | Localhost only in v1 |
 
-**Why this stack:** Full-stack TypeScript with Wasp, Prisma models, typed operations, and a clear path to auth later. PostgreSQL fits Prisma well and leaves room for optional Jobs later. **No Docker in v1.**
+**Why this stack:** Full-stack TypeScript with Wasp, Prisma models, typed operations, and a clear path to auth later. PostgreSQL fits Prisma well. **Docker runs Postgres only**; day-to-day app work stays on the Wasp CLI in WSL.
 
-**Windows / WSL:** Wasp needs a Unix environment. On Windows there is **no native install** — use **WSL** (e.g. Ubuntu). Docker does **not** replace WSL for day-to-day `wasp start` development. Install Node, Wasp CLI, and PostgreSQL **inside WSL**. Keep the project on the **Linux filesystem** (e.g. `~/projects/...`), not under `/mnt/c/...`, so file watching works. Cursor/VS Code can open the folder via the WSL remote.
+**Windows / WSL:** Wasp needs a Unix environment — use **WSL** for `wasp start`. Docker Desktop provides the database. Keep the project on the **Linux filesystem** when possible for file watching; `/mnt/c/...` works but can be slower.
 
 ```mermaid
 flowchart LR
@@ -69,27 +69,29 @@ flowchart LR
 
 ### Environment
 
-On Windows: open an **Ubuntu (WSL)** terminal first. Install Node (nvm), Wasp CLI, and PostgreSQL there.
-
 ```bash
-# PostgreSQL running locally in WSL; DATABASE_URL set in .env.server
-wasp db migrate-dev        # after schema changes
-wasp start                 # client + server
+# Windows (PowerShell) or WSL — start Postgres
+docker compose up -d db
+
+# WSL — run the app (Node + Wasp CLI)
+# DATABASE_URL is in .env.server (see .env.server.example)
+wasp db migrate-dev
+wasp start
 ```
 
 | Piece | Role | Typical port |
 |---|---|---|
-| PostgreSQL (local / in WSL) | Database | `5432` |
+| PostgreSQL (`zastermaster-db`) | Database (Docker) | `5432` |
 | Wasp server | Operations / APIs | Wasp default (often `3001`) |
 | Wasp client | React UI | Wasp default (often `3000`) |
 
-**Persistence:** Normal Postgres data directory in WSL. Back up that DB (or dumps) if you care about your history.
+**Persistence:** Docker volume `zastermaster_pgdata`. Back up that volume or use `pg_dump` if you care about history.
 
 **Privacy:** Do not publish `Bankauszüge/` or DB dumps. Keep the app on localhost.
 
 **Design assets:** Serve logo + background from the client (`Design/` or `public/`).
 
-**Docker:** Out of scope for v1. It is not required for Wasp on Windows (use WSL instead). May revisit later for packaging.
+**Docker scope:** Postgres only in v1. Do not containerize the whole Wasp app for normal development.
 
 ### Background jobs — what they are (and v1 choice)
 
@@ -322,7 +324,7 @@ zastermaster/
 
 ### v1
 
-- Wasp app + Prisma + local PostgreSQL (no Docker)
+- Wasp app + Prisma + PostgreSQL (Docker Compose for DB)
 - `ai/docs/` for core features
 - Importers: DKB, Sparkasse, PayPal, Trade Republic
 - Hybrid categorization + Einstellungen/Kategorien

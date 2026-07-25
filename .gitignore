@@ -1,0 +1,8 @@
+Bankauszüge/
+# Wasp
+.wasp/
+node_modules/
+.env
+.env.*
+!.env.example
+!.env.*.example
