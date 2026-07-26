@@ -6,10 +6,16 @@ Visual and UX requirements for the UI. Product behavior lives in [`../README.md`
 
 | Asset | Path | Use |
 |---|---|---|
-| Logo | [`Design/Zaster_Master_Logo.svg`](../../Design/Zaster_Master_Logo.svg) | Header brand mark; clickable home → Transaktionen. Black circular “Z” monogram — keep crisp, don’t recolor arbitrarily. |
+| Logo | [`Design/Zaster_Master_Logo.svg`](../../Design/Zaster_Master_Logo.svg) | Fixed top-left brand mark only (icon); clickable home → Transaktionen. Black circular “Z” monogram — keep crisp. **Do not** show the wordmark “Zaster Master”. Also served as tab favicon (`public/favicon.svg`). |
+| Upload icon | [`Design/Upload.svg`](../../Design/Upload.svg) | Side nav → Upload; also page title |
+| Settings icon | [`Design/Settings.svg`](../../Design/Settings.svg) | Side nav → Einstellungen; also page title |
+| Tables icon | [`Design/Tables.svg`](../../Design/Tables.svg) | Side nav → Transaktionen; also page title |
+| Analysis icon | [`Design/Analysis.svg`](../../Design/Analysis.svg) | Side nav → Analyse; also page title |
+| Edit icon | [`Design/Edit.svg`](../../Design/Edit.svg) | Edit actions: category cards, Konten kalibrieren/anpassen, Transaktionen row action (opens Details overlay) |
+| Close icon | [`Design/Close.svg`](../../Design/Close.svg) | Dismiss overlays / expanded editors (top-right): TX details, related detect, account calibration, category card expand |
 | Background | [`Design/BackgroundImage_Office.JPEG`](../../Design/BackgroundImage_Office.JPEG) | **Full-app** background on every view (fixed/cover). Softly blurred (~6px) so the photo stays atmosphere, not competition for the content panel. Warm daylight office: light wood, soft walls, greenery, natural light. |
 
-Do not replace these with generic gradients or stock “fintech purple” themes. The office photo *is* the atmosphere.
+Served copies live under `public/design/` (and `public/favicon.svg` for the logo). Do not replace these with generic gradients, stock “fintech purple” themes, or Lucide icons for chrome nav. The office photo *is* the atmosphere.
 
 ## Visual direction
 
@@ -19,38 +25,38 @@ Do not replace these with generic gradients or stock “fintech purple” themes
 
 **Avoid:**
 
-- Purple / indigo “AI SaaS” gradients
+- Purple / indigo “AI SaaS” gradients (except intentional **bank/konto badges** that use purple as a *sonstige*-token)
 - Dark-mode-first UI (optional later; v1 stays light-over-photo)
-- Dense dashboard chrome in the first viewport (no stat-card walls in the header)
+- Dense dashboard chrome (no balance, no wordmark, no full header bar)
 - Tab carousels; decorative glow stacks; emoji as UI
 
 ## Layout shell
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  [Logo]   Balance €…          [↑] [⚙] [☰] [📊]         │  ← header (always)
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│   frosted / translucent content panel                   │  ← page body
-│   (readable over photo)                                 │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+┌─ [Logo] ───────────────────────────────────┐  ┌─┐
+│                                            │  │☰│  ← sticky side nav
+│   frosted content panel (~2rem top pad;    │  │📊│    (vertikal zentriert,
+│   rechts Platz für Nav)                    │  │↑│     custom SVGs, no boxes)
+│                                            │  │⚙│
+└────────────────────────────────────────────┘  └─┘
      background image: cover, fixed, full viewport, soft blur
 ```
 
-- **Header:** one slim bar — logo left, balance, icon nav right. Active route icon highlighted. Tooltips on icons (German labels).
-- **Content:** sits in a semi-opaque / frosted panel (or soft white card with blur) so text stays readable over the photo. Prefer **one** main panel per page, not a grid of competing cards.
-- **Desktop-primary** (~1280px+ comfortable); usable on mobile (icons stay; tables scroll horizontally or collapse to stacked rows).
+- **No full header bar.** Only a fixed **logo** top-left (icon only, no wordmark).
+- **Side nav (right):** sticky, vertically centered; order top→bottom: **Transaktionen → Analyse → Upload → Einstellungen** (custom SVGs `Tables`, `Analysis`, `Upload`, `Settings`) — **no** frosted boxes/backgrounds behind them. German tooltip/`aria-label`. Active = full opacity + slight scale; inactive muted. Import lock still mutes non-Upload icons.
+- **No** Kontostand in chrome (wealth under Einstellungen → Konten).
+- **Content panel:** ~`2rem` top padding; leave right padding so the side nav doesn’t cover the panel. Prefer **one** main panel. Width ~`min(1520px, 96vw)`.
+- **Desktop-primary**; on narrow screens keep side nav, stack content as needed.
 - Default landing: **Transaktionen**.
 
 ## Color & tokens
 
-Define CSS variables (Tailwind theme extension) and reuse everywhere:
+Define CSS variables (`--zm-*` in `App.css`) and reuse everywhere:
 
 | Token | Intent |
 |---|---|
 | `--zm-bg-image` | Office JPEG as `background-image` |
-| `--zm-surface` | Frosted panel fill (e.g. white ~75–90% opacity + backdrop blur) |
+| `--zm-surface` | Content panel fill: **solid white** (`#ffffff`) + backdrop blur |
 | `--zm-surface-border` | Soft warm gray / wood-tinted hairline |
 | `--zm-text` | Near-black for body text on surfaces |
 | `--zm-text-muted` | Secondary labels |
@@ -65,43 +71,72 @@ Define CSS variables (Tailwind theme extension) and reuse everywhere:
 
 Category colors come from DB (user-editable); charts use those + the income/expense tokens.
 
+### Bank badges (table)
+
+White fill, colored border + text (`.zm-bank-badge`). Color is stored per **Account** (`Account.color`) and editable under Einstellungen → Konten & Kontostand. Empty/unset falls back to these bank defaults (same tokens as before in code: `defaultAccountColor`):
+
+| Bank | Default text + border |
+|---|---|
+| DKB | `#428eec` |
+| PayPal | `#00457c` |
+| Sparkasse | `#dc2626` |
+| Trade Republic | `#6b21a8` |
+| Fallback | `#1f2937` |
+
+### Konto pills (table)
+
+Soft filled pills by Konto-Typ (match name heuristically: Giro / Tagesgeld / PayPal / Sparkasse / …):
+
+| Typ | ≈ Background / Text |
+|---|---|
+| Girokonto | `#dbeafe` / `#1e40af` |
+| Tagesgeld | `#dcfce7` / `#166534` |
+| PayPal | `#fef9c3` / `#854d0e` |
+| Sparkasse | `#fee2e2` / `#991b1b` |
+| Unbekannt | `#f3f4f6` / `#1f2937` |
+| sonstige Typen (z. B. Trade Republic) | `#f3e8ff` / `#6b21a8` |
+
 ## Typography
 
 - UI language: **German**.
 - **Locked fonts:** [IBM Plex Sans](https://fonts.google.com/specimen/IBM+Plex+Sans) for all UI (load via Google Fonts or self-host).
   - Reason: calm, readable, distinct from Inter/Roboto; strong **tabular figures** for EUR amounts (`font-variant-numeric: tabular-nums` on Betrag columns).
   - Do **not** use Inter, Roboto, or Arial as the primary UI font.
-- Wire into Tailwind / Shadcn theme (`font-sans` → IBM Plex Sans).
 - Amounts: `de-DE` EUR, always signed; color by sign (`--zm-income` / `--zm-expense`).
 - Hierarchy: page title + one short supporting line max per section; don’t stack competing headlines.
 
-## Components (Shadcn + custom)
+## Components (`zm-*`)
 
-- **v1 lock:** custom `zm-*` CSS design system (tokens in `App.css`). Full Shadcn/Tailwind install deferred — would duplicate the working shell mid-project.
+- **v1 lock:** custom `zm-*` CSS design system (tokens in `App.css`). Full Shadcn/Tailwind install deferred — map “Tailwind-like” badge colors above to plain CSS classes.
 - Prefer consistent primitives: Button (`.zm-btn`), Dialog (`.zm-overlay`), Table (`.zm-table`), Select/Input, chips, Progress (related spinner).
-- **Overlays** (Details, Related-detect / Zusammengehörige erkennen, Balance calibration): modal centered over the **frosted content panel (page body)**, **not** the full browser viewport/display. Dim only that panel (`position: absolute` on `.zm-surface`); keep header and photo outside the dim. Sticky anchor so the dialog stays readable while the long page scrolls.
-- **Tables:** zebra or hairline rows; sticky header optional on desktop; confidence as colored pill/dot + optional text.
+- **Overlays** (Details, Related-detect, Balance calibration): modal centered over the **frosted content panel**, **not** the full browser viewport. Dim only that panel; keep logo, side nav, and photo outside the dim.
+- **Tables:** hairline rows; sticky header optional; confidence as colored pill + label; **category** with color swatch/dot; **Bank/Konto** as badges/pills (tables above); **Details** as icon button (not a text button).
 - **Related link in table:** icon button; target row briefly highlighted after navigation.
 - **Forms:** generous hit targets; German labels; validation messages under fields.
-- **Empty states:** short German copy + one CTA (e.g. “Jetzt Importieren”) — no illustration clutter.
+- **Empty states:** short German copy + one CTA — no illustration clutter.
 
 ## Motion
 
 Ship a few intentional motions (not noise):
 
-1. Header icon: short active-state transition (+ slight lift)
+1. Side-nav icon: opacity / scale active-state transition
 2. Page content: light fade/slide on route change (`.zm-page-enter`)
 3. Upload / related-detect: determinate or indeterminate progress that feels calm
+4. Collapsible filter toolbar: short expand/collapse (height/opacity)
 
-No continuous parallax on the background; keep the photo still (`position: fixed` layer; no scale transform on small screens).
+No continuous parallax on the background; keep the photo still.
 
 ## Page-specific design
 
-### Header
+### Chrome (logo + side nav)
 
-- Logo ~32–40px height, optically balanced with icons.
-- Balance is the only number in the header (wealth). Income/expenses live on Transaktionen.
-- Icons: **Lucide** only; same stroke weight throughout.
+- Logo ~72px, fixed top-left, plain (no frosted disc).
+- Side nav: fixed right, vertically centered; **no** surface boxes — bare custom SVGs on the photo.
+- Icons top→bottom: `Tables.svg`, `Analysis.svg`, `Upload.svg`, `Settings.svg` (not Lucide). Active = opacity 1 + slight scale.
+- Each page **h1** repeats the matching side-nav icon before the German title; icon and text share a **bottom** alignment.
+- Edit actions use `Edit.svg` (categories, accounts, transaction row) — not Lucide pencil/panel icons.
+- Kontostand **not** in chrome — Einstellungen → Konten.
+- No page intro/lead blurbs under titles (Upload / Analyse / Einstellungen).
 
 ### Upload
 
@@ -111,36 +146,40 @@ No continuous parallax on the background; keep the photo still (`position: fixed
 ### Transaktionen
 
 - Full behavior: [`transactions.md`](transactions.md).
-- **Main view = wide data table** with many columns — not a two-column page layout.
-- Summary strip **inside** the page for **current table filters** (default all imported txs — not Analyse’s year default).
-- Filters & Optionen as a compact toolbar above the table.
-- **Details overlay only:** on desktop, modal may use two sides — left: fields, right: categorize. Mobile: stack. Does **not** change table column count.
+- **Main view = wide data table** — not a two-column page layout.
+- Top bar: **Einnahmen / Ausgaben / Netto / Buchungen** left; **CSV · Filter & Optionen · Zusammengehörige** right (same row).
+- **Filters & Optionen:** collapsible, **default collapsed**; keep summary + table usable when collapsed.
+- Table polish:
+  - Category cell: name + small color circle (category DB color)
+  - Row action: `Edit.svg` icon button (opens Details overlay; German `title`/`aria-label` e.g. Bearbeiten)
+  - Bank + Konto: badges/pills per token tables above
+- **Details overlay:** desktop two sides (fields | categorize); mobile stack.
 
-### Einstellungen / Kategorien
+### Einstellungen
 
-- List/grid of main categories (color swatch + name).
-- **Editing a category** means managing its full definition:
-  - name / color of the main category
-  - which **subcategories** exist (add / rename / delete / recolor)
-  - which **keywords** belong to the main category and to each subcategory
-- Keywords are the free auto-categorization input for the next imports — see [`categorization.md`](categorization.md). Keep editing obvious (chip list or editable list per subcategory).
-- Prefer expand-in-place or a side panel for one category at a time; avoid nested card overload.
+- **Konten & Kontostand** and **Kategorien** as a **two-column** layout on desktop (stack on mobile).
+- Account rows: calibrate/adjust via `Edit.svg` icon (not text buttons); color swatch + color picker in the calibration modal (defaults = bank badge tokens). Modal: `Close.svg` top-right dismiss; **Speichern** bottom-right only (no “Später”).
+- Category cards: tinted by main color; card pencil expands a **read-only overview** (main row + **2-column** subcategory grid with comma-separated keywords). No subcategory-count badge on the card. Expanded: `Close.svg` top-right collapses (inline saves stay on node edit icons).
+- Second pencil on main/sub row enters **edit mode** for that node only (color, name, keywords add/remove); pencil again = Fertig.
+- “Neue Kategorie” is **another card in the category grid**, not a special block above the list.
 
 ### Analyse
 
-- Sticky filter bar + summary strip + five sections (see [`analysis.md`](analysis.md)).
+- Sticky-ish top bar: summary left; CSV + collapsible **Filter** right (default collapsed); sections below (see [`analysis.md`](analysis.md)).
+- While queries run: visible loading (spinner + German copy). **Any side-nav click** shows a full content-panel spinner until that page reports ready.
+- **Expense pie and income pie side-by-side** on desktop (only those two); other sections stay stacked (trend, breakdowns).
 - Charts use category DB colors and income/expense tokens; flat legends, no 3D.
-- Prefer one scrollable panel; when Typ is Ausgaben or Einnahmen, hide the opposite pie and breakdown (and simplify the summary strip) — see analysis.md.
+- When Typ is Ausgaben or Einnahmen, hide the opposite pie and breakdown.
 
 ## Accessibility & readability
 
 - Contrast of text on `--zm-surface` must meet WCAG AA for body text.
-- Never put small body text directly on the raw photo without a surface.
+- Never put small body text directly on the raw photo without a surface (side-nav SVG icons on the photo are the chrome exception).
 - Focus rings visible (accent token).
-- Don’t rely on color alone for confidence — pair with label or icon.
+- Don’t rely on color alone for confidence or bank — pair badge with readable text.
 
 ## Implementation notes
 
 - Assets: copy or import from `Design/` into `public/` (or Wasp static) for the client build.
-- Document token values in code (`src/client/index.css` or theme file) once chosen; tweak once against the real JPEG.
-- When design decisions change, update this file.
+- Token values live in `src/App.css`; tweak against the real JPEG.
+- When design decisions change, update this file (and Slice 10 DoD in [`implementation-plan.md`](implementation-plan.md)).

@@ -4,6 +4,7 @@ import {
   getCategories,
   useQuery,
 } from "wasp/client/operations";
+import { CloseIconButton } from "./PageChrome";
 import type { TransactionListItem } from "../features/transactions/types";
 
 const eur = new Intl.NumberFormat("de-DE", {
@@ -113,13 +114,7 @@ export function TransactionDetailsOverlay({ tx, onClose, onSaved }: Props) {
         >
         <header className="zm-overlay-header">
           <h2 id="zm-details-title">Details</h2>
-          <button
-            type="button"
-            className="zm-btn zm-btn-ghost"
-            onClick={onClose}
-          >
-            Schließen
-          </button>
+          <CloseIconButton onClick={onClose} />
         </header>
 
         <div className="zm-details-grid">

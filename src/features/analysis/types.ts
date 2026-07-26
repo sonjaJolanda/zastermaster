@@ -55,6 +55,7 @@ export type AnalysisByCategory = {
 export type AnalysisBreakdownChild = {
   id: number | null;
   name: string;
+  color: string;
   amount: string;
   percent: number;
   count: number;

@@ -36,8 +36,10 @@ Actionable runbook for building Zaster Master. **Behavior details live in featur
 | 7 | More banks | ☑ | ☑ |
 | 8 | Related txs | ☑ | ☑ |
 | 9 | Hardening | ☑ | ☑ |
+| 10 | Design polish | ☑ | — |
 
 **MVP complete** when Thin of slices **0–6** are done (Analyse thin = summary only).
+Slice **10** is post-MVP visual polish (docs in [`design.md`](design.md)).
 
 ---
 
@@ -382,6 +384,40 @@ Product locks unchanged: **no** Jobs, auth, or cloud deploy.
 | PayPal | German TSV/TXT, `Abgeschlossen`+EUR | Supported |
 | Sparkasse | MT940-style `:61:`/`:86:` blocks | Supported |
 | Trade Republic | ISO datetime cash CSV | Supported |
+
+---
+
+## Slice 10 — Design polish
+
+**Goal:** Apply the post-MVP visual updates locked in [`design.md`](design.md) without changing domain behavior.
+
+**Specs:** [`design.md`](design.md) (shell, header, badges, page layouts)
+
+### Thin steps
+
+1. **Wider content panel** — bump `.zm-surface` width (target ~`min(1520px, 96vw)`).
+2. **Chrome** — no header bar; logo top-left only; sticky right side nav with custom SVGs (`Upload` / `Settings` / `Tables` / `Analysis`), **no** frosted boxes; no Kontostand in chrome.
+3. **Einstellungen layout** — Konten | Kategorien as two columns on desktop; “Neue Kategorie” as a normal card in the category grid (not a block above).
+4. **Analyse pies** — Ausgaben- and Einnahmen-pie side-by-side on desktop only; other sections stay stacked.
+5. **Transaktionen table polish**
+   - Category color swatch/dot next to name
+   - Details = `Edit.svg` icon button (German label)
+   - Bank badges + Konto pills per design.md token tables (incl. Trade Republic / fallback)
+   - Filters & Optionen collapsible (toolbar expand/collapse)
+6. Smoke-check overlays still center on the frosted panel; mobile stack still works.
+
+### Thin DoD
+
+- [x] No header bar; logo-only top-left; no balance in chrome; side nav = custom SVGs without boxes
+- [x] Content panel clearly wider than the old ~1280px lock
+- [x] Einstellungen: two columns + “Neue Kategorie” in the grid
+- [x] Analyse: dual pies side-by-side on desktop
+- [x] Transaktionen: category swatch, bank/konto badges, icon Details, collapsible filters
+- [x] [`design.md`](design.md) matches shipped UI (logo + side SVG nav)
+
+### Out of scope
+
+New features; DB wipe / fixtures (separate manual test prep); auth/Jobs/deploy.
 
 ---
 

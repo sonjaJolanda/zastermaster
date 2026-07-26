@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import {
   createCategory,
   createSubcategory,
-  deleteCategory,
-  deleteSubcategory,
   getAccounts,
   getCategories,
   seedCategoriesIfEmpty,
@@ -13,7 +11,9 @@ import {
   useQuery,
 } from "wasp/client/operations";
 import { BalanceCalibrationModal } from "../components/BalanceCalibrationModal";
+import { CloseIconButton, EditIconButton, PageTitle } from "../components/PageChrome";
 import type { CategoryTreeNode } from "../features/categories/types";
+import { useClearNavPendingWhen } from "../features/shell/NavPendingContext";
 
 const eur = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -39,6 +39,7 @@ export function EinstellungenPage() {
     bank: string;
     konto: string;
     suggestedBalance: string | null;
+    color: string;
   } | null>(null);
 
   useEffect(() => {
@@ -69,6 +70,8 @@ export function EinstellungenPage() {
     data: accounts,
     refetch: refetchAccounts,
   } = useQuery(getAccounts);
+
+  useClearNavPendingWhen(seedReady && !isLoading);
 
   async function run(label: string, fn: () => Promise<unknown>) {
     setBusy(true);
@@ -102,10 +105,7 @@ export function EinstellungenPage() {
 
   return (
     <section>
-      <h1 className="zm-page-title">Einstellungen</h1>
-      <p className="zm-page-lead">
-        Kontostände kalibrieren sowie Kategorien und Stichwörter pflegen.
-      </p>
+      <PageTitle icon="/design/Settings.svg">Einstellungen</PageTitle>
 
       {seedError && (
         <p className="zm-status-error" role="alert">
@@ -123,108 +123,119 @@ export function EinstellungenPage() {
         </p>
       )}
 
-      <div className="zm-accounts-panel">
-        <h2 className="zm-cat-section-title">Konten &amp; Kontostand</h2>
-        <p className="zm-page-lead">
-          Anzeige im Header = kalibrierter Stand + Buchungen nach dem
-          Stichtag (Roll-forward).
-        </p>
-        {(accounts?.length ?? 0) === 0 ? (
-          <p className="zm-page-lead">Noch keine Konten — zuerst importieren.</p>
-        ) : (
-          <ul className="zm-account-list">
-            {accounts!.map((a) => (
-              <li key={a.id} className="zm-account-row">
-                <div>
-                  <strong>
-                    {a.bank.toUpperCase()} · {a.konto}
-                  </strong>
-                  <div className="zm-cat-meta">
-                    {a.asOfDate
-                      ? `Kalibriert ${a.asOfDate}: ${eur.format(Number(a.currentBalance ?? 0))}`
-                      : "Noch nicht kalibriert"}
-                    {a.displayBalance != null && (
-                      <> · Anzeige: {eur.format(Number(a.displayBalance))}</>
-                    )}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="zm-btn zm-btn-ghost"
-                  onClick={() =>
-                    setCalibrateAccount({
-                      accountId: a.id,
-                      bank: a.bank,
-                      konto: a.konto,
-                      suggestedBalance: a.currentBalance ?? a.displayBalance,
-                    })
-                  }
-                >
-                  {a.currentBalance == null ? "Kalibrieren" : "Anpassen"}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {(!seedReady || isLoading) && (
-        <p className="zm-page-lead">Kategorien werden geladen…</p>
-      )}
-
-      {categories && (
-        <div className="zm-cat-create">
-          <h2 className="zm-cat-section-title">Neue Kategorie</h2>
-          <div className="zm-cat-edit-row">
-            <input
-              className="zm-input"
-              type="color"
-              value={newColor}
-              onChange={(e) => setNewColor(e.target.value)}
-              title="Farbe"
-              aria-label="Farbe"
-            />
-            <input
-              className="zm-input zm-cat-name-input"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Name"
-              disabled={busy}
-            />
-            <button
-              type="button"
-              className="zm-btn zm-btn-primary"
-              disabled={busy}
-              onClick={() => void handleCreateCategory()}
-            >
-              Anlegen
-            </button>
+      <div className="zm-settings-columns">
+        <div className="zm-settings-col">
+          <div className="zm-accounts-panel">
+            <h2 className="zm-cat-section-title">Konten &amp; Kontostand</h2>
+            {(accounts?.length ?? 0) === 0 ? (
+              <p className="zm-page-lead">
+                Noch keine Konten — zuerst importieren.
+              </p>
+            ) : (
+              <ul className="zm-account-list">
+                {accounts!.map((a) => (
+                  <li key={a.id} className="zm-account-row">
+                    <div className="zm-account-row-main">
+                      <span
+                        className="zm-cat-swatch"
+                        style={{ backgroundColor: a.color }}
+                        aria-hidden
+                      />
+                      <div>
+                        <strong>
+                          {a.bank.toUpperCase()} · {a.konto}
+                        </strong>
+                        <div className="zm-cat-meta">
+                          {a.asOfDate
+                            ? `Kalibriert ${a.asOfDate}: ${eur.format(Number(a.currentBalance ?? 0))}`
+                            : "Noch nicht kalibriert"}
+                          {a.displayBalance != null && (
+                            <>
+                              {" "}
+                              · Anzeige: {eur.format(Number(a.displayBalance))}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <EditIconButton
+                      label={
+                        a.currentBalance == null ? "Kalibrieren" : "Anpassen"
+                      }
+                      onClick={() =>
+                        setCalibrateAccount({
+                          accountId: a.id,
+                          bank: a.bank,
+                          konto: a.konto,
+                          suggestedBalance:
+                            a.currentBalance ?? a.displayBalance,
+                          color: a.color,
+                        })
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
-      )}
 
-      {categories && categories.length === 0 && !isLoading && (
-        <p className="zm-page-lead">Keine Kategorien vorhanden.</p>
-      )}
-
-      {categories && categories.length > 0 && (
-        <ul className="zm-cat-grid">
-          {categories.map((category) => (
-            <CategoryCard
-              key={category.id}
-              category={category}
-              expanded={expandedId === category.id}
-              busy={busy}
-              onToggle={() =>
-                setExpandedId((id) =>
-                  id === category.id ? null : category.id,
-                )
-              }
-              onRun={run}
-            />
-          ))}
-        </ul>
-      )}
+        <div className="zm-settings-col">
+          <h2 className="zm-cat-section-title">Kategorien</h2>
+          {(!seedReady || isLoading) && (
+            <p className="zm-page-lead">Kategorien werden geladen…</p>
+          )}
+          {categories && categories.length === 0 && !isLoading && (
+            <p className="zm-page-lead">Keine Kategorien vorhanden.</p>
+          )}
+          {categories && (
+            <ul className="zm-cat-grid">
+              {categories.map((category) => (
+                <CategoryCard
+                  key={category.id}
+                  category={category}
+                  expanded={expandedId === category.id}
+                  busy={busy}
+                  onToggle={() =>
+                    setExpandedId((id) =>
+                      id === category.id ? null : category.id,
+                    )
+                  }
+                  onRun={run}
+                />
+              ))}
+              <li className="zm-cat-card zm-cat-card--create">
+                <h3 className="zm-cat-section-title">Neue Kategorie</h3>
+                <div className="zm-cat-edit-row">
+                  <input
+                    className="zm-input zm-input-color"
+                    type="color"
+                    value={newColor}
+                    onChange={(e) => setNewColor(e.target.value)}
+                    title="Farbe"
+                    aria-label="Farbe"
+                  />
+                  <input
+                    className="zm-input zm-cat-name-input"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Name"
+                    disabled={busy}
+                  />
+                  <button
+                    type="button"
+                    className="zm-btn zm-btn-primary"
+                    disabled={busy}
+                    onClick={() => void handleCreateCategory()}
+                  >
+                    Anlegen
+                  </button>
+                </div>
+              </li>
+            </ul>
+          )}
+        </div>
+      </div>
 
       {calibrateAccount && (
         <BalanceCalibrationModal
@@ -232,6 +243,7 @@ export function EinstellungenPage() {
           bank={calibrateAccount.bank}
           konto={calibrateAccount.konto}
           suggestedBalance={calibrateAccount.suggestedBalance}
+          color={calibrateAccount.color}
           onDone={() => {
             setCalibrateAccount(null);
             void refetchAccounts();
@@ -252,6 +264,8 @@ type CardProps = {
   onRun: (label: string, fn: () => Promise<unknown>) => Promise<void>;
 };
 
+type EditTarget = "main" | number | null;
+
 function CategoryCard({
   category,
   expanded,
@@ -259,41 +273,54 @@ function CategoryCard({
   onToggle,
   onRun,
 }: CardProps) {
-  const [name, setName] = useState(category.name);
-  const [color, setColor] = useState(category.color);
-  const [mainKeywords, setMainKeywords] = useState(
-    category.keywords.map((k) => k.keyword),
-  );
+  const [editTarget, setEditTarget] = useState<EditTarget>(null);
   const [subName, setSubName] = useState("");
   const [subColor, setSubColor] = useState(category.color);
 
   useEffect(() => {
-    setName(category.name);
-    setColor(category.color);
-    setMainKeywords(category.keywords.map((k) => k.keyword));
+    if (!expanded) setEditTarget(null);
+  }, [expanded]);
+
+  useEffect(() => {
     setSubColor(category.color);
-  }, [category]);
+  }, [category.color]);
 
   return (
-    <li className={`zm-cat-card${expanded ? " is-expanded" : ""}`}>
+    <li
+      className={`zm-cat-card${expanded ? " is-expanded" : ""}`}
+      style={
+        {
+          "--zm-cat-tint": category.color,
+        } as CSSProperties
+      }
+    >
       <header className="zm-cat-card-header">
         <span
           className="zm-cat-swatch"
           style={{ backgroundColor: category.color }}
           aria-hidden
         />
-        <h2 className="zm-cat-name">{category.name}</h2>
-        <span className="zm-cat-meta">
-          {category.subcategories.length} Unter · {category.keywords.length}{" "}
-          Stichwörter
-        </span>
-        <button
-          type="button"
-          className="zm-btn zm-btn-ghost zm-cat-toggle"
-          onClick={onToggle}
-        >
-          {expanded ? "Schließen" : "Bearbeiten"}
-        </button>
+        <div className="zm-cat-card-heading">
+          <h2 className="zm-cat-name">{category.name}</h2>
+          {category.keywords.length > 0 && (
+            <span className="zm-cat-meta">
+              {category.keywords.length} Stichwörter
+            </span>
+          )}
+        </div>
+        {expanded ? (
+          <CloseIconButton
+            className="zm-cat-toggle"
+            label="Schließen"
+            onClick={onToggle}
+          />
+        ) : (
+          <EditIconButton
+            className="zm-cat-toggle"
+            label="Bearbeiten"
+            onClick={onToggle}
+          />
+        )}
       </header>
 
       {!expanded && category.subcategories.length > 0 && (
@@ -318,88 +345,86 @@ function CategoryCard({
 
       {expanded && (
         <div className="zm-cat-editor">
-          <h3 className="zm-cat-section-title">Hauptkategorie</h3>
-          <div className="zm-cat-edit-row">
-            <input
-              className="zm-input"
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              aria-label="Farbe"
-            />
-            <input
-              className="zm-input zm-cat-name-input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={busy}
-            />
-            <button
-              type="button"
-              className="zm-btn zm-btn-primary"
-              disabled={busy}
-              onClick={() =>
-                void onRun("Kategorie gespeichert.", () =>
-                  updateCategory({ id: category.id, name, color }),
-                )
-              }
-            >
-              Speichern
-            </button>
-            <button
-              type="button"
-              className="zm-btn zm-btn-ghost"
-              disabled={busy}
-              onClick={() => {
-                if (
-                  !window.confirm(
-                    `Kategorie „${category.name}“ wirklich löschen?`,
-                  )
-                ) {
-                  return;
-                }
-                void onRun("Kategorie gelöscht.", () =>
-                  deleteCategory({ id: category.id }),
-                );
-              }}
-            >
-              Löschen
-            </button>
-          </div>
-
-          <KeywordEditor
-            label="Stichwörter (Hauptkategorie)"
-            keywords={mainKeywords}
+          <CategoryNodePanel
+            name={category.name}
+            color={category.color}
+            keywords={category.keywords.map((k) => k.keyword)}
             busy={busy}
-            onChange={setMainKeywords}
-            onSave={() =>
-              void onRun("Stichwörter gespeichert.", () =>
-                setKeywords({
-                  categoryId: category.id,
-                  keywords: mainKeywords,
-                }),
+            editing={editTarget === "main"}
+            onToggleEdit={() =>
+              setEditTarget((t) => (t === "main" ? null : "main"))
+            }
+            onSaveNameColor={(name, color) =>
+              onRun("Kategorie gespeichert.", () =>
+                updateCategory({ id: category.id, name, color }),
+              )
+            }
+            onSaveKeywords={(keywords) =>
+              onRun("Stichwörter gespeichert.", () =>
+                setKeywords({ categoryId: category.id, keywords }),
               )
             }
           />
 
-          <h3 className="zm-cat-section-title">Unterkategorien</h3>
-          <div className="zm-cat-edit-row">
+          <div className="zm-cat-sub-grid">
+            {category.subcategories.map((sub) => (
+              <CategoryNodePanel
+                key={sub.id}
+                name={sub.name}
+                color={sub.color}
+                keywords={sub.keywords.map((k) => k.keyword)}
+                busy={busy}
+                editing={editTarget === sub.id}
+                onToggleEdit={() =>
+                  setEditTarget((t) => (t === sub.id ? null : sub.id))
+                }
+                onSaveNameColor={(name, color) =>
+                  onRun("Unterkategorie gespeichert.", () =>
+                    updateSubcategory({ id: sub.id, name, color }),
+                  )
+                }
+                onSaveKeywords={(keywords) =>
+                  onRun("Stichwörter gespeichert.", () =>
+                    setKeywords({ subcategoryId: sub.id, keywords }),
+                  )
+                }
+              />
+            ))}
+          </div>
+
+          <div className="zm-cat-add-sub">
             <input
-              className="zm-input"
+              className="zm-input zm-input-color"
               type="color"
               value={subColor}
-              onChange={(e) => setSubColor(e.target.value)}
+              disabled={busy}
               aria-label="Farbe neue Unterkategorie"
+              title="Farbe"
+              onChange={(e) => setSubColor(e.target.value)}
             />
             <input
-              className="zm-input zm-cat-name-input"
+              className="zm-input zm-input-sm"
               value={subName}
               onChange={(e) => setSubName(e.target.value)}
-              placeholder="Neue Unterkategorie"
+              placeholder="Neue Unterkategorie…"
               disabled={busy}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && subName.trim()) {
+                  e.preventDefault();
+                  void onRun("Unterkategorie angelegt.", async () => {
+                    await createSubcategory({
+                      categoryId: category.id,
+                      name: subName,
+                      color: subColor,
+                    });
+                    setSubName("");
+                  });
+                }
+              }}
             />
             <button
               type="button"
-              className="zm-btn zm-btn-primary"
+              className="zm-btn zm-btn-ghost"
               disabled={busy || !subName.trim()}
               onClick={() =>
                 void onRun("Unterkategorie angelegt.", async () => {
@@ -412,189 +437,177 @@ function CategoryCard({
                 })
               }
             >
-              Unter anlegen
+              Anlegen
             </button>
           </div>
-
-          <ul className="zm-subcat-edit-list">
-            {category.subcategories.map((sub) => (
-              <SubcategoryEditor
-                key={sub.id}
-                sub={sub}
-                busy={busy}
-                onRun={onRun}
-              />
-            ))}
-          </ul>
         </div>
       )}
     </li>
   );
 }
 
-function SubcategoryEditor({
-  sub,
-  busy,
-  onRun,
-}: {
-  sub: CategoryTreeNode["subcategories"][number];
-  busy: boolean;
-  onRun: (label: string, fn: () => Promise<unknown>) => Promise<void>;
-}) {
-  const [name, setName] = useState(sub.name);
-  const [color, setColor] = useState(sub.color);
-  const [keywords, setKw] = useState(sub.keywords.map((k) => k.keyword));
-
-  useEffect(() => {
-    setName(sub.name);
-    setColor(sub.color);
-    setKw(sub.keywords.map((k) => k.keyword));
-  }, [sub]);
-
-  return (
-    <li className="zm-subcat-editor">
-      <div className="zm-cat-edit-row">
-        <input
-          className="zm-input"
-          type="color"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-          aria-label={`Farbe ${sub.name}`}
-        />
-        <input
-          className="zm-input zm-cat-name-input"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={busy}
-        />
-        <button
-          type="button"
-          className="zm-btn zm-btn-primary"
-          disabled={busy}
-          onClick={() =>
-            void onRun("Unterkategorie gespeichert.", () =>
-              updateSubcategory({
-                id: sub.id,
-                name,
-                color,
-              }),
-            )
-          }
-        >
-          Speichern
-        </button>
-        <button
-          type="button"
-          className="zm-btn zm-btn-ghost"
-          disabled={busy}
-          onClick={() => {
-            if (
-              !window.confirm(`Unterkategorie „${sub.name}“ wirklich löschen?`)
-            ) {
-              return;
-            }
-            void onRun("Unterkategorie gelöscht.", () =>
-              deleteSubcategory({ id: sub.id }),
-            );
-          }}
-        >
-          Löschen
-        </button>
-      </div>
-      <KeywordEditor
-        label="Stichwörter"
-        keywords={keywords}
-        busy={busy}
-        onChange={setKw}
-        onSave={() =>
-          void onRun("Stichwörter gespeichert.", () =>
-            setKeywords({ subcategoryId: sub.id, keywords }),
-          )
-        }
-      />
-    </li>
-  );
-}
-
-function KeywordEditor({
-  label,
+function CategoryNodePanel({
+  name,
+  color,
   keywords,
   busy,
-  onChange,
-  onSave,
+  editing,
+  onToggleEdit,
+  onSaveNameColor,
+  onSaveKeywords,
 }: {
-  label: string;
+  name: string;
+  color: string;
   keywords: string[];
   busy: boolean;
-  onChange: (next: string[]) => void;
-  onSave: () => void;
+  editing: boolean;
+  onToggleEdit: () => void;
+  onSaveNameColor: (name: string, color: string) => Promise<void>;
+  onSaveKeywords: (keywords: string[]) => Promise<void>;
 }) {
-  const [draft, setDraft] = useState("");
+  const [draftName, setDraftName] = useState(name);
+  const [draftColor, setDraftColor] = useState(color);
+  const [kwDraft, setKwDraft] = useState("");
 
-  function addKeyword() {
-    const kw = draft.trim();
-    if (!kw) return;
-    if (keywords.some((k) => k.toLowerCase() === kw.toLowerCase())) {
-      setDraft("");
+  useEffect(() => {
+    if (editing) {
+      setDraftName(name);
+      setDraftColor(color);
+      setKwDraft("");
+    }
+  }, [editing, name, color]);
+
+  async function saveNameColor() {
+    const next = draftName.trim();
+    if (!next) {
+      setDraftName(name);
       return;
     }
-    onChange([...keywords, kw]);
-    setDraft("");
+    if (next === name && draftColor === color) return;
+    await onSaveNameColor(next, draftColor);
+  }
+
+  async function addKeyword() {
+    const kw = kwDraft.trim();
+    if (!kw) return;
+    if (keywords.some((k) => k.toLowerCase() === kw.toLowerCase())) {
+      setKwDraft("");
+      return;
+    }
+    setKwDraft("");
+    await onSaveKeywords([...keywords, kw]);
   }
 
   return (
-    <div className="zm-keyword-editor">
-      <span className="zm-field-label">{label}</span>
-      <div className="zm-chip-row">
-        {keywords.map((kw) => (
-          <button
-            key={kw}
-            type="button"
-            className="zm-chip is-active"
-            disabled={busy}
-            title="Entfernen"
-            onClick={() =>
-              onChange(keywords.filter((k) => k !== kw))
-            }
-          >
-            {kw} ×
-          </button>
-        ))}
-        {keywords.length === 0 && (
-          <span className="zm-page-lead">Keine Stichwörter</span>
+    <div className={`zm-cat-node${editing ? " is-editing" : ""}`}>
+      <div className="zm-cat-node-head">
+        {editing ? (
+          <>
+            <input
+              className="zm-input zm-input-color"
+              type="color"
+              value={draftColor}
+              disabled={busy}
+              aria-label={`Farbe ${name}`}
+              title="Farbe"
+              onChange={(e) => {
+                const nextColor = e.target.value;
+                setDraftColor(nextColor);
+                void onSaveNameColor(draftName.trim() || name, nextColor);
+              }}
+            />
+            <input
+              className="zm-input zm-input-sm zm-cat-node-name-input"
+              value={draftName}
+              disabled={busy}
+              aria-label="Name"
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void saveNameColor();
+                }
+                if (e.key === "Escape") {
+                  setDraftName(name);
+                  setDraftColor(color);
+                  onToggleEdit();
+                }
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <span
+              className="zm-cat-swatch"
+              style={{ backgroundColor: color }}
+              aria-hidden
+            />
+            <strong className="zm-cat-node-name">{name}</strong>
+          </>
         )}
-      </div>
-      <div className="zm-cat-edit-row">
-        <input
-          className="zm-input zm-cat-name-input"
-          value={draft}
+        <EditIconButton
+          className="zm-cat-node-edit"
+          label={editing ? "Fertig" : "Bearbeiten"}
           disabled={busy}
-          placeholder="Stichwort hinzufügen"
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addKeyword();
-            }
+          onClick={() => {
+            if (editing) void saveNameColor().then(() => onToggleEdit());
+            else onToggleEdit();
           }}
         />
-        <button
-          type="button"
-          className="zm-btn zm-btn-ghost"
-          disabled={busy || !draft.trim()}
-          onClick={addKeyword}
-        >
-          Hinzufügen
-        </button>
-        <button
-          type="button"
-          className="zm-btn zm-btn-primary"
-          disabled={busy}
-          onClick={onSave}
-        >
-          Stichwörter speichern
-        </button>
       </div>
+
+      {editing ? (
+        <div className="zm-kw-line">
+          <div className="zm-kw-list">
+            {keywords.length === 0 ? (
+              <span className="zm-cat-meta">Keine Stichwörter</span>
+            ) : (
+              keywords.map((kw, i) => (
+                <span key={kw}>
+                  {i > 0 && <span className="zm-kw-sep">, </span>}
+                  <button
+                    type="button"
+                    className="zm-kw-item"
+                    disabled={busy}
+                    title="Entfernen"
+                    onClick={() =>
+                      void onSaveKeywords(keywords.filter((k) => k !== kw))
+                    }
+                  >
+                    {kw}
+                  </button>
+                </span>
+              ))
+            )}
+          </div>
+          <div className="zm-kw-add">
+            <input
+              className="zm-input zm-input-sm"
+              value={kwDraft}
+              disabled={busy}
+              placeholder="Stichwort…"
+              onChange={(e) => setKwDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void addKeyword();
+                }
+              }}
+            />
+            <EditIconButton
+              label="Stichwort hinzufügen"
+              disabled={busy || !kwDraft.trim()}
+              onClick={() => void addKeyword()}
+            />
+          </div>
+        </div>
+      ) : (
+        <p className="zm-cat-node-keywords">
+          {keywords.length > 0
+            ? keywords.join(", ")
+            : "Keine Stichwörter"}
+        </p>
+      )}
     </div>
   );
 }

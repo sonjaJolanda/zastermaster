@@ -59,11 +59,12 @@ Ensure seeded defaults include usable **Sonstige** / **Unbekannt** (or create th
 
 ## Einstellungen / Kategorien (tree editing)
 
-Editing a category means the **whole definition**:
+**Two-step UI:**
 
-1. Main category — name, color, optional **main-level keywords**
-2. **Subcategories** — add / rename / delete / recolor
-3. **Keywords** on each subcategory (and on main) — drive auto-categorize on future imports
+1. Card pencil → expand **overview**: main category + subcategories in a **two-column** grid; keywords shown comma-separated (read-only).
+2. Pencil on a main/sub row → **edit that node** (color picker, name, add/remove keywords). Pencil again closes edit mode.
+
+Also: add subcategory via the small row at the bottom of the expanded card.
 
 **v1 delete policy (locked):** Block delete of a category/subcategory while transactions still reference it, **or** require reassigning those txs to Sonstige/Unbekannt first. Do not leave dangling FKs. Analyse always displays current FK labels ([`analysis.md`](analysis.md)).
 

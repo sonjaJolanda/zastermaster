@@ -8,6 +8,7 @@ import type {
   RelatedSuggestion,
   RelatedTxPublic,
 } from "../features/related/types";
+import { CloseIconButton } from "./PageChrome";
 
 const eur = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -207,13 +208,7 @@ export function RelatedDetectOverlay({ onClose, onChanged }: Props) {
         >
         <div className="zm-overlay-header">
           <h2 id="zm-related-title">Zusammengehörige Transaktionen</h2>
-          <button
-            type="button"
-            className="zm-btn zm-btn-ghost"
-            onClick={onClose}
-          >
-            Schließen
-          </button>
+          <CloseIconButton onClick={onClose} />
         </div>
 
         {state === "running" && (
@@ -229,18 +224,12 @@ export function RelatedDetectOverlay({ onClose, onChanged }: Props) {
             <p className="zm-status-error" role="alert">
               {error ?? "Erkennung fehlgeschlagen."}
             </p>
-            <button type="button" className="zm-btn zm-btn-primary" onClick={onClose}>
-              Schließen
-            </button>
           </div>
         )}
 
         {state === "empty" && (
           <div className="zm-related-progress">
             <p className="zm-page-lead">Keine neuen Vorschläge.</p>
-            <button type="button" className="zm-btn zm-btn-primary" onClick={onClose}>
-              Schließen
-            </button>
           </div>
         )}
 

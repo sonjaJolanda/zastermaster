@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { setAccountBalance } from "wasp/client/operations";
+import { defaultAccountColor } from "../features/accounts/colors";
+import { CloseIconButton } from "./PageChrome";
 
 type Props = {
   accountId: number;
   bank: string;
   konto: string;
   suggestedBalance: string | null;
+  /** Current badge color (resolved); defaults from bank if omitted. */
+  color?: string;
   onDone: () => void;
   onSkip: () => void;
 };
@@ -33,11 +37,15 @@ export function BalanceCalibrationModal({
   bank,
   konto,
   suggestedBalance,
+  color: initialColor,
   onDone,
   onSkip,
 }: Props) {
   const [balance, setBalance] = useState(formatSuggestion(suggestedBalance));
   const [asOfDate, setAsOfDate] = useState(todayIso());
+  const [color, setColor] = useState(
+    initialColor || defaultAccountColor(bank),
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,11 +57,14 @@ export function BalanceCalibrationModal({
         accountId,
         currentBalance: balance,
         asOfDate,
+        color,
       });
       onDone();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Kontostand konnte nicht gespeichert werden.",
+        err instanceof Error
+          ? err.message
+          : "Kontostand konnte nicht gespeichert werden.",
       );
     } finally {
       setBusy(false);
@@ -69,62 +80,65 @@ export function BalanceCalibrationModal({
     >
       <div className="zm-overlay-anchor">
         <div className="zm-overlay-panel zm-overlay-panel--narrow">
-        <header className="zm-overlay-header">
-          <h2 id="zm-balance-title">Kontostand kalibrieren</h2>
-        </header>
-        <p className="zm-page-lead">
-          Für <strong>{bank.toUpperCase()} · {konto}</strong>: aktuellen
-          Kontostand und Stichtag eingeben. Anzeige im Header = dieser Stand +
-          spätere Buchungen (Datum nach dem Stichtag).
-        </p>
+          <header className="zm-overlay-header">
+            <h2 id="zm-balance-title">Konto bearbeiten</h2>
+            <CloseIconButton disabled={busy} onClick={onSkip} />
+          </header>
+          <p className="zm-page-lead">
+            <strong>
+              {bank.toUpperCase()} · {konto}
+            </strong>
+          </p>
 
-        <div className="zm-upload zm-upload--modal">
-          <label className="zm-field">
-            <span className="zm-field-label">Aktueller Kontostand (€)</span>
-            <input
-              className="zm-input"
-              inputMode="decimal"
-              value={balance}
-              onChange={(e) => setBalance(e.target.value)}
-              placeholder="z. B. 4.046,97"
-              autoFocus
-            />
-          </label>
-          <label className="zm-field">
-            <span className="zm-field-label">Stand vom</span>
-            <input
-              className="zm-input"
-              type="date"
-              value={asOfDate}
-              onChange={(e) => setAsOfDate(e.target.value)}
-            />
-          </label>
+          <div className="zm-upload zm-upload--modal">
+            <label className="zm-field">
+              <span className="zm-field-label">Farbe (Bank-Badge)</span>
+              <input
+                className="zm-input zm-input-color"
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                aria-label="Kontenfarbe"
+              />
+            </label>
+            <label className="zm-field">
+              <span className="zm-field-label">Aktueller Kontostand (€)</span>
+              <input
+                className="zm-input"
+                inputMode="decimal"
+                value={balance}
+                onChange={(e) => setBalance(e.target.value)}
+                placeholder="z. B. 4.046,97"
+                autoFocus
+              />
+            </label>
+            <label className="zm-field">
+              <span className="zm-field-label">Stand vom</span>
+              <input
+                className="zm-input"
+                type="date"
+                value={asOfDate}
+                onChange={(e) => setAsOfDate(e.target.value)}
+              />
+            </label>
 
-          {error && (
-            <p className="zm-status-error" role="alert">
-              {error}
-            </p>
-          )}
+            {error && (
+              <p className="zm-status-error" role="alert">
+                {error}
+              </p>
+            )}
 
-          <div className="zm-btn-row">
-            <button
-              type="button"
-              className="zm-btn zm-btn-ghost"
-              disabled={busy}
-              onClick={onSkip}
-            >
-              Später
-            </button>
-            <button
-              type="button"
-              className="zm-btn zm-btn-primary"
-              disabled={busy || !balance.trim()}
-              onClick={() => void handleSave()}
-            >
-              {busy ? "Speichern…" : "Speichern"}
-            </button>
+            <div className="zm-btn-row">
+              <button
+                type="button"
+                className="zm-btn zm-btn-primary"
+                disabled={busy || !balance.trim()}
+                onClick={() => void handleSave()}
+              >
+                {busy ? "Speichern…" : "Speichern"}
+              </button>
+            </div>
           </div>
-        </div>
         </div>
       </div>
     </div>

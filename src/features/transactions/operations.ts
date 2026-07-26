@@ -113,7 +113,7 @@ function mapRow(row: {
   categorySource: TransactionListItem["categorySource"];
   relatedTransactionId: number | null;
   relatedType: TransactionListItem["relatedType"];
-  category: { id: number; name: string } | null;
+  category: { id: number; name: string; color: string } | null;
   subcategory: { id: number; name: string } | null;
 }): TransactionListItem {
   return {
@@ -131,6 +131,7 @@ function mapRow(row: {
     subcategoryId: row.subcategoryId,
     categoryName: row.category?.name ?? null,
     subcategoryName: row.subcategory?.name ?? null,
+    categoryColor: row.category?.color ?? null,
     confidenceScore: row.confidenceScore,
     categorySource: row.categorySource,
     relatedTransactionId: row.relatedTransactionId,
@@ -161,7 +162,7 @@ export const getTransactions: GetTransactions<
     skip: (safePage - 1) * pageSize,
     take: pageSize,
     include: {
-      category: { select: { id: true, name: true } },
+      category: { select: { id: true, name: true, color: true } },
       subcategory: { select: { id: true, name: true } },
     },
   });
@@ -204,10 +205,13 @@ export const getTransactionsSummary: GetTransactionsSummary<
 
   const income = Number(incomeAgg._sum.betrag?.toString() ?? 0);
   const expenseRaw = Number(expenseAgg._sum.betrag?.toString() ?? 0);
+  const expense = Math.abs(expenseRaw);
+  const net = income - expense;
 
   return {
     income: income.toFixed(2),
-    expense: Math.abs(expenseRaw).toFixed(2),
+    expense: expense.toFixed(2),
+    net: net.toFixed(2),
     count,
   };
 };
@@ -237,7 +241,7 @@ export const getTransactionNav: GetTransactionNav<
   const row = await context.entities.Transaction.findUnique({
     where: { id: args.id },
     include: {
-      category: { select: { id: true, name: true } },
+      category: { select: { id: true, name: true, color: true } },
       subcategory: { select: { id: true, name: true } },
     },
   });

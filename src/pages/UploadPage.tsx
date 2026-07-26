@@ -2,7 +2,9 @@ import { useNavigate } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import { importBankFile } from "wasp/client/operations";
 import { BalanceCalibrationModal } from "../components/BalanceCalibrationModal";
+import { PageTitle } from "../components/PageChrome";
 import { useImportLock } from "../features/import/ImportLockContext";
+import { useClearNavPendingWhen } from "../features/shell/NavPendingContext";
 import type { BankId } from "../features/import/types";
 
 type PendingCalibration = {
@@ -54,6 +56,8 @@ export function UploadPage() {
   const [pendingCalibration, setPendingCalibration] =
     useState<PendingCalibration | null>(null);
   const progressTimer = useRef<number | null>(null);
+
+  useClearNavPendingWhen(true);
 
   function goHome() {
     navigate("/", { replace: false });
@@ -144,11 +148,7 @@ export function UploadPage() {
 
   return (
     <section>
-      <h1 className="zm-page-title">Upload</h1>
-      <p className="zm-page-lead">
-        Bankauszug wählen und importieren (DKB, PayPal, Sparkasse, Trade
-        Republic). Während des Imports ist die Navigation gesperrt.
-      </p>
+      <PageTitle icon="/design/Upload.svg">Upload</PageTitle>
 
       <div className="zm-upload">
         <label className="zm-field">

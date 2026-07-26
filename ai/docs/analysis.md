@@ -16,10 +16,11 @@ Answer, without paying for AI:
 ## Page layout
 
 ```
-┌─ Filter bar (sticky on desktop) ─────────────────────────┐
-│ Zeitraum · Kategorie · Banken/Konten · Typ · [Anwenden] │
-├─ Summary strip ──────────────────────────────────────────┤
-│ Einnahmen · Ausgaben · Saldo (Netto) · # Buchungen       │
+┌─ Top bar ────────────────────────────────────────────────┐
+│ Einnahmen · Ausgaben · Netto · Buchungen                 │
+│                         CSV exportieren · Filter (toggle)│
+├─ Filters (collapsible, default closed) ──────────────────┤
+│ Zeitraum · Typ · Kategorie · Banken/Konten · …           │
 ├─ Sections (scroll) ──────────────────────────────────────┤
 │ 1. Zeitlicher Trend (line)                               │
 │ 2. Ausgaben nach Kategorie (pie + legend)                │
@@ -29,7 +30,7 @@ Answer, without paying for AI:
 └──────────────────────────────────────────────────────────┘
 ```
 
-One frosted content panel; filters at top; charts and tables below. Do not put five unrelated “dashboard cards” in the header.
+One frosted content panel; summary + actions under the title (same pattern as Transaktionen); charts and tables below. Do not put five unrelated “dashboard cards” in the header.
 
 ## Defaults (first open)
 
@@ -41,7 +42,7 @@ One frosted content panel; filters at top; charts and tables below. Do not put f
 | Banken / Konten | All imported accounts |
 | Typ | All (income + expenses) |
 
-Changing any filter refetches analysis queries (no stale charts).
+Changing any filter refetches analysis queries (no stale charts). **Route loading:** clicking any side-nav link shows a full-panel spinner immediately; the destination page clears it when its data is ready (Analyse waits for analysis queries).
 
 ## Filters (detailed)
 
@@ -67,9 +68,9 @@ Derived from the selected range (user can override if we expose a control; v1 ma
 
 | Range length | Grouping |
 |---|---|
-| ≤ 45 days | `day` |
-| 46 days – 2 years | `month` |
-| > 2 years | `year` |
+| ≤ ~400 days (covers “Dieses Jahr”) | `day` — continuous daily series (empty days = 0) so movement within/between months is visible |
+| 401 days – 3 years | `month` |
+| > 3 years | `year` |
 
 Each bucket sums income and expenses separately for the line chart.
 
@@ -97,6 +98,8 @@ Each bucket sums income and expenses separately for the line chart.
 Prefer **hide** unused chart/breakdown blocks (don’t leave empty zeros that look broken).
 
 ## Summary strip
+
+Shown **inline in the top bar** (with CSV + Filter toggle), same pattern as Transaktionen. Includes **Netto** when Typ is Alle.
 
 Always for the **current filters** (after netting):
 
@@ -132,7 +135,7 @@ Calibrated **wealth** (header balance) is **not** recomputed here; Analyse is ab
 ### 4. Ausgaben-Aufschlüsselung
 
 - Expandable table: main category → subcategories → optional top merchants/keywords later.
-- Columns: Name, Betrag, Anteil %, Anzahl Buchungen.
+- Columns: Name (with **color swatch** for category and subcategory), Betrag, Anteil %, Anzahl Buchungen.
 - Sorted by amount descending.
 - Uncategorized (`Sonstige` / `Unbekannt`) always visible if non-zero.
 

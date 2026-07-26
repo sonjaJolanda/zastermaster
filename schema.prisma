@@ -115,6 +115,8 @@ model Account {
   bank            String
   konto           String
   accountIban     String    @default("")
+  /// Badge color; empty → bank default from code (design.md).
+  color           String    @default("")
   /// Null until the user calibrates (header uses only calibrated balances).
   currentBalance  Decimal?  @db.Decimal(12, 2)
   asOfDate        DateTime? @db.Date

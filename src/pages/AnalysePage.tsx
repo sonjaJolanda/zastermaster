@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   exportAnalysisCsv,
   getAnalysisBreakdown,
@@ -14,8 +15,10 @@ import {
   AnalysisTrendChart,
 } from "../components/AnalysisCharts";
 import { AnalysisBreakdownTable } from "../components/AnalysisBreakdownTable";
+import { PageTitle } from "../components/PageChrome";
 import { downloadCsv } from "../features/export/csv";
 import type { AnalysisTyp } from "../features/analysis/types";
+import { useClearNavPendingWhen } from "../features/shell/NavPendingContext";
 
 const eur = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -64,6 +67,7 @@ export function AnalysePage() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [subcategoryId, setSubcategoryId] = useState<number | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const { data: options } = useQuery(getTransactionFilterOptions);
   const { data: categories } = useQuery(getCategories);
@@ -81,13 +85,33 @@ export function AnalysePage() {
     [dateFrom, dateTo, banks, konten, typ, categoryId, subcategoryId],
   );
 
-  const { data: summary, isLoading, error } = useQuery(
-    getAnalysisSummary,
+  const {
+    data: summary,
+    isFetching: summaryFetching,
+    error,
+  } = useQuery(getAnalysisSummary, filterArgs);
+  const { data: series, isFetching: seriesFetching } = useQuery(
+    getAnalysisTimeSeries,
     filterArgs,
   );
-  const { data: series } = useQuery(getAnalysisTimeSeries, filterArgs);
-  const { data: byCategory } = useQuery(getAnalysisByCategory, filterArgs);
-  const { data: breakdown } = useQuery(getAnalysisBreakdown, filterArgs);
+  const { data: byCategory, isFetching: byCategoryFetching } = useQuery(
+    getAnalysisByCategory,
+    filterArgs,
+  );
+  const { data: breakdown, isFetching: breakdownFetching } = useQuery(
+    getAnalysisBreakdown,
+    filterArgs,
+  );
+
+  const isLoading =
+    summaryFetching ||
+    seriesFetching ||
+    byCategoryFetching ||
+    breakdownFetching;
+
+  useClearNavPendingWhen(
+    !isLoading && (summary !== undefined || error != null),
+  );
 
   const selectedCategory = categories?.find((c) => c.id === categoryId);
   const subOptions = selectedCategory?.subcategories ?? [];
@@ -136,13 +160,77 @@ export function AnalysePage() {
 
   return (
     <section className="zm-analyse-page">
-      <h1 className="zm-page-title">Analyse</h1>
-      <p className="zm-page-lead">
-        Zeitraum-Auswertung mit Trend, Kategorien und Aufschlüsselung
-        (verwandte Buchungen werden genettet).
-      </p>
+      <PageTitle icon="/design/Analysis.svg">Analyse</PageTitle>
 
-      <div className="zm-toolbar zm-analyse-filters">
+      <div className="zm-tx-topbar" aria-live="polite">
+        <div className="zm-summary-inline">
+          {showIncome && (
+            <div>
+              <span className="zm-summary-label">Einnahmen</span>
+              <span className="zm-amount-income">
+                {eur.format(Number(summary?.income ?? 0))}
+              </span>
+            </div>
+          )}
+          {showExpense && (
+            <div>
+              <span className="zm-summary-label">Ausgaben</span>
+              <span className="zm-amount-expense">
+                {eur.format(Number(summary?.expense ?? 0))}
+              </span>
+            </div>
+          )}
+          {showNet && (
+            <div>
+              <span className="zm-summary-label">Netto</span>
+              <span
+                className={
+                  Number(summary?.net ?? 0) > 0
+                    ? "zm-amount-income"
+                    : Number(summary?.net ?? 0) < 0
+                      ? "zm-amount-expense"
+                      : "zm-summary-value"
+                }
+              >
+                {eur.format(Number(summary?.net ?? 0))}
+              </span>
+            </div>
+          )}
+          <div>
+            <span className="zm-summary-label">Buchungen</span>
+            <span className="zm-summary-value">
+              {(summary?.count ?? 0).toLocaleString("de-DE")}
+            </span>
+          </div>
+        </div>
+        <div className="zm-tx-topbar-actions">
+          <button
+            type="button"
+            className="zm-btn zm-btn-ghost"
+            disabled={exportBusy || isLoading}
+            onClick={() => void handleExportCsv()}
+          >
+            {exportBusy ? "Export…" : "CSV exportieren"}
+          </button>
+          <button
+            type="button"
+            className="zm-btn zm-btn-ghost"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((o) => !o)}
+          >
+            {filtersOpen ? (
+              <ChevronUp size={16} aria-hidden />
+            ) : (
+              <ChevronDown size={16} aria-hidden />
+            )}{" "}
+            Filter
+          </button>
+        </div>
+      </div>
+
+      <div
+        className={`zm-toolbar zm-analyse-filters${filtersOpen ? "" : " is-collapsed"}`}
+      >
         <div className="zm-filter-group">
           <span className="zm-field-label">Zeitraum</span>
           <div className="zm-chip-row">
@@ -257,17 +345,6 @@ export function AnalysePage() {
           </button>
         )}
 
-        <button
-          type="button"
-          className="zm-btn zm-btn-ghost"
-          disabled={exportBusy || isLoading}
-          onClick={() => void handleExportCsv()}
-        >
-          {exportBusy ? "Export…" : "CSV exportieren"}
-        </button>
-      </div>
-
-      <div className="zm-toolbar">
         <div className="zm-filter-group">
           <span className="zm-field-label">Bank</span>
           <div className="zm-chip-row">
@@ -312,64 +389,34 @@ export function AnalysePage() {
         </div>
       </div>
 
-      {isLoading && <p className="zm-page-lead">Laden…</p>}
-      {error && (
+      {isLoading && (
+        <div
+          className="zm-analyse-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div className="zm-related-spinner" aria-hidden />
+          <p>Auswertung wird geladen…</p>
+          <p className="zm-page-lead">
+            Das kann bei vielen Buchungen etwas dauern.
+          </p>
+        </div>
+      )}
+      {!isLoading && error && (
         <p className="zm-status-error" role="alert">
           {String(error)}
         </p>
       )}
 
-      {summary && !isLoading && (
-        <div className="zm-summary-strip" aria-live="polite">
-          {showIncome && (
-            <div>
-              <span className="zm-summary-label">Einnahmen</span>
-              <span className="zm-amount-income">
-                {eur.format(Number(summary.income))}
-              </span>
-            </div>
-          )}
-          {showExpense && (
-            <div>
-              <span className="zm-summary-label">Ausgaben</span>
-              <span className="zm-amount-expense">
-                {eur.format(Number(summary.expense))}
-              </span>
-            </div>
-          )}
-          {showNet && (
-            <div>
-              <span className="zm-summary-label">Netto</span>
-              <span
-                className={
-                  Number(summary.net) > 0
-                    ? "zm-amount-income"
-                    : Number(summary.net) < 0
-                      ? "zm-amount-expense"
-                      : "zm-summary-value"
-                }
-              >
-                {eur.format(Number(summary.net))}
-              </span>
-            </div>
-          )}
-          <div>
-            <span className="zm-summary-label">Buchungen</span>
-            <span className="zm-summary-value">
-              {summary.count.toLocaleString("de-DE")}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {!hasData && !isLoading && summary && (
+      {!isLoading && !hasData && summary && (
         <p className="zm-page-lead">
           Keine Buchungen im gewählten Zeitraum. Zeitraum anpassen oder Daten
           importieren.
         </p>
       )}
 
-      {hasData && (
+      {!isLoading && hasData && (
         <>
           <section className="zm-analyse-section">
             <h2 className="zm-analyse-heading">
@@ -393,40 +440,43 @@ export function AnalysePage() {
             />
           </section>
 
-          {showExpense && (
-            <section className="zm-analyse-section">
-              <h2 className="zm-analyse-heading">
-                Ausgaben nach{" "}
-                {byCategory?.mode === "subcategory"
-                  ? "Unterkategorie"
-                  : "Kategorie"}
-              </h2>
-              <AnalysisCategoryPie
-                slices={byCategory?.expenses ?? []}
-                emptyLabel="Keine Ausgaben in diesem Filter."
-                onSliceClick={
-                  subcategoryId == null ? drillToCategory : undefined
-                }
-              />
-            </section>
-          )}
-
-          {showIncome && (
-            <section className="zm-analyse-section">
-              <h2 className="zm-analyse-heading">
-                Einnahmen nach{" "}
-                {byCategory?.mode === "subcategory"
-                  ? "Unterkategorie"
-                  : "Kategorie"}
-              </h2>
-              <AnalysisCategoryPie
-                slices={byCategory?.income ?? []}
-                emptyLabel="Keine Einnahmen in diesem Filter."
-                onSliceClick={
-                  subcategoryId == null ? drillToCategory : undefined
-                }
-              />
-            </section>
+          {(showExpense || showIncome) && (
+            <div className="zm-analyse-pies">
+              {showExpense && (
+                <section className="zm-analyse-section">
+                  <h2 className="zm-analyse-heading">
+                    Ausgaben nach{" "}
+                    {byCategory?.mode === "subcategory"
+                      ? "Unterkategorie"
+                      : "Kategorie"}
+                  </h2>
+                  <AnalysisCategoryPie
+                    slices={byCategory?.expenses ?? []}
+                    emptyLabel="Keine Ausgaben in diesem Filter."
+                    onSliceClick={
+                      subcategoryId == null ? drillToCategory : undefined
+                    }
+                  />
+                </section>
+              )}
+              {showIncome && (
+                <section className="zm-analyse-section">
+                  <h2 className="zm-analyse-heading">
+                    Einnahmen nach{" "}
+                    {byCategory?.mode === "subcategory"
+                      ? "Unterkategorie"
+                      : "Kategorie"}
+                  </h2>
+                  <AnalysisCategoryPie
+                    slices={byCategory?.income ?? []}
+                    emptyLabel="Keine Einnahmen in diesem Filter."
+                    onSliceClick={
+                      subcategoryId == null ? drillToCategory : undefined
+                    }
+                  />
+                </section>
+              )}
+            </div>
           )}
 
           {showExpense && (

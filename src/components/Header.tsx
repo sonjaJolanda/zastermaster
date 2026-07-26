@@ -1,24 +1,14 @@
-import { Link, useLocation } from "react-router";
-import {
-  ArrowUpFromLine,
-  BarChart3,
-  List,
-  Settings,
-} from "lucide-react";
-import { getHeaderBalance, useQuery } from "wasp/client/operations";
+import { Link, useLocation, useNavigate } from "react-router";
+import { flushSync } from "react-dom";
 import { useImportLock } from "../features/import/ImportLockContext";
+import { useNavPending } from "../features/shell/NavPendingContext";
 
 const navItems = [
-  { to: "/upload", label: "Upload", Icon: ArrowUpFromLine },
-  { to: "/einstellungen", label: "Einstellungen", Icon: Settings },
-  { to: "/", label: "Transaktionen", Icon: List },
-  { to: "/analyse", label: "Analyse", Icon: BarChart3 },
+  { to: "/", label: "Transaktionen", icon: "/design/Tables.svg" },
+  { to: "/analyse", label: "Analyse", icon: "/design/Analysis.svg" },
+  { to: "/upload", label: "Upload", icon: "/design/Upload.svg" },
+  { to: "/einstellungen", label: "Einstellungen", icon: "/design/Settings.svg" },
 ] as const;
-
-const eur = new Intl.NumberFormat("de-DE", {
-  style: "currency",
-  currency: "EUR",
-});
 
 function isActive(pathname: string, to: string) {
   if (to === "/") return pathname === "/";
@@ -27,43 +17,45 @@ function isActive(pathname: string, to: string) {
 
 export function Header() {
   const { pathname } = useLocation();
-  const { data: balance } = useQuery(getHeaderBalance);
+  const navigate = useNavigate();
   const { importLocked } = useImportLock();
+  const { pendingTo, beginPending, clearPending } = useNavPending();
 
-  const balanceLabel =
-    balance?.total != null ? eur.format(Number(balance.total)) : "—";
-
-  const title =
-    balance && balance.calibratedCount > 0
-      ? `Kontostand (Roll-forward): Summe von ${balance.calibratedCount} Konto/Konten — kalibrierter Stand + Buchungen nach Stichtag`
-      : "Kontostand — nach Import kalibrieren (Einstellungen oder Upload)";
+  function go(to: (typeof navItems)[number]["to"]) {
+    if (isActive(pathname, to)) {
+      clearPending();
+      return;
+    }
+    flushSync(() => {
+      beginPending(to);
+    });
+    navigate(to);
+  }
 
   return (
-    <header className="zm-header">
+    <>
       <Link
         to="/"
         className={`zm-brand${importLocked ? " is-disabled" : ""}`}
         title="Zaster Master"
+        aria-label="Zaster Master — zur Transaktionen"
         onClick={(e) => {
-          if (importLocked) e.preventDefault();
+          e.preventDefault();
+          if (importLocked) return;
+          go("/");
         }}
         aria-disabled={importLocked || undefined}
       >
         <img
           src="/design/Zaster_Master_Logo.svg"
-          alt="Zaster Master"
+          alt=""
           className="zm-logo"
         />
-        <span className="zm-brand-text">Zaster Master</span>
       </Link>
 
-      <p className="zm-balance" title={title}>
-        Kontostand: <span className="zm-balance-value">{balanceLabel}</span>
-      </p>
-
-      <nav className="zm-nav" aria-label="Hauptnavigation">
-        {navItems.map(({ to, label, Icon }) => {
-          const active = isActive(pathname, to);
+      <nav className="zm-side-nav" aria-label="Hauptnavigation">
+        {navItems.map(({ to, label, icon }) => {
+          const active = isActive(pathname, to) || pendingTo === to;
           const locked = importLocked && to !== "/upload";
           return (
             <Link
@@ -75,15 +67,17 @@ export function Header() {
               aria-current={active ? "page" : undefined}
               aria-disabled={locked || undefined}
               onClick={(e) => {
-                if (locked) e.preventDefault();
+                e.preventDefault();
+                if (locked) return;
+                go(to);
               }}
               tabIndex={locked ? -1 : undefined}
             >
-              <Icon size={22} strokeWidth={1.75} aria-hidden />
+              <img src={icon} alt="" className="zm-nav-icon" aria-hidden />
             </Link>
           );
         })}
       </nav>
-    </header>
+    </>
   );
 }

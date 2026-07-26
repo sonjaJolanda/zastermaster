@@ -1,5 +1,6 @@
 import { HttpError } from "wasp/server";
 import type { ImportBankFile } from "wasp/server/operations";
+import { defaultAccountColor } from "../accounts/colors";
 import {
   buildKeywordCatalog,
   categorizeRow,
@@ -221,6 +222,7 @@ export const importBankFile: ImportBankFile<
       bank: args.bank,
       konto: parsed.konto,
       accountIban: parsed.accountIban || "",
+      color: defaultAccountColor(args.bank),
     },
     update: {
       accountIban: parsed.accountIban || undefined,

@@ -19,6 +19,8 @@ export type TransactionListItem = {
   subcategoryId: number | null;
   categoryName: string | null;
   subcategoryName: string | null;
+  /** Main category color for table swatch. */
+  categoryColor: string | null;
   confidenceScore: number;
   categorySource: CategorySource;
   relatedTransactionId: number | null;
@@ -54,6 +56,7 @@ export type TransactionsPageResult = {
 export type TransactionsSummary = {
   income: string;
   expense: string;
+  net: string;
   count: number;
 };
 

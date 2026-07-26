@@ -98,9 +98,13 @@ export function AnalysisBreakdownTable({
                         className="zm-breakdown-child"
                       >
                         <td>
-                          <span className="zm-breakdown-indent">
+                          <div className="zm-breakdown-name zm-breakdown-indent">
+                            <span
+                              className="zm-pie-swatch"
+                              style={{ background: child.color || "#78716c" }}
+                            />
                             {child.name}
-                          </span>
+                          </div>
                         </td>
                         <td className="zm-num">
                           {eur.format(Number(child.amount))}

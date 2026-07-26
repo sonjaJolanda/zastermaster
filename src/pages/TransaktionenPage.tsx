@@ -1,16 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Link2 } from "lucide-react";
 import {
   exportTransactionsCsv,
+  getAccounts,
   getTransactionFilterOptions,
   getTransactionNav,
   getTransactions,
   getTransactionsSummary,
   useQuery,
 } from "wasp/client/operations";
+import { EditIconButton, PageTitle } from "../components/PageChrome";
 import { RelatedDetectOverlay } from "../components/RelatedDetectOverlay";
 import { TransactionDetailsOverlay } from "../components/TransactionDetailsOverlay";
 import { downloadCsv } from "../features/export/csv";
+import { useClearNavPendingWhen } from "../features/shell/NavPendingContext";
+import {
+  bankBadgeClass,
+  bankBadgeColor,
+  bankLabel,
+  kontoPillClass,
+} from "../features/transactions/badges";
 import {
   loadColumnVisibility,
   saveColumnVisibility,
@@ -78,6 +87,7 @@ export function TransaktionenPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [columnsOpen, setColumnsOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [columns, setColumns] = useState<ColumnVisibility>(() =>
     typeof window !== "undefined"
       ? loadColumnVisibility()
@@ -170,13 +180,23 @@ export function TransaktionenPage() {
   );
 
   const { data: options } = useQuery(getTransactionFilterOptions);
+  const { data: accounts } = useQuery(getAccounts);
   const { data, isLoading, error, refetch } = useQuery(
     getTransactions,
     filterArgs,
   );
   const { data: summary } = useQuery(getTransactionsSummary, summaryArgs);
 
+  useClearNavPendingWhen(!isLoading && (data !== undefined || error != null));
+
   const items = data?.items ?? [];
+  const accountColorByKey = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of accounts ?? []) {
+      m.set(`${a.bank}\0${a.konto}`, a.color);
+    }
+    return m;
+  }, [accounts]);
   const show = (key: TxColumnKey) => columns[key];
 
   function resetPage() {
@@ -291,30 +311,77 @@ export function TransaktionenPage() {
 
   return (
     <section className="zm-tx-page">
-      <h1 className="zm-page-title">Transaktionen</h1>
+      <PageTitle icon="/design/Tables.svg">Transaktionen</PageTitle>
 
-      <div className="zm-summary-strip" aria-live="polite">
-        <div>
-          <span className="zm-summary-label">Einnahmen</span>
-          <span className="zm-amount-income">
-            {eur.format(Number(summary?.income ?? 0))}
-          </span>
+      <div className="zm-tx-topbar" aria-live="polite">
+        <div className="zm-summary-inline">
+          <div>
+            <span className="zm-summary-label">Einnahmen</span>
+            <span className="zm-amount-income">
+              {eur.format(Number(summary?.income ?? 0))}
+            </span>
+          </div>
+          <div>
+            <span className="zm-summary-label">Ausgaben</span>
+            <span className="zm-amount-expense">
+              {eur.format(Number(summary?.expense ?? 0))}
+            </span>
+          </div>
+          <div>
+            <span className="zm-summary-label">Netto</span>
+            <span
+              className={
+                Number(summary?.net ?? 0) > 0
+                  ? "zm-amount-income"
+                  : Number(summary?.net ?? 0) < 0
+                    ? "zm-amount-expense"
+                    : "zm-summary-value"
+              }
+            >
+              {eur.format(Number(summary?.net ?? 0))}
+            </span>
+          </div>
+          <div>
+            <span className="zm-summary-label">Buchungen</span>
+            <span className="zm-summary-value">
+              {(summary?.count ?? 0).toLocaleString("de-DE")}
+            </span>
+          </div>
         </div>
-        <div>
-          <span className="zm-summary-label">Ausgaben</span>
-          <span className="zm-amount-expense">
-            {eur.format(Number(summary?.expense ?? 0))}
-          </span>
-        </div>
-        <div>
-          <span className="zm-summary-label">Buchungen</span>
-          <span className="zm-summary-value">
-            {(summary?.count ?? 0).toLocaleString("de-DE")}
-          </span>
+        <div className="zm-tx-topbar-actions">
+          <button
+            type="button"
+            className="zm-btn zm-btn-ghost"
+            disabled={exportBusy || relatedOpen}
+            onClick={() => void handleExportCsv()}
+          >
+            {exportBusy ? "Export…" : "CSV exportieren"}
+          </button>
+          <button
+            type="button"
+            className="zm-btn zm-btn-ghost"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((o) => !o)}
+          >
+            {filtersOpen ? (
+              <ChevronUp size={16} aria-hidden />
+            ) : (
+              <ChevronDown size={16} aria-hidden />
+            )}{" "}
+            Filter &amp; Optionen
+          </button>
+          <button
+            type="button"
+            className="zm-btn zm-btn-primary"
+            disabled={relatedOpen}
+            onClick={() => setRelatedOpen(true)}
+          >
+            Zusammengehörige erkennen
+          </button>
         </div>
       </div>
 
-      <div className="zm-toolbar">
+      <div className={`zm-toolbar${filtersOpen ? "" : " is-collapsed"}`}>
         <div className="zm-filter-group">
           <span className="zm-field-label">Bank</span>
           <div className="zm-chip-row">
@@ -513,24 +580,6 @@ export function TransaktionenPage() {
             </div>
           )}
         </div>
-
-        <button
-          type="button"
-          className="zm-btn zm-btn-ghost"
-          disabled={exportBusy || relatedOpen}
-          onClick={() => void handleExportCsv()}
-        >
-          {exportBusy ? "Export…" : "CSV exportieren"}
-        </button>
-
-        <button
-          type="button"
-          className="zm-btn zm-btn-primary zm-toolbar-action"
-          disabled={relatedOpen}
-          onClick={() => setRelatedOpen(true)}
-        >
-          Zusammengehörige erkennen
-        </button>
       </div>
 
       {isLoading && <p className="zm-page-lead">Laden…</p>}
@@ -587,6 +636,10 @@ export function TransaktionenPage() {
                       ? `${tx.categoryName} › ${tx.subcategoryName}`
                       : (tx.categoryName ?? "—");
                   const highlighted = highlightId === tx.id;
+                  const badgeColor = bankBadgeColor(
+                    tx.bank,
+                    accountColorByKey.get(`${tx.bank}\0${tx.konto}`),
+                  );
                   return (
                     <tr
                       key={tx.id}
@@ -596,11 +649,35 @@ export function TransaktionenPage() {
                       {show("datum") && (
                         <td>{dateDe.format(new Date(tx.datum))}</td>
                       )}
-                      {show("bank") && <td>{tx.bank.toUpperCase()}</td>}
-                      {show("konto") && <td>{tx.konto}</td>}
-                      {show("sender") && <td title={tx.sender}>{tx.sender}</td>}
+                      {show("bank") && (
+                        <td>
+                          <span
+                            className={bankBadgeClass()}
+                            style={{
+                              color: badgeColor,
+                              borderColor: badgeColor,
+                            }}
+                          >
+                            {bankLabel(tx.bank)}
+                          </span>
+                        </td>
+                      )}
+                      {show("konto") && (
+                        <td>
+                          <span className={kontoPillClass(tx.konto)}>
+                            {tx.konto}
+                          </span>
+                        </td>
+                      )}
+                      {show("sender") && (
+                        <td className="zm-party" title={tx.sender}>
+                          {tx.sender}
+                        </td>
+                      )}
                       {show("empfaenger") && (
-                        <td title={tx.empfaenger}>{tx.empfaenger}</td>
+                        <td className="zm-party" title={tx.empfaenger}>
+                          {tx.empfaenger}
+                        </td>
                       )}
                       {show("verwendungszweck") && (
                         <td className="zm-zweck" title={tx.verwendungszweck}>
@@ -614,7 +691,19 @@ export function TransaktionenPage() {
                         </td>
                       )}
                       {show("kategorie") && (
-                        <td title={catLabel}>{catLabel}</td>
+                        <td title={catLabel}>
+                          <span className="zm-cat-cell">
+                            <span
+                              className="zm-cat-dot"
+                              style={{
+                                background:
+                                  tx.categoryColor || "var(--zm-text-muted)",
+                              }}
+                              aria-hidden
+                            />
+                            <span>{catLabel}</span>
+                          </span>
+                        </td>
                       )}
                       {show("konfidenz") && (
                         <td>
@@ -656,13 +745,10 @@ export function TransaktionenPage() {
                         </td>
                       )}
                       <td>
-                        <button
-                          type="button"
-                          className="zm-btn zm-btn-ghost"
+                        <EditIconButton
+                          label="Bearbeiten"
                           onClick={() => setSelected(tx)}
-                        >
-                          Details
-                        </button>
+                        />
                       </td>
                     </tr>
                   );

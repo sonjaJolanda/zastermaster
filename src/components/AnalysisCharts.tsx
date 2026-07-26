@@ -54,6 +54,9 @@ export function AnalysisTrendChart({
     backgroundColor: string;
     tension: number;
     fill: boolean;
+    pointRadius: number;
+    pointHoverRadius: number;
+    borderWidth: number;
   }[] = [];
   if (showIncome) {
     datasets.push({
@@ -61,8 +64,11 @@ export function AnalysisTrendChart({
       data: income,
       borderColor: "#15803d",
       backgroundColor: "rgba(21, 128, 61, 0.12)",
-      tension: 0.25,
+      tension: 0.15,
       fill: true,
+      pointRadius: 0,
+      pointHoverRadius: 3,
+      borderWidth: 2,
     });
   }
   if (showExpense) {
@@ -71,8 +77,11 @@ export function AnalysisTrendChart({
       data: expense,
       borderColor: "#b91c1c",
       backgroundColor: "rgba(185, 28, 28, 0.1)",
-      tension: 0.25,
+      tension: 0.15,
       fill: true,
+      pointRadius: 0,
+      pointHoverRadius: 3,
+      borderWidth: 2,
     });
   }
 
@@ -93,6 +102,13 @@ export function AnalysisTrendChart({
             },
           },
           scales: {
+            x: {
+              ticks: {
+                autoSkip: true,
+                maxTicksLimit: 12,
+                maxRotation: 0,
+              },
+            },
             y: {
               ticks: {
                 callback: (v) =>

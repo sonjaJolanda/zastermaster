@@ -15,10 +15,11 @@ Browse, filter, categorize, and link imported bank rows. Overview also in [`../R
 ## Page layout
 
 ```
-┌─ Summary strip ──────────────────────────────────────────┐
-│ Einnahmen · Ausgaben · # Buchungen   (for current filters)│
-├─ Toolbar ────────────────────────────────────────────────┤
-│ Filter & Optionen · Zusammengehörige erkennen · page size │
+┌─ Top bar ────────────────────────────────────────────────┐
+│ Einnahmen · Ausgaben · Netto · Buchungen                 │
+│              CSV · Filter & Optionen · Zusammengehörige… │
+├─ Filters (collapsible, default closed) ──────────────────┤
+│ …                                                        │
 ├─ Data table (many columns) ──────────────────────────────┤
 │ … paginated rows …                                       │
 └──────────────────────────────────────────────────────────┘
@@ -26,23 +27,26 @@ Browse, filter, categorize, and link imported bank rows. Overview also in [`../R
 
 Default route after logo / app home. One frosted content panel; **wide multi-column table** (not a two-column page). Horizontal scroll on smaller widths is OK.
 
+**Top bar:** summary metrics left; **CSV exportieren**, **Filter & Optionen**, and **Zusammengehörige erkennen** on the right (same row).
+
 ## Summary strip (page-level)
+
+Shown **inline in the top bar** (not a separate boxed strip).
 
 | Metric | Definition |
 |---|---|
 | **Einnahmen** | Sum of positive `betrag` in the **current filtered set** (not only the current page) |
 | **Ausgaben** | Sum of abs(negative `betrag`) in that set |
+| **Netto** | Einnahmen − Ausgaben (signed) |
 | **Buchungen** | Count of rows in that set |
 
 **Defaults:** no date filter → **all imported transactions** (unlike Analyse, which defaults to the current calendar year).
 
-Header **Balance** (wealth) stays in the global header and is **not** repeated here.
-
-Optional later: Netto on this strip; v1 can omit it to keep the strip light.
+Header **Balance** (wealth) is under Einstellungen → Konten and is **not** repeated here.
 
 ## Filters & Optionen
 
-Compact toolbar (desktop: one row; mobile: sheet/drawer).
+Compact toolbar (desktop: one row; mobile: sheet/drawer). **Collapsed by default**; summary + table stay usable when closed.
 
 ### Filters (affect table + summary)
 
@@ -453,7 +457,7 @@ Synthetic opening / calibration transactions:
 | Operation | Kind | Purpose |
 |---|---|---|
 | `getTransactions` | query | Paginated list + filter args; returns rows for page |
-| `getTransactionsSummary` | query | Einnahmen / Ausgaben / count for **same filters** (all matching rows, not one page) |
+| `getTransactionsSummary` | query | Einnahmen / Ausgaben / Netto / count for **same filters** (all matching rows, not one page) |
 | `categorizeTransaction` | action | Set category/subcategory/source/score on row **and related partner**; optional `remember: true` → LearnedRule |
 | `detectRelatedTransactions` | action | Run detectors; return suggestion list (may be chunked later) |
 | `confirmRelatedPair` / `rejectRelatedPair` | actions | Persist link (and **sync category** to both legs) or rejection |

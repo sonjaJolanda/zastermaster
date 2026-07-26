@@ -56,7 +56,7 @@ export default app({
   title: "Zaster Master",
   wasp: { version: "^0.24.0" },
   head: [
-    "<link rel='icon' href='/favicon.ico' />",
+    "<link rel='icon' href='/favicon.svg' type='image/svg+xml' />",
     "<link rel='preconnect' href='https://fonts.googleapis.com' />",
     "<link rel='preconnect' href='https://fonts.gstatic.com' />",
     "<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap' rel='stylesheet' />",

@@ -95,9 +95,43 @@ function requireRange(args: AnalysisFilterArgs | void): AnalysisFilterArgs {
 function autoGrouping(dateFrom: Date, dateTo: Date): AnalysisGrouping {
   const days =
     Math.floor((dateTo.getTime() - dateFrom.getTime()) / 86_400_000) + 1;
-  if (days <= 45) return "day";
-  if (days <= 365 * 2) return "month";
+  // Up to ~1 calendar year: daily points so trends within/between months are visible.
+  if (days <= 400) return "day";
+  if (days <= 365 * 3) return "month";
   return "year";
+}
+
+function enumeratePeriodKeys(
+  dateFrom: Date,
+  dateTo: Date,
+  grouping: AnalysisGrouping,
+): string[] {
+  const keys: string[] = [];
+  if (grouping === "day") {
+    const cur = new Date(dateFrom.getTime());
+    while (cur.getTime() <= dateTo.getTime()) {
+      keys.push(periodKey(cur, "day"));
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return keys;
+  }
+  if (grouping === "month") {
+    const cur = new Date(
+      Date.UTC(dateFrom.getUTCFullYear(), dateFrom.getUTCMonth(), 1),
+    );
+    const end = new Date(
+      Date.UTC(dateTo.getUTCFullYear(), dateTo.getUTCMonth(), 1),
+    );
+    while (cur.getTime() <= end.getTime()) {
+      keys.push(periodKey(cur, "month"));
+      cur.setUTCMonth(cur.getUTCMonth() + 1);
+    }
+    return keys;
+  }
+  for (let y = dateFrom.getUTCFullYear(); y <= dateTo.getUTCFullYear(); y++) {
+    keys.push(String(y));
+  }
+  return keys;
 }
 
 function periodKey(d: Date, grouping: AnalysisGrouping): string {
@@ -269,6 +303,7 @@ function buildBreakdown(
   type ChildAgg = {
     id: number | null;
     name: string;
+    color: string;
     amount: number;
     count: number;
   };
@@ -297,6 +332,8 @@ function buildBreakdown(
     if (mode === "category") {
       const childId = row.subcategoryId;
       const childName = row.subcategoryName ?? FALLBACK_NAME;
+      const childColor =
+        row.subcategoryColor ?? row.categoryColor ?? FALLBACK_COLOR;
       const cKey = childId == null ? `n:${childName}` : `i:${childId}`;
       const c = p.children.get(cKey);
       if (c) {
@@ -306,6 +343,7 @@ function buildBreakdown(
         p.children.set(cKey, {
           id: childId,
           name: childName,
+          color: childColor,
           amount,
           count: 1,
         });
@@ -327,6 +365,7 @@ function buildBreakdown(
         .map((c) => ({
           id: c.id,
           name: c.name,
+          color: c.color,
           amount: c.amount.toFixed(2),
           percent:
             p.amount > 0 ? Math.round((c.amount / p.amount) * 1000) / 10 : 0,
@@ -366,6 +405,9 @@ export const getAnalysisTimeSeries: GetAnalysisTimeSeries<
   const { rows, drop } = await loadNettedRows(filter, context);
 
   const buckets = new Map<string, { income: number; expense: number }>();
+  for (const key of enumeratePeriodKeys(dateFrom, dateTo, grouping)) {
+    buckets.set(key, { income: 0, expense: 0 });
+  }
   for (const row of rows) {
     if (drop.has(row.id)) continue;
     const key = periodKey(row.datum, grouping);

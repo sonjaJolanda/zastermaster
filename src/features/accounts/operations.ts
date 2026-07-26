@@ -4,6 +4,11 @@ import type {
   GetHeaderBalance,
   SetAccountBalance,
 } from "wasp/server/operations";
+import {
+  defaultAccountColor,
+  normalizeAccountColor,
+  resolveAccountColor,
+} from "./colors";
 
 export type HeaderBalance = {
   total: string | null;
@@ -16,6 +21,8 @@ export type AccountListItem = {
   bank: string;
   konto: string;
   accountIban: string;
+  /** Resolved badge color (stored or bank default). */
+  color: string;
   currentBalance: string | null;
   asOfDate: string | null;
   /** Roll-forward display for this account (null if not calibrated). */
@@ -26,6 +33,8 @@ export type SetAccountBalanceInput = {
   accountId: number;
   currentBalance: string;
   asOfDate: string; // YYYY-MM-DD
+  /** Optional badge color (#rrggbb). Empty/omit keeps current or default. */
+  color?: string;
 };
 
 function parseBalanceInput(raw: string): string {
@@ -129,6 +138,7 @@ export const getAccounts: GetAccounts<void, AccountListItem[]> = async (
       bank: account.bank,
       konto: account.konto,
       accountIban: account.accountIban,
+      color: resolveAccountColor(account.bank, account.color),
       currentBalance:
         account.currentBalance != null
           ? account.currentBalance.toString()
@@ -152,7 +162,7 @@ export const setAccountBalance: SetAccountBalance<
 
   const existing = await context.entities.Account.findUnique({
     where: { id: args.accountId },
-    select: { id: true, bank: true, konto: true },
+    select: { id: true, bank: true, konto: true, color: true },
   });
   if (!existing) {
     throw new HttpError(404, "Konto nicht gefunden.");
@@ -163,9 +173,18 @@ export const setAccountBalance: SetAccountBalance<
     args.asOfDate || new Date().toISOString().slice(0, 10),
   );
 
+  const colorUpdate =
+    args.color !== undefined
+      ? normalizeAccountColor(args.color) ?? defaultAccountColor(existing.bank)
+      : undefined;
+
   const updated = await context.entities.Account.update({
     where: { id: args.accountId },
-    data: { currentBalance, asOfDate },
+    data: {
+      currentBalance,
+      asOfDate,
+      ...(colorUpdate != null ? { color: colorUpdate } : {}),
+    },
     select: { id: true, currentBalance: true, asOfDate: true },
   });
 
