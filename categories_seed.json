@@ -2,54 +2,155 @@
   "Einkaufen": {
     "color": "#E53E3E",
     "keywords": [],
-    "subcategories": {      
+    "subcategories": {
       "Supermärkte": {
         "color": "#DC2626",
-        "keywords": ["rewe", "aldi", "penny", "lidl", "netto", "kaufland", "edeka", "supermercati", "supermercato", "supermarket", "go asia", "konsum", "biomarkt", "denn s", "im angebot", "alnatura", "FRISCHEMAERKTE", "biedronka", "eurospin", "despar", "interspar", "eurospar", "macis", "SKLAVENITIS", "MASOUTIS"]
+        "keywords": [
+          "rewe",
+          "aldi",
+          "penny",
+          "lidl",
+          "netto",
+          "kaufland",
+          "edeka",
+          "supermercati",
+          "supermercato",
+          "supermarket",
+          "go asia",
+          "konsum",
+          "biomarkt",
+          "denn s",
+          "im angebot",
+          "alnatura",
+          "FRISCHEMAERKTE",
+          "biedronka",
+          "eurospin",
+          "despar",
+          "interspar",
+          "eurospar",
+          "macis",
+          "SKLAVENITIS",
+          "MASOUTIS"
+        ]
       },
       "Mensa": {
         "color": "#B91C1C",
-        "keywords": ["mensa"]
+        "keywords": [
+          "mensa"
+        ]
       },
       "Drogerie": {
         "color": "#991B1B",
-        "keywords": ["dm", "rossmann", "budni", "mueller"]
+        "keywords": [
+          "dm",
+          "rossmann",
+          "budni",
+          "mueller"
+        ]
       },
       "Bäcker": {
         "color": "#7F1D1D",
-        "keywords": ["back", "yormas", "baeckerei", "baecker", "ditsch", "laib seele", "bakery"]
+        "keywords": [
+          "back",
+          "yormas",
+          "baeckerei",
+          "baecker",
+          "ditsch",
+          "laib seele",
+          "bakery",
+          "bäcker",
+          "bäckerei"
+        ]
       },
       "Gesundheit": {
         "color": "#F87171",
-        "keywords": ["apotheke", "arzt", "praxis", "behandelte", "gynak", "amplifon", "dr med", "zahnarzt", "optiker"]
+        "keywords": [
+          "apotheke",
+          "arzt",
+          "praxis",
+          "behandelte",
+          "gynak",
+          "amplifon",
+          "dr med",
+          "zahnarzt",
+          "optiker"
+        ]
       },
       "Wohnen": {
         "color": "#EF4444",
-        "keywords": ["wohnmacher", "möbel", "kleinanzeigen", "obi", "ikea", "hornbach", "toom", "landratsamt", "stadt leipzig", "lattn"]
+        "keywords": [
+          "wohnmacher",
+          "möbel",
+          "kleinanzeigen",
+          "obi",
+          "ikea",
+          "hornbach",
+          "toom",
+          "landratsamt",
+          "stadt leipzig",
+          "lattn"
+        ]
       },
       "Elektrogeräte": {
         "color": "#FCA5A5",
-        "keywords": ["elektro", "saturn", "mediamarkt", "lenovo", "apple", "samsung", "dell"]
+        "keywords": [
+          "elektro",
+          "saturn",
+          "mediamarkt",
+          "lenovo",
+          "apple",
+          "samsung",
+          "dell"
+        ]
       },
       "Kleidung": {
         "color": "#FECACA",
-        "keywords": ["kleidung", "schmuck", "vinted", "bershka", "hunkemoller", "zalando", "siemes", "H M DE0169", "H amp M"]
+        "keywords": [
+          "kleidung",
+          "schmuck",
+          "vinted",
+          "bershka",
+          "hunkemoller",
+          "zalando",
+          "siemes",
+          "H M DE0169",
+          "H amp M"
+        ]
       },
       "Abos und Apps": {
         "color": "#A91A1A",
-        "keywords": ["cartograph", "icloud", "netflix", "spotify", "chatgpt"]
+        "keywords": [
+          "cartograph",
+          "icloud",
+          "netflix",
+          "spotify",
+          "chatgpt"
+        ]
       },
       "Mobilfunk": {
         "color": "#FEE2E2",
-        "keywords": ["fraenk"]
+        "keywords": [
+          "fraenk"
+        ]
       },
       "Uni und Bildung": {
         "color": "#DC2626",
-        "keywords": ["uni", "bildung", "Studium", "studieren", "sprachstandstest", "HTWG"]
+        "keywords": [
+          "uni",
+          "bildung",
+          "Studium",
+          "studieren",
+          "sprachstandstest",
+          "HTWG"
+        ]
       },
       "Online-Shopping": {
         "color": "#B91C1C",
-        "keywords": ["Amazon", "Etsy", "SKROUTZ"]
+        "keywords": [
+          "Amazon",
+          "Etsy",
+          "SKROUTZ"
+        ]
       }
     }
   },
@@ -95,7 +196,15 @@
       },
       "Sparen und Investieren": {
         "color": "#A78BFA",
-        "keywords": ["sparen", "Verschiebung", "etoro", "etf", "sparplan", "trade republic"]
+        "keywords": [
+          "sparen",
+          "Verschiebung",
+          "etoro",
+          "etf",
+          "sparplan",
+          "trade republic",
+          "incoming transfer"
+        ]
       },
       "Altersvorsorge": {
         "color": "#C4B5FD",
@@ -141,61 +250,61 @@
       "Restaurant": {
         "color": "#059669",
         "keywords": [
-        "bar",
-        "restaurant",
-        "RESTAURACJA",
-        "Restaurace",
-        "ristorante",
-        "pizzeria",
-        "wirtshaus",
-        "café",
-        "cafe",
-        "Kafeterija",
-        "coffee",
-        "Absolventenfeier",
-        "Taverna",
-        "Food",
-        "Essen",
-        "roots",
-        "Für griiiechischen Wein",
-        "Taverne",
-        "wein+essen",
-        "little big house",
-        "eightball",
-        "hans im gluck",
-        "olivetree",
-        "ramen",
-        "mc donalds", 
-        "mcdonalds",
-        "burgerking",
-        "burger king",
-        "instant noodles",
-        "burro burro",
-        "house of vegan",
-        "neotaste",
-        "moritzbastei",
-        "kimi korea",
-        "Killiwilly",
-        "beyerhaus",
-        "eli event",
-        "bloggers",
-        "voglhaus",
-        "dimsum",
-        "doener",
-        "schnellbuffet",
-        "Saigon",
-        "kiosk",
-        "Kaffeeros",
-        "horns erben",
-        "lena s am see",
-        "tabya",
-        "tarantoula",
-        "wolt",
-        "gastronomie",
-        "tag mahal",
-        "CHOUREAL",
-        "vegan",
-        "pub"
+          "bar",
+          "restaurant",
+          "RESTAURACJA",
+          "Restaurace",
+          "ristorante",
+          "pizzeria",
+          "wirtshaus",
+          "café",
+          "cafe",
+          "Kafeterija",
+          "coffee",
+          "Absolventenfeier",
+          "Taverna",
+          "Food",
+          "Essen",
+          "roots",
+          "Für griiiechischen Wein",
+          "Taverne",
+          "wein+essen",
+          "little big house",
+          "eightball",
+          "hans im gluck",
+          "olivetree",
+          "ramen",
+          "mc donalds",
+          "mcdonalds",
+          "burgerking",
+          "burger king",
+          "instant noodles",
+          "burro burro",
+          "house of vegan",
+          "neotaste",
+          "moritzbastei",
+          "kimi korea",
+          "Killiwilly",
+          "beyerhaus",
+          "eli event",
+          "bloggers",
+          "voglhaus",
+          "dimsum",
+          "doener",
+          "schnellbuffet",
+          "Saigon",
+          "kiosk",
+          "Kaffeeros",
+          "horns erben",
+          "lena s am see",
+          "tabya",
+          "tarantoula",
+          "wolt",
+          "gastronomie",
+          "tag mahal",
+          "CHOUREAL",
+          "vegan",
+          "pub"
         ]
       },
       "Kino": {
@@ -231,23 +340,52 @@
       },
       "Hobby": {
         "color": "#10B981",
-        "keywords": ["hobby", "spieleladen", "bowling"]
+        "keywords": [
+          "hobby",
+          "spieleladen",
+          "bowling"
+        ]
       },
       "Geschenke": {
         "color": "#34D399",
-        "keywords": ["geschenke", "blume 2000", "maulwurf"]
+        "keywords": [
+          "geschenke",
+          "blume 2000",
+          "maulwurf"
+        ]
       },
       "Kunst": {
         "color": "#6EE7B7",
-        "keywords": ["panometer", "museum", "gewandhausorchester", "theater", "kunst", "kunstkraftwerk", "oper", "ballett", "tixforgigs"]
+        "keywords": [
+          "panometer",
+          "museum",
+          "gewandhausorchester",
+          "theater",
+          "kunst",
+          "kunstkraftwerk",
+          "oper",
+          "ballett",
+          "tixforgigs"
+        ]
       },
       "Bücher": {
         "color": "#A7F3D0",
-        "keywords": ["thalia", "buchhandlung", "buch", "libri", "hugendubel", "osiander", "medimops", "bookstore"]
+        "keywords": [
+          "thalia",
+          "buchhandlung",
+          "buch",
+          "libri",
+          "hugendubel",
+          "osiander",
+          "medimops",
+          "bookstore"
+        ]
       },
       "Spenden": {
         "color": "#D1FAE5",
-        "keywords": ["spenden"]
+        "keywords": [
+          "spenden"
+        ]
       },
       "Reisen": {
         "color": "#16A085",
@@ -307,11 +445,35 @@
     "subcategories": {
       "Öffentliche Verkehrsmittel": {
         "color": "#2563EB",
-        "keywords": ["bahn", "bus", "flixbus", "deutsche bahn", "db", "lvs", "kvb", "lime", "uber"]
+        "keywords": [
+          "bahn",
+          "bus",
+          "flixbus",
+          "deutsche bahn",
+          "db",
+          "lvs",
+          "kvb",
+          "lime",
+          "uber"
+        ]
       },
       "Auto": {
         "color": "#1D4ED8",
-        "keywords": ["tank", "parkautomat", "parkhaus", "parkautomaten", "parking", "parkraum", "autostrada", "shell", "esso", "aral", "jet", "agip", "aral"]
+        "keywords": [
+          "tank",
+          "parkautomat",
+          "parkhaus",
+          "parkautomaten",
+          "parking",
+          "parkraum",
+          "autostrada",
+          "shell",
+          "esso",
+          "aral",
+          "jet",
+          "agip",
+          "aral"
+        ]
       }
     }
   },
