@@ -37,9 +37,11 @@ Actionable runbook for building Zaster Master. **Behavior details live in featur
 | 8 | Related txs | ☑ | ☑ |
 | 9 | Hardening | ☑ | ☑ |
 | 10 | Design polish | ☑ | — |
+| 11 | Automated tests | ☐ | — |
 
 **MVP complete** when Thin of slices **0–6** are done (Analyse thin = summary only).
 Slice **10** is post-MVP visual polish (docs in [`design.md`](design.md)).
+Slice **11** is unit-test coverage for parsers, categorizer, related/netting, and Transaktionen-Summen.
 
 ---
 
@@ -418,6 +420,46 @@ Product locks unchanged: **no** Jobs, auth, or cloud deploy.
 ### Out of scope
 
 New features; DB wipe / fixtures (separate manual test prep); auth/Jobs/deploy.
+
+---
+
+## Slice 11 — Automated tests
+
+**Goal:** Vitest unit coverage for the money-critical domain logic. No E2E, no DB integration.
+
+**Specs:** [`transactions.md`](transactions.md) · [`categorization.md`](categorization.md) · [`analysis.md`](analysis.md) · bank parsers under `src/features/import/`
+
+### Thin steps
+
+1. Wire Vitest (`vitest.config.ts`, `npm test` / `npm run test:watch`); document the command in README (one short line).
+2. Synthetic fixtures only under e.g. `src/features/**/__fixtures__/` — **no** real `Bankauszüge/` / private data in git.
+3. **Parsers + helpers** — German amount/date; per bank 1–2 happy paths + 1 edge (BOM, Status≠Gebucht, empty/skip row).
+4. **Categorizer** — learned-rule priority → keyword hit → Sonstiges/Unbekannt fallback.
+5. **Related detect** — PayPal↔Bank, Umbuchung, Near-Dup: je 1 positiv + 1 negativ.
+6. **Analyse netting** — transfer drops both legs; PayPal↔Bank keeps one side.
+7. **Transaktionen-Summen** — extract pure helper from `getTransactionsSummary` (Einnahmen / Ausgaben / Netto / Buchungen) and unit-test:
+   - income / expense / zero-amount mix
+   - `net = income − |expense|`
+   - `count` matches row set
+   - filters still reflected by testing the helper on the filtered row set (not Prisma)
+8. Add this slice to the progress tracker; stop at Thin DoD.
+
+### Thin DoD
+
+- [ ] `npm test` green
+- [ ] P0: parsers, categorize, related detect, netting covered as above
+- [ ] Summen helper: Einnahmen, Ausgaben, Netto, Buchungen asserted
+- [ ] No Playwright / no live-DB tests in this slice
+
+### Thick (later, optional)
+
+- More parser edge cases (quotes, encodings)
+- DB integration for import dedup (separate env)
+- Playwright smoke (Upload → table row)
+
+### Out of scope
+
+UI/CSS regression, full operation coverage via Prisma, CI pipeline (can add later in one PR), committing real bank exports.
 
 ---
 

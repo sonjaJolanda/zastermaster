@@ -57,7 +57,7 @@ export function CloseIconButton({
   return (
     <button
       type="button"
-      className={`zm-btn zm-btn-ghost zm-btn-icon zm-btn-close${className ? ` ${className}` : ""}`}
+      className={`zm-btn zm-btn-ghost zm-btn-icon${className ? ` ${className}` : ""}`}
       title={label}
       aria-label={label}
       disabled={disabled}

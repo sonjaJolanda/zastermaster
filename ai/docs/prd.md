@@ -42,7 +42,7 @@ Useful app **before** related-detect and fancy Analyse:
 
 Do **not** duplicate slice tables here. Follow and check off:
 
-→ **[`implementation-plan.md`](implementation-plan.md)** (slices 0–9, Thin DoD, Thick, out of scope)
+→ **[`implementation-plan.md`](implementation-plan.md)** (slices 0–11, Thin DoD, Thick, out of scope)
 
 **MVP complete** = Thin of slices **0–6** done.
 
