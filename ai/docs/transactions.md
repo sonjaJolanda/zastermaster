@@ -489,7 +489,10 @@ Captured from product feedback; keep these when changing UI:
 ## Out of scope (v1) / later
 
 - Bulk categorize selected rows
-- CSV export from this table
 - Inline edit of Verwendungszweck / amount
 - Auto-merge duplicates (delete one row)
 - Click from Analyse breakdown → pre-filtered Transaktionen (nice follow-up)
+
+## Export
+
+**CSV export** from the toolbar respects the current filters (semicolon, UTF-8 BOM for Excel). Cap: 100 000 rows.

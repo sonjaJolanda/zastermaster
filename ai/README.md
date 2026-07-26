@@ -141,10 +141,11 @@ Importers normalize to the same logical columns: Datum, Betrag, Sender\*in, Empf
 Incomplete history is expected. Accounts are first-class:
 
 1. User enters **bank balance** + **as-of date** per account (calibration checkpoint).
-2. **Thin (now):** that stored value is shown in the header as-is; header = **sum of calibrated `currentBalance`** across accounts.
-3. **Thick (later):** roll forward per account —  
-   `Anzeige = kalibrierter Stand + Summe(Betrag) mit Datum > asOfDate` for that `bank`/`konto`; header = sum of those. Optional: implied opening / synthetic opening tx (`isBalanceAdjustment`), excluded from Analyse.
-4. Row `balance` stays export snapshot metadata; it does not drive the header.
+2. **Display (roll-forward):** per account  
+   `Anzeige = kalibrierter Stand + Summe(Betrag) mit Datum > asOfDate` for that `bank`/`konto`; header = sum of those displays.
+3. Calibration writes a synthetic marker tx (`isBalanceAdjustment`, betrag 0); excluded from Analyse and from Transaktionen by default (optional filter to show).
+4. Re-calibrate any time under Einstellungen → Konten.
+5. Row `balance` stays export snapshot metadata; it does not drive the header.
 
 Not “balance of the currently filtered Konto” unless we add that later.
 
@@ -189,8 +190,8 @@ Wasp **action** (multipart upload + required `bank` — not auto-detected):
 5. Insert with dedup.
 6. Return `{ success, importedCount, duplicateCount, … }`.
 
-**Supported importers now:** DKB (Giro/Tagesgeld CSV), PayPal (German TSV).  
-**Planned (Slice 7 Thick):** Sparkasse (MT940-like), Trade Republic (cash CSV) — samples under `Bankauszüge/`.
+**Supported importers:** DKB (Giro/Tagesgeld CSV), PayPal (German TSV), Sparkasse (MT940-like TXT), Trade Republic (transactions CSV).  
+Samples under `Bankauszüge/`. Wrong bank selection is rejected via format sniffing (`detectLikelyBank`).
 
 Parsing of messy German CSV/TXT lives in TypeScript server modules under `src/features/import/` (Papa Parse or similar). Keep importers versioned and testable.
 
@@ -356,4 +357,5 @@ zastermaster/
 - Wasp Jobs for long related-detect / heavy import / ML
 - Stronger transfer netting
 - Optional local ML / optional cloud AI categorization
-- More banks, Excel/PDF export, Report tab, more Einstellungen
+- Report tab, more Einstellungen
+- Excel/PDF polished reports (CSV export exists for Transaktionen + Analyse)

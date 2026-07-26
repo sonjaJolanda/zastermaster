@@ -73,9 +73,9 @@ export function BalanceCalibrationModal({
           <h2 id="zm-balance-title">Kontostand kalibrieren</h2>
         </header>
         <p className="zm-page-lead">
-          Für <strong>{bank.toUpperCase()} · {konto}</strong> noch kein
-          kalibrierter Stand. Bitte aktuellen Kontostand eingeben (Header =
-          Summe aller Konten).
+          Für <strong>{bank.toUpperCase()} · {konto}</strong>: aktuellen
+          Kontostand und Stichtag eingeben. Anzeige im Header = dieser Stand +
+          spätere Buchungen (Datum nach dem Stichtag).
         </p>
 
         <div className="zm-upload zm-upload--modal">

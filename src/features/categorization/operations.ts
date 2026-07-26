@@ -1,18 +1,24 @@
 import { HttpError } from "wasp/server";
 import type { CategorizeTransaction } from "wasp/server/operations";
+import { fragmentFromTransaction } from "./matchLearnedRules";
 
 export type CategorizeTransactionInput = {
   transactionId: number;
   categoryId: number;
   subcategoryId: number;
+  /** Persist a LearnedRule from Verwendungszweck (else sender/empfaenger). */
+  remember?: boolean;
 };
 
 export const categorizeTransaction: CategorizeTransaction<
   CategorizeTransactionInput,
-  { id: number; syncedRelatedId: number | null }
+  { id: number; syncedRelatedId: number | null; remembered: boolean }
 > = async (args, context) => {
   if (!args?.transactionId || !args.categoryId || !args.subcategoryId) {
-    throw new HttpError(400, "transactionId, categoryId und subcategoryId sind erforderlich.");
+    throw new HttpError(
+      400,
+      "transactionId, categoryId und subcategoryId sind erforderlich.",
+    );
   }
 
   const sub = await context.entities.Subcategory.findFirst({
@@ -20,12 +26,21 @@ export const categorizeTransaction: CategorizeTransaction<
     select: { id: true },
   });
   if (!sub) {
-    throw new HttpError(400, "Unterkategorie gehört nicht zur gewählten Kategorie.");
+    throw new HttpError(
+      400,
+      "Unterkategorie gehört nicht zur gewählten Kategorie.",
+    );
   }
 
   const existing = await context.entities.Transaction.findUnique({
     where: { id: args.transactionId },
-    select: { id: true, relatedTransactionId: true },
+    select: {
+      id: true,
+      relatedTransactionId: true,
+      sender: true,
+      empfaenger: true,
+      verwendungszweck: true,
+    },
   });
   if (!existing) {
     throw new HttpError(404, "Transaktion nicht gefunden.");
@@ -38,7 +53,6 @@ export const categorizeTransaction: CategorizeTransaction<
     confidenceScore: 1,
   };
 
-  // Also pick up reverse link if only one direction were set.
   let partnerId = existing.relatedTransactionId;
   if (partnerId == null) {
     const reverse = await context.entities.Transaction.findFirst({
@@ -54,5 +68,36 @@ export const categorizeTransaction: CategorizeTransaction<
     data: categoryData,
   });
 
-  return { id: existing.id, syncedRelatedId: partnerId };
+  let remembered = false;
+  if (args.remember) {
+    const fragment = fragmentFromTransaction({
+      sender: existing.sender,
+      empfaenger: existing.empfaenger,
+      verwendungszweck: existing.verwendungszweck,
+    });
+    if (!fragment) {
+      throw new HttpError(
+        400,
+        "Zum Merken braucht die Buchung Verwendungszweck, Sender oder Empfänger.",
+      );
+    }
+    await context.entities.LearnedRule.upsert({
+      where: { descriptionFragment: fragment },
+      create: {
+        descriptionFragment: fragment,
+        categoryId: args.categoryId,
+        subcategoryId: args.subcategoryId,
+        confidence: 1,
+        usageCount: 0,
+      },
+      update: {
+        categoryId: args.categoryId,
+        subcategoryId: args.subcategoryId,
+        confidence: 1,
+      },
+    });
+    remembered = true;
+  }
+
+  return { id: existing.id, syncedRelatedId: partnerId, remembered };
 };

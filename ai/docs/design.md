@@ -77,7 +77,8 @@ Category colors come from DB (user-editable); charts use those + the income/expe
 
 ## Components (Shadcn + custom)
 
-- Prefer Shadcn primitives (Button, Dialog, Table, Select, Input, Checkbox, Progress) styled to the tokens above.
+- **v1 lock:** custom `zm-*` CSS design system (tokens in `App.css`). Full Shadcn/Tailwind install deferred — would duplicate the working shell mid-project.
+- Prefer consistent primitives: Button (`.zm-btn`), Dialog (`.zm-overlay`), Table (`.zm-table`), Select/Input, chips, Progress (related spinner).
 - **Overlays** (Details, Related-detect / Zusammengehörige erkennen, Balance calibration): modal centered over the **frosted content panel (page body)**, **not** the full browser viewport/display. Dim only that panel (`position: absolute` on `.zm-surface`); keep header and photo outside the dim. Sticky anchor so the dialog stays readable while the long page scrolls.
 - **Tables:** zebra or hairline rows; sticky header optional on desktop; confidence as colored pill/dot + optional text.
 - **Related link in table:** icon button; target row briefly highlighted after navigation.
@@ -88,11 +89,11 @@ Category colors come from DB (user-editable); charts use those + the income/expe
 
 Ship a few intentional motions (not noise):
 
-1. Header icon: short active-state transition
-2. Page content: light fade/slide on route change
+1. Header icon: short active-state transition (+ slight lift)
+2. Page content: light fade/slide on route change (`.zm-page-enter`)
 3. Upload / related-detect: determinate or indeterminate progress that feels calm
 
-No continuous parallax on the background; keep the photo still (`background-attachment: fixed` on desktop; `scroll` on mobile if fixed is janky).
+No continuous parallax on the background; keep the photo still (`position: fixed` layer; no scale transform on small screens).
 
 ## Page-specific design
 

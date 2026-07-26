@@ -6,6 +6,7 @@ import {
   Settings,
 } from "lucide-react";
 import { getHeaderBalance, useQuery } from "wasp/client/operations";
+import { useImportLock } from "../features/import/ImportLockContext";
 
 const navItems = [
   { to: "/upload", label: "Upload", Icon: ArrowUpFromLine },
@@ -27,18 +28,27 @@ function isActive(pathname: string, to: string) {
 export function Header() {
   const { pathname } = useLocation();
   const { data: balance } = useQuery(getHeaderBalance);
+  const { importLocked } = useImportLock();
 
   const balanceLabel =
     balance?.total != null ? eur.format(Number(balance.total)) : "—";
 
   const title =
     balance && balance.calibratedCount > 0
-      ? `Kalibrierter Kontostand (Summe von ${balance.calibratedCount} Konto/Konten)`
-      : "Kalibrierter Kontostand (Summe) — nach Import kalibrieren";
+      ? `Kontostand (Roll-forward): Summe von ${balance.calibratedCount} Konto/Konten — kalibrierter Stand + Buchungen nach Stichtag`
+      : "Kontostand — nach Import kalibrieren (Einstellungen oder Upload)";
 
   return (
     <header className="zm-header">
-      <Link to="/" className="zm-brand" title="Zaster Master">
+      <Link
+        to="/"
+        className={`zm-brand${importLocked ? " is-disabled" : ""}`}
+        title="Zaster Master"
+        onClick={(e) => {
+          if (importLocked) e.preventDefault();
+        }}
+        aria-disabled={importLocked || undefined}
+      >
         <img
           src="/design/Zaster_Master_Logo.svg"
           alt="Zaster Master"
@@ -54,14 +64,20 @@ export function Header() {
       <nav className="zm-nav" aria-label="Hauptnavigation">
         {navItems.map(({ to, label, Icon }) => {
           const active = isActive(pathname, to);
+          const locked = importLocked && to !== "/upload";
           return (
             <Link
               key={to}
               to={to}
-              className={`zm-nav-link${active ? " is-active" : ""}`}
-              title={label}
+              className={`zm-nav-link${active ? " is-active" : ""}${locked ? " is-disabled" : ""}`}
+              title={locked ? "Import läuft…" : label}
               aria-label={label}
               aria-current={active ? "page" : undefined}
+              aria-disabled={locked || undefined}
+              onClick={(e) => {
+                if (locked) e.preventDefault();
+              }}
+              tabIndex={locked ? -1 : undefined}
             >
               <Icon size={22} strokeWidth={1.75} aria-hidden />
             </Link>

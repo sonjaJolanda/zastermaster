@@ -1,4 +1,4 @@
-export type BankId = "dkb" | "paypal";
+export type BankId = "dkb" | "paypal" | "sparkasse" | "traderepublic";
 
 export type NormalizedTransaction = {
   datum: Date;
@@ -18,7 +18,21 @@ export type BankParseResult = {
   accountIban: string;
   balance: string | null;
   rows: NormalizedTransaction[];
+  /** Non-fatal notes for the UI (e.g. skipped pending rows). */
+  warnings?: string[];
+  skippedRows?: number;
 };
+
+/** Parse/validation error with optional fix hint for the Upload UI. */
+export class ImportParseError extends Error {
+  hint?: string;
+
+  constructor(message: string, hint?: string) {
+    super(hint ? `${message} — ${hint}` : message);
+    this.name = "ImportParseError";
+    this.hint = hint;
+  }
+}
 
 export function stripBom(text: string): string {
   return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
@@ -35,11 +49,17 @@ export function parseGermanAmount(raw: string): string {
     cleaned = cleaned.replace(",", ".");
   }
   if (!cleaned || cleaned === "-" || cleaned === "+") {
-    throw new Error(`Ungültiger Betrag: "${raw}"`);
+    throw new ImportParseError(
+      `Ungültiger Betrag: „${raw}“`,
+      "Erwartet z. B. −12,34 oder 1.234,56.",
+    );
   }
   const value = Number(cleaned);
   if (Number.isNaN(value)) {
-    throw new Error(`Ungültiger Betrag: "${raw}"`);
+    throw new ImportParseError(
+      `Ungültiger Betrag: „${raw}“`,
+      "Erwartet z. B. −12,34 oder 1.234,56.",
+    );
   }
   return value.toFixed(2);
 }
@@ -47,7 +67,12 @@ export function parseGermanAmount(raw: string): string {
 /** Dates like 24.07.26 or 02.01.2026 → Date at UTC midnight. */
 export function parseGermanDate(raw: string): Date {
   const m = raw.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/);
-  if (!m) throw new Error(`Ungültiges Datum: "${raw}"`);
+  if (!m) {
+    throw new ImportParseError(
+      `Ungültiges Datum: „${raw}“`,
+      "Erwartet TT.MM.JJ oder TT.MM.JJJJ.",
+    );
+  }
   const day = Number(m[1]);
   const month = Number(m[2]);
   let year = Number(m[3]);
@@ -55,4 +80,36 @@ export function parseGermanDate(raw: string): Date {
     year += year >= 70 ? 1900 : 2000;
   }
   return new Date(Date.UTC(year, month - 1, day));
+}
+
+/** Rough check that content matches the selected bank (before full parse). */
+export function detectLikelyBank(content: string): BankId | null {
+  const head = stripBom(content).slice(0, 2500);
+  if (
+    head.includes("Buchungsdatum") &&
+    (head.includes("Betrag (€)") || head.includes("Betrag (EUR)"))
+  ) {
+    return "dkb";
+  }
+  if (
+    head.includes("Netto") &&
+    (head.includes("Transaktionscode") || head.includes("Absender E-Mail"))
+  ) {
+    return "paypal";
+  }
+  if (
+    (head.includes(":20:") || head.includes(":25:")) &&
+    head.includes(":61:") &&
+    head.includes(":86:")
+  ) {
+    return "sparkasse";
+  }
+  if (
+    head.includes("datetime") &&
+    head.includes("account_type") &&
+    head.includes("transaction_id")
+  ) {
+    return "traderepublic";
+  }
+  return null;
 }

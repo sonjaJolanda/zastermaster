@@ -41,11 +41,13 @@ export function TransactionDetailsOverlay({ tx, onClose, onSaved }: Props) {
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [remember, setRemember] = useState(false);
 
   // Reset form when switching to another row (e.g. related-partner link).
   useEffect(() => {
     setCategoryId(tx.categoryId ?? "");
     setSubcategoryId(tx.subcategoryId ?? "");
+    setRemember(false);
     setError(null);
   }, [tx.id, tx.categoryId, tx.subcategoryId]);
 
@@ -81,6 +83,7 @@ export function TransactionDetailsOverlay({ tx, onClose, onSaved }: Props) {
         transactionId: tx.id,
         categoryId: Number(categoryId),
         subcategoryId: Number(subcategoryId),
+        remember,
       });
       onSaved();
       onClose();
@@ -233,6 +236,22 @@ export function TransactionDetailsOverlay({ tx, onClose, onSaved }: Props) {
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className="zm-field zm-field-check">
+              <input
+                type="checkbox"
+                checked={remember}
+                disabled={busy}
+                onChange={(e) => setRemember(e.target.checked)}
+              />
+              <span>
+                Diese Zuordnung merken
+                <span className="zm-field-hint">
+                  {" "}
+                  (für ähnliche Buchungen beim nächsten Import)
+                </span>
+              </span>
             </label>
 
             {error && (

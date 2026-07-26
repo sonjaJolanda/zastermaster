@@ -25,7 +25,8 @@ Full design requirements: [ai/docs/design.md](mdc:ai/docs/design.md).
 
 ## UI kit & Tailwind
 
-- Shadcn/ui in `src/components`, themed with Zaster CSS variables (see design.md)
+- Custom `zm-*` CSS tokens in `App.css` (design.md). Shadcn/Tailwind optional later — do not introduce a second system casually.
 - No purple/indigo SaaS defaults; warm accent sparingly from the office mood
-- Avoid inline `style` unless necessary; amounts `de-DE` EUR with income/expense colors
+- Avoid inline `style` unless necessary (color swatches OK); amounts `de-DE` EUR with income/expense tokens
 - Confidence colors: manual green · learned blue · keyword yellow · none gray
+- Motion: nav active + page enter; keep calm

@@ -1,9 +1,13 @@
+import { HttpError } from "wasp/server";
 import type {
+  ExportTransactionsCsv,
   GetTransactionFilterOptions,
   GetTransactionNav,
   GetTransactions,
   GetTransactionsSummary,
 } from "wasp/server/operations";
+import { toSemicolonCsv } from "../export/csv";
+import type { CsvExportResult } from "../export/types";
 import type {
   TransactionFilterArgs,
   TransactionFilterOptions,
@@ -16,6 +20,7 @@ import type {
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "./types";
 
 export type {
+  CsvExportResult,
   TransactionFilterArgs,
   TransactionListItem,
   TransactionNavArgs,
@@ -23,6 +28,8 @@ export type {
   TransactionsPageResult,
   TransactionsSummary,
 } from "./types";
+
+const EXPORT_MAX_ROWS = 100_000;
 
 type PrismaWhere = Record<string, unknown>;
 
@@ -32,8 +39,17 @@ function normalizePageSize(raw: number | undefined): number {
   return DEFAULT_PAGE_SIZE;
 }
 
+function parseOptionalIsoDate(raw: string | undefined): Date | null {
+  if (!raw?.trim()) return null;
+  const m = raw.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+}
+
 function buildWhere(args: TransactionFilterArgs | void): PrismaWhere {
-  if (!args || typeof args !== "object") return {};
+  if (!args || typeof args !== "object") {
+    return { isBalanceAdjustment: false };
+  }
 
   const clauses: PrismaWhere[] = [];
 
@@ -47,6 +63,32 @@ function buildWhere(args: TransactionFilterArgs | void): PrismaWhere {
     clauses.push({ betrag: { gt: 0 } });
   } else if (args.typ === "expense") {
     clauses.push({ betrag: { lt: 0 } });
+  }
+  if (args.categorySource && args.categorySource !== "all") {
+    clauses.push({ categorySource: args.categorySource });
+  }
+  if (!args.includeBalanceAdjustments) {
+    clauses.push({ isBalanceAdjustment: false });
+  }
+
+  const dateFrom = parseOptionalIsoDate(args.dateFrom);
+  const dateTo = parseOptionalIsoDate(args.dateTo);
+  if (dateFrom || dateTo) {
+    const datum: { gte?: Date; lte?: Date } = {};
+    if (dateFrom) datum.gte = dateFrom;
+    if (dateTo) datum.lte = dateTo;
+    clauses.push({ datum });
+  }
+
+  const search = args.search?.trim();
+  if (search) {
+    clauses.push({
+      OR: [
+        { verwendungszweck: { contains: search, mode: "insensitive" } },
+        { sender: { contains: search, mode: "insensitive" } },
+        { empfaenger: { contains: search, mode: "insensitive" } },
+      ],
+    });
   }
 
   if (clauses.length === 0) return {};
@@ -207,6 +249,11 @@ export const getTransactionNav: GetTransactionNav<
     banks: args.banks,
     konten: args.konten,
     typ: args.typ,
+    categorySource: args.categorySource,
+    includeBalanceAdjustments: args.includeBalanceAdjustments,
+    dateFrom: args.dateFrom,
+    dateTo: args.dateTo,
+    search: args.search,
   });
 
   const inFilterCount = await context.entities.Transaction.count({
@@ -236,4 +283,73 @@ export const getTransactionNav: GetTransactionNav<
 
   const page = Math.floor(beforeCount / pageSize) + 1;
   return { item, page };
+};
+
+/** Full filtered set as German Excel-friendly semicolon CSV (cap 100k). */
+export const exportTransactionsCsv: ExportTransactionsCsv<
+  TransactionFilterArgs | void,
+  CsvExportResult
+> = async (args, context) => {
+  const where = buildWhere(args);
+  const totalCount = await context.entities.Transaction.count({ where });
+  if (totalCount > EXPORT_MAX_ROWS) {
+    throw new HttpError(
+      400,
+      `Export zu groß (${totalCount.toLocaleString("de-DE")} Zeilen, max. ${EXPORT_MAX_ROWS.toLocaleString("de-DE")}). Bitte Filter enger setzen.`,
+    );
+  }
+
+  const rows = await context.entities.Transaction.findMany({
+    where,
+    orderBy: [{ datum: "desc" }, { id: "desc" }],
+    take: EXPORT_MAX_ROWS,
+    include: {
+      category: { select: { name: true } },
+      subcategory: { select: { name: true } },
+    },
+  });
+
+  const csv = toSemicolonCsv(
+    [
+      "Id",
+      "Datum",
+      "Bank",
+      "Konto",
+      "Betrag",
+      "Sender",
+      "Empfaenger",
+      "Verwendungszweck",
+      "IBAN",
+      "Kundenreferenz",
+      "Kategorie",
+      "Unterkategorie",
+      "Konfidenz",
+      "RelatedId",
+      "RelatedType",
+    ],
+    rows.map((r) => [
+      r.id,
+      r.datum.toISOString().slice(0, 10),
+      r.bank,
+      r.konto,
+      r.betrag.toString().replace(".", ","),
+      r.sender,
+      r.empfaenger,
+      r.verwendungszweck,
+      r.iban,
+      r.kundenreferenz,
+      r.category?.name ?? "",
+      r.subcategory?.name ?? "",
+      r.categorySource,
+      r.relatedTransactionId,
+      r.relatedType,
+    ]),
+  );
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  return {
+    csv,
+    rowCount: rows.length,
+    fileName: `zaster-transaktionen-${stamp}.csv`,
+  };
 };

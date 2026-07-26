@@ -1,9 +1,20 @@
 import { useMemo, useState } from "react";
 import {
+  exportAnalysisCsv,
+  getAnalysisBreakdown,
+  getAnalysisByCategory,
   getAnalysisSummary,
+  getAnalysisTimeSeries,
+  getCategories,
   getTransactionFilterOptions,
   useQuery,
 } from "wasp/client/operations";
+import {
+  AnalysisCategoryPie,
+  AnalysisTrendChart,
+} from "../components/AnalysisCharts";
+import { AnalysisBreakdownTable } from "../components/AnalysisBreakdownTable";
+import { downloadCsv } from "../features/export/csv";
 import type { AnalysisTyp } from "../features/analysis/types";
 
 const eur = new Intl.NumberFormat("de-DE", {
@@ -50,8 +61,12 @@ export function AnalysePage() {
   const [banks, setBanks] = useState<string[]>([]);
   const [konten, setKonten] = useState<string[]>([]);
   const [typ, setTyp] = useState<AnalysisTyp>("all");
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [subcategoryId, setSubcategoryId] = useState<number | null>(null);
+  const [exportBusy, setExportBusy] = useState(false);
 
   const { data: options } = useQuery(getTransactionFilterOptions);
+  const { data: categories } = useQuery(getCategories);
 
   const filterArgs = useMemo(
     () => ({
@@ -60,14 +75,22 @@ export function AnalysePage() {
       banks: banks.length ? banks : undefined,
       konten: konten.length ? konten : undefined,
       typ,
+      categoryId: categoryId ?? undefined,
+      subcategoryId: subcategoryId ?? undefined,
     }),
-    [dateFrom, dateTo, banks, konten, typ],
+    [dateFrom, dateTo, banks, konten, typ, categoryId, subcategoryId],
   );
 
   const { data: summary, isLoading, error } = useQuery(
     getAnalysisSummary,
     filterArgs,
   );
+  const { data: series } = useQuery(getAnalysisTimeSeries, filterArgs);
+  const { data: byCategory } = useQuery(getAnalysisByCategory, filterArgs);
+  const { data: breakdown } = useQuery(getAnalysisBreakdown, filterArgs);
+
+  const selectedCategory = categories?.find((c) => c.id === categoryId);
+  const subOptions = selectedCategory?.subcategories ?? [];
 
   function applyPreset(next: Preset) {
     setPreset(next);
@@ -82,18 +105,44 @@ export function AnalysePage() {
     }
   }
 
+  function drillToCategory(id: number | null) {
+    if (id == null) return;
+    if (byCategory?.mode === "category") {
+      setCategoryId(id);
+      setSubcategoryId(null);
+    } else {
+      setSubcategoryId(id);
+    }
+  }
+
+  async function handleExportCsv() {
+    setExportBusy(true);
+    try {
+      const result = await exportAnalysisCsv(filterArgs);
+      downloadCsv(result.fileName, result.csv);
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Export fehlgeschlagen.",
+      );
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
   const showIncome = typ !== "expense";
   const showExpense = typ !== "income";
   const showNet = typ === "all";
+  const hasData = (summary?.count ?? 0) > 0;
 
   return (
-    <section>
+    <section className="zm-analyse-page">
       <h1 className="zm-page-title">Analyse</h1>
       <p className="zm-page-lead">
-        Zeitraum-Auswertung (Diagramme folgen später).
+        Zeitraum-Auswertung mit Trend, Kategorien und Aufschlüsselung
+        (verwandte Buchungen werden genettet).
       </p>
 
-      <div className="zm-toolbar">
+      <div className="zm-toolbar zm-analyse-filters">
         <div className="zm-filter-group">
           <span className="zm-field-label">Zeitraum</span>
           <div className="zm-chip-row">
@@ -153,6 +202,69 @@ export function AnalysePage() {
             <option value="income">Einnahmen</option>
           </select>
         </label>
+
+        <label className="zm-field zm-field-inline">
+          <span className="zm-field-label">Kategorie</span>
+          <select
+            className="zm-select"
+            value={categoryId ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setCategoryId(v ? Number(v) : null);
+              setSubcategoryId(null);
+            }}
+          >
+            <option value="">Alle</option>
+            {(categories ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {categoryId != null && (
+          <label className="zm-field zm-field-inline">
+            <span className="zm-field-label">Unterkategorie</span>
+            <select
+              className="zm-select"
+              value={subcategoryId ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSubcategoryId(v ? Number(v) : null);
+              }}
+            >
+              <option value="">Alle</option>
+              {subOptions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {(categoryId != null || subcategoryId != null) && (
+          <button
+            type="button"
+            className="zm-btn zm-btn-ghost"
+            onClick={() => {
+              setCategoryId(null);
+              setSubcategoryId(null);
+            }}
+          >
+            Kategorie zurücksetzen
+          </button>
+        )}
+
+        <button
+          type="button"
+          className="zm-btn zm-btn-ghost"
+          disabled={exportBusy || isLoading}
+          onClick={() => void handleExportCsv()}
+        >
+          {exportBusy ? "Export…" : "CSV exportieren"}
+        </button>
       </div>
 
       <div className="zm-toolbar">
@@ -250,11 +362,95 @@ export function AnalysePage() {
         </div>
       )}
 
-      {summary && summary.count === 0 && !isLoading && (
+      {!hasData && !isLoading && summary && (
         <p className="zm-page-lead">
           Keine Buchungen im gewählten Zeitraum. Zeitraum anpassen oder Daten
           importieren.
         </p>
+      )}
+
+      {hasData && (
+        <>
+          <section className="zm-analyse-section">
+            <h2 className="zm-analyse-heading">
+              Zeitlicher Trend
+              {series?.grouping
+                ? ` (${
+                    series.grouping === "day"
+                      ? "Tage"
+                      : series.grouping === "month"
+                        ? "Monate"
+                        : "Jahre"
+                  })`
+                : ""}
+            </h2>
+            <AnalysisTrendChart
+              labels={(series?.points ?? []).map((p) => p.label)}
+              income={(series?.points ?? []).map((p) => Number(p.income))}
+              expense={(series?.points ?? []).map((p) => Number(p.expense))}
+              showIncome={showIncome}
+              showExpense={showExpense}
+            />
+          </section>
+
+          {showExpense && (
+            <section className="zm-analyse-section">
+              <h2 className="zm-analyse-heading">
+                Ausgaben nach{" "}
+                {byCategory?.mode === "subcategory"
+                  ? "Unterkategorie"
+                  : "Kategorie"}
+              </h2>
+              <AnalysisCategoryPie
+                slices={byCategory?.expenses ?? []}
+                emptyLabel="Keine Ausgaben in diesem Filter."
+                onSliceClick={
+                  subcategoryId == null ? drillToCategory : undefined
+                }
+              />
+            </section>
+          )}
+
+          {showIncome && (
+            <section className="zm-analyse-section">
+              <h2 className="zm-analyse-heading">
+                Einnahmen nach{" "}
+                {byCategory?.mode === "subcategory"
+                  ? "Unterkategorie"
+                  : "Kategorie"}
+              </h2>
+              <AnalysisCategoryPie
+                slices={byCategory?.income ?? []}
+                emptyLabel="Keine Einnahmen in diesem Filter."
+                onSliceClick={
+                  subcategoryId == null ? drillToCategory : undefined
+                }
+              />
+            </section>
+          )}
+
+          {showExpense && (
+            <AnalysisBreakdownTable
+              title="Ausgaben-Aufschlüsselung"
+              rows={breakdown?.expenses ?? []}
+              emptyLabel="Keine Ausgaben zum Aufschlüsseln."
+              onCategoryClick={
+                byCategory?.mode === "category" ? drillToCategory : undefined
+              }
+            />
+          )}
+
+          {showIncome && (
+            <AnalysisBreakdownTable
+              title="Einnahmen-Aufschlüsselung"
+              rows={breakdown?.income ?? []}
+              emptyLabel="Keine Einnahmen zum Aufschlüsseln."
+              onCategoryClick={
+                byCategory?.mode === "category" ? drillToCategory : undefined
+              }
+            />
+          )}
+        </>
       )}
     </section>
   );

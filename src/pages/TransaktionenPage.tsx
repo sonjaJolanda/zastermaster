@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link2 } from "lucide-react";
 import {
+  exportTransactionsCsv,
   getTransactionFilterOptions,
   getTransactionNav,
   getTransactions,
@@ -9,11 +10,20 @@ import {
 } from "wasp/client/operations";
 import { RelatedDetectOverlay } from "../components/RelatedDetectOverlay";
 import { TransactionDetailsOverlay } from "../components/TransactionDetailsOverlay";
+import { downloadCsv } from "../features/export/csv";
+import {
+  loadColumnVisibility,
+  saveColumnVisibility,
+  type ColumnVisibility,
+} from "../features/transactions/columnVisibility";
 import type { TransactionListItem } from "../features/transactions/types";
 import {
   DEFAULT_PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
+  TX_COLUMN_DEFS,
+  type CategorySourceFilter,
   type TransactionTyp,
+  type TxColumnKey,
 } from "../features/transactions/types";
 
 const eur = new Intl.NumberFormat("de-DE", {
@@ -41,18 +51,73 @@ function toggleValue(list: string[], value: string): string[] {
     : [...list, value];
 }
 
+function yearStartIso(): string {
+  return `${new Date().getFullYear()}-01-01`;
+}
+
+function todayIso(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function TransaktionenPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [banks, setBanks] = useState<string[]>([]);
   const [konten, setKonten] = useState<string[]>([]);
   const [typ, setTyp] = useState<TransactionTyp>("all");
+  const [categorySource, setCategorySource] =
+    useState<CategorySourceFilter>("all");
+  const [includeBalanceAdjustments, setIncludeBalanceAdjustments] =
+    useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const [columns, setColumns] = useState<ColumnVisibility>(() =>
+    typeof window !== "undefined"
+      ? loadColumnVisibility()
+      : (Object.fromEntries(
+          TX_COLUMN_DEFS.map((c) => [c.key, c.defaultVisible]),
+        ) as ColumnVisibility),
+  );
   const [selected, setSelected] = useState<TransactionListItem | null>(null);
   const [relatedOpen, setRelatedOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const [pendingNavId, setPendingNavId] = useState<number | null>(null);
   const [navBusy, setNavBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
   const highlightTimer = useRef<number | null>(null);
+  const columnsPanelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setSearch((prev) => {
+        const next = searchInput.trim();
+        if (prev !== next) setPage(1);
+        return next;
+      });
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [searchInput]);
+
+  useEffect(() => {
+    if (!columnsOpen) return;
+    function onDocClick(e: MouseEvent) {
+      if (
+        columnsPanelRef.current &&
+        !columnsPanelRef.current.contains(e.target as Node)
+      ) {
+        setColumnsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [columnsOpen]);
 
   const filterArgs = useMemo(
     () => ({
@@ -61,8 +126,24 @@ export function TransaktionenPage() {
       banks: banks.length ? banks : undefined,
       konten: konten.length ? konten : undefined,
       typ,
+      categorySource,
+      includeBalanceAdjustments,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      search: search || undefined,
     }),
-    [page, pageSize, banks, konten, typ],
+    [
+      page,
+      pageSize,
+      banks,
+      konten,
+      typ,
+      categorySource,
+      includeBalanceAdjustments,
+      dateFrom,
+      dateTo,
+      search,
+    ],
   );
 
   const summaryArgs = useMemo(
@@ -70,8 +151,22 @@ export function TransaktionenPage() {
       banks: banks.length ? banks : undefined,
       konten: konten.length ? konten : undefined,
       typ,
+      categorySource,
+      includeBalanceAdjustments,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      search: search || undefined,
     }),
-    [banks, konten, typ],
+    [
+      banks,
+      konten,
+      typ,
+      categorySource,
+      includeBalanceAdjustments,
+      dateFrom,
+      dateTo,
+      search,
+    ],
   );
 
   const { data: options } = useQuery(getTransactionFilterOptions);
@@ -82,9 +177,18 @@ export function TransaktionenPage() {
   const { data: summary } = useQuery(getTransactionsSummary, summaryArgs);
 
   const items = data?.items ?? [];
+  const show = (key: TxColumnKey) => columns[key];
 
   function resetPage() {
     setPage(1);
+  }
+
+  function setColumn(key: TxColumnKey, visible: boolean) {
+    setColumns((prev) => {
+      const next = { ...prev, [key]: visible };
+      saveColumnVisibility(next);
+      return next;
+    });
   }
 
   function flashHighlight(id: number) {
@@ -140,6 +244,11 @@ export function TransaktionenPage() {
         banks: banks.length ? banks : undefined,
         konten: konten.length ? konten : undefined,
         typ,
+        categorySource,
+        includeBalanceAdjustments,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        search: search || undefined,
       });
       if (!nav) return;
 
@@ -149,12 +258,34 @@ export function TransaktionenPage() {
         return;
       }
 
-      // Filtered out of list, or already on this page but not loaded yet.
       setSelected(nav.item);
       flashHighlight(partnerId);
       if (nav.page != null) scrollToRow(partnerId);
     } finally {
       setNavBusy(false);
+    }
+  }
+
+  async function handleExportCsv() {
+    setExportBusy(true);
+    try {
+      const result = await exportTransactionsCsv({
+        banks: banks.length ? banks : undefined,
+        konten: konten.length ? konten : undefined,
+        typ,
+        categorySource,
+        includeBalanceAdjustments,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        search: search || undefined,
+      });
+      downloadCsv(result.fileName, result.csv);
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Export fehlgeschlagen.",
+      );
+    } finally {
+      setExportBusy(false);
     }
   }
 
@@ -235,6 +366,66 @@ export function TransaktionenPage() {
         </div>
 
         <label className="zm-field zm-field-inline">
+          <span className="zm-field-label">Von</span>
+          <input
+            className="zm-input"
+            type="date"
+            value={dateFrom}
+            onChange={(e) => {
+              setDateFrom(e.target.value);
+              resetPage();
+            }}
+          />
+        </label>
+        <label className="zm-field zm-field-inline">
+          <span className="zm-field-label">Bis</span>
+          <input
+            className="zm-input"
+            type="date"
+            value={dateTo}
+            onChange={(e) => {
+              setDateTo(e.target.value);
+              resetPage();
+            }}
+          />
+        </label>
+        <div className="zm-chip-row zm-date-presets">
+          <button
+            type="button"
+            className="zm-chip"
+            onClick={() => {
+              setDateFrom(yearStartIso());
+              setDateTo(todayIso());
+              resetPage();
+            }}
+          >
+            Dieses Jahr
+          </button>
+          <button
+            type="button"
+            className="zm-chip"
+            onClick={() => {
+              setDateFrom("");
+              setDateTo("");
+              resetPage();
+            }}
+          >
+            Alle Zeiten
+          </button>
+        </div>
+
+        <label className="zm-field zm-field-inline zm-field-search">
+          <span className="zm-field-label">Suche</span>
+          <input
+            className="zm-input"
+            type="search"
+            value={searchInput}
+            placeholder="Zweck, Sender, Empfänger…"
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </label>
+
+        <label className="zm-field zm-field-inline">
           <span className="zm-field-label">Typ</span>
           <select
             className="zm-select"
@@ -248,6 +439,36 @@ export function TransaktionenPage() {
             <option value="expense">Ausgaben</option>
             <option value="income">Einnahmen</option>
           </select>
+        </label>
+
+        <label className="zm-field zm-field-inline">
+          <span className="zm-field-label">Konfidenz</span>
+          <select
+            className="zm-select"
+            value={categorySource}
+            onChange={(e) => {
+              setCategorySource(e.target.value as CategorySourceFilter);
+              resetPage();
+            }}
+          >
+            <option value="all">Alle</option>
+            <option value="manual">Manuell</option>
+            <option value="learned">Gelernt</option>
+            <option value="keyword">Stichwort</option>
+            <option value="none">Keine</option>
+          </select>
+        </label>
+
+        <label className="zm-field zm-field-inline zm-field-check">
+          <input
+            type="checkbox"
+            checked={includeBalanceAdjustments}
+            onChange={(e) => {
+              setIncludeBalanceAdjustments(e.target.checked);
+              resetPage();
+            }}
+          />
+          <span className="zm-field-label">Saldo-Kalibrierung zeigen</span>
         </label>
 
         <label className="zm-field zm-field-inline">
@@ -268,6 +489,40 @@ export function TransaktionenPage() {
           </select>
         </label>
 
+        <div className="zm-columns-menu" ref={columnsPanelRef}>
+          <button
+            type="button"
+            className="zm-btn zm-btn-ghost"
+            aria-expanded={columnsOpen}
+            onClick={() => setColumnsOpen((o) => !o)}
+          >
+            Spalten
+          </button>
+          {columnsOpen && (
+            <div className="zm-columns-panel" role="menu">
+              {TX_COLUMN_DEFS.map((col) => (
+                <label key={col.key} className="zm-field-check">
+                  <input
+                    type="checkbox"
+                    checked={columns[col.key]}
+                    onChange={(e) => setColumn(col.key, e.target.checked)}
+                  />
+                  <span>{col.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="zm-btn zm-btn-ghost"
+          disabled={exportBusy || relatedOpen}
+          onClick={() => void handleExportCsv()}
+        >
+          {exportBusy ? "Export…" : "CSV exportieren"}
+        </button>
+
         <button
           type="button"
           className="zm-btn zm-btn-primary zm-toolbar-action"
@@ -287,8 +542,8 @@ export function TransaktionenPage() {
 
       {!isLoading && items.length === 0 && (
         <p className="zm-page-lead">
-          Keine Transaktionen für die aktuellen Filter. Importiere eine DKB-CSV
-          unter Upload oder Filter zurücksetzen.
+          Keine Transaktionen für die aktuellen Filter. Importiere unter Upload
+          oder Filter zurücksetzen.
         </p>
       )}
 
@@ -298,19 +553,23 @@ export function TransaktionenPage() {
             <table className="zm-table">
               <thead>
                 <tr>
-                  <th>Datum</th>
-                  <th>Bank</th>
-                  <th>Konto</th>
-                  <th>Sender</th>
-                  <th>Empfänger</th>
-                  <th>Verwendungszweck</th>
-                  <th>Kategorie</th>
-                  <th>Konfidenz</th>
-                  <th title="Verknüpfung">
-                    <Link2 size={14} aria-hidden />
-                    <span className="sr-only">Verknüpfung</span>
-                  </th>
-                  <th className="zm-num">Betrag</th>
+                  {show("datum") && <th>Datum</th>}
+                  {show("bank") && <th>Bank</th>}
+                  {show("konto") && <th>Konto</th>}
+                  {show("sender") && <th>Sender</th>}
+                  {show("empfaenger") && <th>Empfänger</th>}
+                  {show("verwendungszweck") && <th>Verwendungszweck</th>}
+                  {show("iban") && <th>IBAN</th>}
+                  {show("kundenreferenz") && <th>Kundenref.</th>}
+                  {show("kategorie") && <th>Kategorie</th>}
+                  {show("konfidenz") && <th>Konfidenz</th>}
+                  {show("related") && (
+                    <th title="Verknüpfung">
+                      <Link2 size={14} aria-hidden />
+                      <span className="sr-only">Verknüpfung</span>
+                    </th>
+                  )}
+                  {show("betrag") && <th className="zm-num">Betrag</th>}
                   <th></th>
                 </tr>
               </thead>
@@ -334,46 +593,68 @@ export function TransaktionenPage() {
                       id={`zm-tx-row-${tx.id}`}
                       className={highlighted ? "is-highlight" : undefined}
                     >
-                      <td>{dateDe.format(new Date(tx.datum))}</td>
-                      <td>{tx.bank.toUpperCase()}</td>
-                      <td>{tx.konto}</td>
-                      <td title={tx.sender}>{tx.sender}</td>
-                      <td title={tx.empfaenger}>{tx.empfaenger}</td>
-                      <td className="zm-zweck" title={tx.verwendungszweck}>
-                        {tx.verwendungszweck}
-                      </td>
-                      <td title={catLabel}>{catLabel}</td>
-                      <td>
-                        <span
-                          className={`zm-conf zm-conf-${tx.categorySource}`}
-                        >
-                          {SOURCE_LABEL[tx.categorySource]}
-                        </span>
-                      </td>
-                      <td className="zm-related-cell">
-                        {tx.relatedTransactionId != null ? (
-                          <button
-                            type="button"
-                            className="zm-related-link"
-                            disabled={navBusy}
-                            title={`Zu verknüpfter Transaktion #${tx.relatedTransactionId}`}
-                            onClick={() =>
-                              void openRelatedPartner(tx.relatedTransactionId!)
-                            }
+                      {show("datum") && (
+                        <td>{dateDe.format(new Date(tx.datum))}</td>
+                      )}
+                      {show("bank") && <td>{tx.bank.toUpperCase()}</td>}
+                      {show("konto") && <td>{tx.konto}</td>}
+                      {show("sender") && <td title={tx.sender}>{tx.sender}</td>}
+                      {show("empfaenger") && (
+                        <td title={tx.empfaenger}>{tx.empfaenger}</td>
+                      )}
+                      {show("verwendungszweck") && (
+                        <td className="zm-zweck" title={tx.verwendungszweck}>
+                          {tx.verwendungszweck}
+                        </td>
+                      )}
+                      {show("iban") && <td title={tx.iban}>{tx.iban || "—"}</td>}
+                      {show("kundenreferenz") && (
+                        <td title={tx.kundenreferenz}>
+                          {tx.kundenreferenz || "—"}
+                        </td>
+                      )}
+                      {show("kategorie") && (
+                        <td title={catLabel}>{catLabel}</td>
+                      )}
+                      {show("konfidenz") && (
+                        <td>
+                          <span
+                            className={`zm-conf zm-conf-${tx.categorySource}`}
                           >
-                            <Link2 size={16} aria-hidden />
-                            <span className="sr-only">
-                              Zu verknüpfter Transaktion{" "}
-                              {tx.relatedTransactionId}
-                            </span>
-                          </button>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className={`zm-num ${amountClass}`}>
-                        {eur.format(amount)}
-                      </td>
+                            {SOURCE_LABEL[tx.categorySource]}
+                          </span>
+                        </td>
+                      )}
+                      {show("related") && (
+                        <td className="zm-related-cell">
+                          {tx.relatedTransactionId != null ? (
+                            <button
+                              type="button"
+                              className="zm-related-link"
+                              disabled={navBusy}
+                              title={`Zu verknüpfter Transaktion #${tx.relatedTransactionId}`}
+                              onClick={() =>
+                                void openRelatedPartner(
+                                  tx.relatedTransactionId!,
+                                )
+                              }
+                            >
+                              <Link2 size={16} aria-hidden />
+                              <span className="sr-only">
+                                Zu verknüpfter Transaktion{" "}
+                                {tx.relatedTransactionId}
+                              </span>
+                            </button>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                      )}
+                      {show("betrag") && (
+                        <td className={`zm-num ${amountClass}`}>
+                          {eur.format(amount)}
+                        </td>
+                      )}
                       <td>
                         <button
                           type="button"
@@ -431,7 +712,10 @@ export function TransaktionenPage() {
 
       {relatedOpen && (
         <RelatedDetectOverlay
-          onClose={() => setRelatedOpen(false)}
+          onClose={() => {
+            setRelatedOpen(false);
+            void refetch();
+          }}
           onChanged={() => {
             void refetch();
           }}

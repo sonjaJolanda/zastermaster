@@ -15,6 +15,7 @@ model Category {
   subcategories Subcategory[]
   keywords      CategoryKeyword[]
   transactions  Transaction[]
+  learnedRules  LearnedRule[]
 }
 
 model Subcategory {
@@ -26,6 +27,7 @@ model Subcategory {
   category     Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   keywords     CategoryKeyword[]
   transactions Transaction[]
+  learnedRules LearnedRule[]
 
   @@unique([categoryId, name])
 }
@@ -45,6 +47,20 @@ enum CategorySource {
   learned
   keyword
   none
+}
+
+/// User-taught fragment → category (Slice 3 Thick “merken”).
+model LearnedRule {
+  id                  Int         @id @default(autoincrement())
+  descriptionFragment String      @unique
+  categoryId          Int
+  subcategoryId       Int
+  category            Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subcategory         Subcategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+  confidence          Float       @default(1)
+  usageCount          Int         @default(0)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 }
 
 enum RelatedType {
@@ -74,11 +90,14 @@ model Transaction {
   /// Bidirectional partner id (both legs set on confirm).
   relatedTransactionId Int?
   relatedType          RelatedType?
+  /// Synthetic / calibration plumbing — excluded from Analyse by default.
+  isBalanceAdjustment  Boolean         @default(false)
   createdAt            DateTime        @default(now())
 
   @@unique([bank, konto, datum, betrag, verwendungszweck, iban, kundenreferenz], name: "Transaction_dedup_key")
   @@index([datum(sort: Desc)])
   @@index([relatedTransactionId])
+  @@index([bank, konto, datum])
 }
 
 /// Undirected rejected suggestion pair (txIdLow < txIdHigh).

@@ -191,5 +191,5 @@ All aggregation and netting happen **on the server**. Client only renders.
 
 ## Out of scope (v1) / later
 
-- Excel/PDF export of Analyse
+- Excel/PDF export of Analyse (CSV export of summary + breakdown is available)
 - Click-through from breakdown row → filtered Transaktionen (nice follow-up)

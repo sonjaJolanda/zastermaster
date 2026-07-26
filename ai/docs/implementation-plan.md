@@ -26,16 +26,16 @@ Actionable runbook for building Zaster Master. **Behavior details live in featur
 
 | Slice | Name | Thin | Thick |
 |---|---|---|---|
-| 0 | Foundation | ☑ | ☐ |
-| 1 | Categories | ☑ | ☐ |
-| 2 | Import DKB + list | ☑ | ☐ |
-| 3 | Categorize | ☑ | ☐ |
-| 4 | Accounts / balance | ☑ | ☐ |
-| 5 | Transaktionen UX | ☑ | ☐ |
-| 6 | Analyse | ☑ | ☐ |
-| 7 | More banks | ☑ | ☐ |
+| 0 | Foundation | ☑ | ☑ |
+| 1 | Categories | ☑ | ☑ |
+| 2 | Import DKB + list | ☑ | ☑ |
+| 3 | Categorize | ☑ | ☑ |
+| 4 | Accounts / balance | ☑ | ☑ |
+| 5 | Transaktionen UX | ☑ | ☑ |
+| 6 | Analyse | ☑ | ☑ |
+| 7 | More banks | ☑ | ☑ |
 | 8 | Related txs | ☑ | ☑ |
-| 9 | Hardening | ☑ | ☐ |
+| 9 | Hardening | ☑ | ☑ |
 
 **MVP complete** when Thin of slices **0–6** are done (Analyse thin = summary only).
 
@@ -65,7 +65,10 @@ Actionable runbook for building Zaster Master. **Behavior details live in featur
 
 ### Thick (later)
 
-Shadcn install/theme tokens, motion, mobile polish.
+- [x] Theme tokens in CSS (`--zm-*` income/expense/confidence/focus/surface)
+- [x] Motion: nav active transition + page enter fade/slide
+- [x] Mobile polish: toolbar stack, larger nav hit targets, single-column categories, lighter bg transform
+- [x] Shadcn/Tailwind **not** bolted on mid-project — existing `zm-*` design system covers primitives; optional later migration only if needed
 
 ### Out of scope
 
@@ -94,7 +97,8 @@ DB models beyond defaults; import; charts.
 
 ### Thick (later)
 
-Create/edit/delete category & sub; edit keywords; colors; delete policy (block if in use vs reassign Sonstige).
+- [x] Create/edit/delete category & sub; edit keywords; colors
+- [x] Delete policy: block while transactions still reference the category/sub (German error); last subcategory cannot be deleted
 
 ### Out of scope
 
@@ -126,7 +130,9 @@ Transaction FKs required for display; keyword matching engine.
 
 ### Thick (later)
 
-Richer validation errors; upload progress; Giro vs Tagesgeld konto detection polish.
+- [x] Richer validation errors (`ImportParseError` + bank mismatch check + hints)
+- [x] Upload progress bar; nav locked while importing; drag & drop
+- [x] Giro vs Tagesgeld konto normalization (`Girokonto` / `Tagesgeld`)
 
 ### Out of scope
 
@@ -155,7 +161,8 @@ Other banks; related-detect; full filters; Analyse.
 
 ### Thick (later)
 
-“Merken” → `LearnedRule`; learned-rule pass before keywords; Konfidenz filter.
+- [x] “Merken” → `LearnedRule`; learned-rule pass before keywords on import; `usageCount` increments
+- [x] Konfidenz filter on Transaktionen (`manual` / `learned` / `keyword` / `none`)
 
 ### Out of scope
 
@@ -187,6 +194,12 @@ Related pairs; Analyse; category tree editing (unless Slice 1 thick done).
    (cutoff `>` = bank balance is end-of-day on `asOfDate`). Header = sum of those per-account displays. Recompute when txs are imported/changed.
 2. Synthetic opening tx + `isBalanceAdjustment`; exclude from Analyse; filter on Transaktionen.
 
+### Thick DoD
+
+- [x] Header uses roll-forward (not raw `currentBalance` alone)
+- [x] Calibration marker (`isBalanceAdjustment`) excluded from Analyse; optional show on Transaktionen
+- [x] Re-calibrate from Einstellungen
+
 ### Out of scope
 
 Related netting; full Analyse.
@@ -216,6 +229,12 @@ Related netting; full Analyse.
 
 Date range, search, column toggles, Konfidenz filter, balance-adj hide, localStorage columns.
 
+### Thick DoD
+
+- [x] Optional Zeitraum + Suche (Zweck/Sender/Empfänger) filter list + summary
+- [x] Spalten-Optionen with localStorage (IBAN / Kundenref. / Verknüpfung default hidden)
+- [x] Konfidenz filter + Saldo-Kalibrierung hide (defaults)
+
 ### Out of scope
 
 Related-detect overlay; Analyse charts.
@@ -242,6 +261,13 @@ Related-detect overlay; Analyse charts.
 
 Time series, pies, breakdowns, Typ hide, category drill-down; apply related netting once Slice 8 exists.
 
+### Thick DoD
+
+- [x] Zeitlicher Trend (auto day/month/year) + Ausgaben/Einnahmen-Pies
+- [x] Expandable category breakdowns; Typ hides opposite sections
+- [x] Category filter + pie/legend drill-down to subcategory view
+- [x] Related-pair netting applied to summary, trend, pies, breakdowns
+
 ### Out of scope
 
 Related-detect UI; Excel export.
@@ -267,6 +293,13 @@ Related-detect UI; Excel export.
 ### Thick (later)
 
 Remaining banks (Sparkasse / Trade Republic); format drift handling.
+
+### Thick DoD
+
+- [x] Sparkasse MT940-like TXT imports (`bank=sparkasse`, `konto=Girokonto`)
+- [x] Trade Republic transactions CSV imports (`bank=traderepublic`, `konto=Trade Republic`)
+- [x] Upload bank select + format sniff rejects mismatched bank
+- [x] Clear parse errors/hints on format drift (missing tags/columns)
 
 ### Out of scope
 
@@ -327,11 +360,19 @@ Auto-delete duplicates; Jobs unless detect &gt; ~15s.
 
 - [x] Smoke-tested all `Bankauszüge/DKB/*.csv` + `PayPal/*.TXT` parsers (0 failures; keyword categorize hits on real rows)
 - [x] Daily-use fixes: Details form resets on partner switch; DKB imports only `Status=Gebucht`; category sync note in Details
-- [x] Documented remaining formats: Sparkasse = MT940-like; Trade Republic = cash CSV (Slice 7 Thick)
+- [x] Documented remaining formats: Sparkasse = MT940-like; Trade Republic = cash CSV (done in Slice 7 Thick)
 
 ### Thick (later)
 
 Export, Jobs, auth, deploy — only if product goals change.
+
+### Thick DoD (scoped)
+
+Product locks unchanged: **no** Jobs, auth, or cloud deploy.
+
+- [x] CSV export Transaktionen (current filters, semicolon + UTF-8 BOM)
+- [x] CSV export Analyse (summary + breakdown, netted)
+- [x] Hardening notes: all four bank sample formats supported
 
 ### Hardening notes (samples)
 
@@ -339,8 +380,8 @@ Export, Jobs, auth, deploy — only if product goals change.
 |---|---|---|
 | DKB Giro / Tagesgeld | Semicolon CSV | Supported |
 | PayPal | German TSV/TXT, `Abgeschlossen`+EUR | Supported |
-| Sparkasse | MT940-style `:61:`/`:86:` blocks | Not yet (Slice 7 Thick) |
-| Trade Republic | ISO datetime cash CSV | Not yet (Slice 7 Thick) |
+| Sparkasse | MT940-style `:61:`/`:86:` blocks | Supported |
+| Trade Republic | ISO datetime cash CSV | Supported |
 
 ---
 

@@ -1,4 +1,5 @@
 import {
+  ImportParseError,
   parseGermanAmount,
   parseGermanDate,
   stripBom,
@@ -63,21 +64,37 @@ function parseTabCsv(text: string): string[][] {
  * Only completed EUR rows; pending authorizations are skipped.
  */
 export function parsePaypalTxt(content: string): BankParseResult {
+  if (!content.trim()) {
+    throw new ImportParseError(
+      "PayPal-Datei ist leer.",
+      "Bitte einen PayPal-Aktivitätsexport (TXT/TSV) hochladen.",
+    );
+  }
+
   const rows = parseTabCsv(content);
   if (rows.length < 2) {
-    throw new Error("PayPal-Datei ist zu kurz oder leer.");
+    throw new ImportParseError(
+      "PayPal-Datei ist zu kurz oder leer.",
+      "Erwartet Kopfzeile mit Datum / Netto / Status.",
+    );
   }
 
   const header = rows[0]!;
   if (!header.includes("Datum") || !header.includes("Netto")) {
-    throw new Error(
-      "PayPal-Kopfzeile fehlt (erwartet Spalten Datum / Netto / Status).",
+    throw new ImportParseError(
+      "PayPal-Kopfzeile fehlt.",
+      "Erwartet Spalten Datum / Netto / Status. Stimmt die Bank-Auswahl (PayPal)?",
     );
   }
 
   const col = (name: string) => {
     const i = header.indexOf(name);
-    if (i < 0) throw new Error(`PayPal-Spalte fehlt: ${name}`);
+    if (i < 0) {
+      throw new ImportParseError(
+        `PayPal-Spalte fehlt: ${name}`,
+        "Export ggf. in Deutsch und mit allen Standardspalten speichern.",
+      );
+    }
     return i;
   };
 
@@ -156,8 +173,9 @@ export function parsePaypalTxt(content: string): BankParseResult {
   }
 
   if (out.length === 0) {
-    throw new Error(
+    throw new ImportParseError(
       "Keine abgeschlossenen EUR-Buchungen in der PayPal-Datei gefunden.",
+      "Nur Zeilen mit Status „Abgeschlossen“ und Währung EUR werden importiert.",
     );
   }
 

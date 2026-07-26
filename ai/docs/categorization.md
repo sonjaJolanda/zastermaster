@@ -150,9 +150,11 @@ Pair color with text/icon (a11y). Optional filter by source on Transaktionen (Sl
 
 | Op | Kind | Purpose |
 |---|---|---|
-| `getCategories` | query | Full tree + keywords |
+| `getCategories` | query | Full tree + keywords (with ids) |
 | `seedCategoriesIfEmpty` | action | Idempotent seed |
-| Category CRUD | actions | Slice 1 Thick — name/color/subs/keywords |
+| `createCategory` / `updateCategory` / `deleteCategory` | actions | Main category CRUD; new category gets default sub **Unbekannt**; delete blocked if txs reference it |
+| `createSubcategory` / `updateSubcategory` / `deleteSubcategory` | actions | Sub CRUD; delete blocked if in use or last sub |
+| `setKeywords` | action | Replace keyword list for category **or** subcategory |
 | `categorizeTransaction` | action | Manual assign on row **and related partner**; `remember?: boolean` |
 | (internal) `categorizeRow(text fields)` | pure fn | Used by import |
 
