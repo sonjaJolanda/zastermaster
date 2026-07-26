@@ -130,6 +130,7 @@ Define models in `schema.prisma`. Apply with `wasp db migrate-dev`.
 | `konto` | e.g. Girokonto, Tagesgeld, PayPal |
 | `balance` | Optional export snapshot; not a full ledger |
 | `relatedTransactionId` | One link; confirm writes both directions |
+| `relatedType` | `paypal_bank` \| `transfer` \| `near_duplicate` (set on confirm) |
 
 **Dedup key:** unique on `(bank, konto, datum, betrag, verwendungszweck, iban, kundenreferenz)` (normalize empty `iban` / `kundenreferenz` to `''` so NULLs don’t bypass uniqueness). Bank+Konto are included because PayPal/Trade Republic rows often lack IBAN.
 
@@ -139,14 +140,15 @@ Importers normalize to the same logical columns: Datum, Betrag, Sender\*in, Empf
 
 Incomplete history is expected. Accounts are first-class:
 
-1. User enters **current bank balance** + **as-of date** per account.
-2. That is the truth for that account’s “money I own now.”
-3. App derives an **implied opening balance** at the start of imported history (or synthesizes an opening transaction marked as balance plumbing — visible in Transaktionen if we keep it, but **excluded from Analyse**).
-4. Row `balance` stays snapshot metadata; it does not drive the header.
+1. User enters **bank balance** + **as-of date** per account (calibration checkpoint).
+2. **Thin (now):** that stored value is shown in the header as-is; header = **sum of calibrated `currentBalance`** across accounts.
+3. **Thick (later):** roll forward per account —  
+   `Anzeige = kalibrierter Stand + Summe(Betrag) mit Datum > asOfDate` for that `bank`/`konto`; header = sum of those. Optional: implied opening / synthetic opening tx (`isBalanceAdjustment`), excluded from Analyse.
+4. Row `balance` stays export snapshot metadata; it does not drive the header.
 
-**Header balance** = **sum of calibrated balances across all accounts** (total wealth). Not “balance of the currently filtered Konto” unless we add that later.
+Not “balance of the currently filtered Konto” unless we add that later.
 
-Ask for current balance on first upload of a new account.
+Ask for balance on first upload of a new account.
 
 ### Categories & learned rules
 
@@ -155,9 +157,18 @@ Seed: [`categories_seed.json`](../categories_seed.json). PostgreSQL is source of
 
 ### Related transactions
 
-Bidirectional link; used for navigation and **netting in analysis**.
+Bidirectional link (`relatedTransactionId` + `relatedType` on both legs). Used for:
 
----
+1. **Navigation** — table link icon → `getTransactionNav` → jump page if needed → scroll/highlight row → open Details.
+2. **Analyse netting** — confirmed pairs do not double-count (PayPal↔bank keeps PayPal leg when both in filter; transfers drop both when both in filter).
+3. **Shared category** — linked legs always share the same category/subcategory:
+   - Manual categorize on either leg updates **both**.
+   - On **confirm**, copy the stronger category (`manual` > `learned` > `keyword` > `none`) onto the other leg.
+4. **Detectors** — PayPal↔bank (same sign), Umbuchung (opposite sign + keyword/token), near-duplicate (same account/day).
+
+Rejects persist in `RelatedRejection` so the same pair is not suggested again.
+
+Full UI/detect: [`docs/transactions.md`](docs/transactions.md). Netting: [`docs/analysis.md`](docs/analysis.md).
 
 ## Categorization (hybrid, free by default)
 
@@ -178,7 +189,8 @@ Wasp **action** (multipart upload + required `bank` — not auto-detected):
 5. Insert with dedup.
 6. Return `{ success, importedCount, duplicateCount, … }`.
 
-**v1 sources:** DKB, Sparkasse, PayPal, Trade Republic (`Bankauszüge/`).
+**Supported importers now:** DKB (Giro/Tagesgeld CSV), PayPal (German TSV).  
+**Planned (Slice 7 Thick):** Sparkasse (MT940-like), Trade Republic (cash CSV) — samples under `Bankauszüge/`.
 
 Parsing of messy German CSV/TXT lives in TypeScript server modules under `src/features/import/` (Papa Parse or similar). Keep importers versioned and testable.
 
@@ -234,6 +246,8 @@ Full spec: [`ai/docs/transactions.md`](docs/transactions.md).
 - Default columns + optional IBAN / Kundenreferenz / Verknüpfung via Filter & Optionen.
 - Details overlay (categorize; “merken” = Slice 3 Thick); related-detect overlay (progress → confirm/reject).
 - Both legs of a link stay visible here; Analyse does the netting.
+- Partner column: clickable link → scroll to partner row + open Details (page jump via `getTransactionNav` when needed).
+- Categorize one linked row → category syncs to the partner.
 
 ### Analyse (details)
 

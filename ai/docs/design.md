@@ -78,8 +78,9 @@ Category colors come from DB (user-editable); charts use those + the income/expe
 ## Components (Shadcn + custom)
 
 - Prefer Shadcn primitives (Button, Dialog, Table, Select, Input, Checkbox, Progress) styled to the tokens above.
-- **Overlays** (Details, Related-detect): modal/dialog centered on the frosted layer; dim the rest slightly; keep the background photo faintly visible.
+- **Overlays** (Details, Related-detect / Zusammengehörige erkennen, Balance calibration): modal centered over the **frosted content panel (page body)**, **not** the full browser viewport/display. Dim only that panel (`position: absolute` on `.zm-surface`); keep header and photo outside the dim. Sticky anchor so the dialog stays readable while the long page scrolls.
 - **Tables:** zebra or hairline rows; sticky header optional on desktop; confidence as colored pill/dot + optional text.
+- **Related link in table:** icon button; target row briefly highlighted after navigation.
 - **Forms:** generous hit targets; German labels; validation messages under fields.
 - **Empty states:** short German copy + one CTA (e.g. “Jetzt Importieren”) — no illustration clutter.
 

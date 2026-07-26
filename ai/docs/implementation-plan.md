@@ -27,15 +27,15 @@ Actionable runbook for building Zaster Master. **Behavior details live in featur
 | Slice | Name | Thin | Thick |
 |---|---|---|---|
 | 0 | Foundation | ☑ | ☐ |
-| 1 | Categories | ☐ | ☐ |
-| 2 | Import DKB + list | ☐ | ☐ |
-| 3 | Categorize | ☐ | ☐ |
-| 4 | Accounts / balance | ☐ | ☐ |
-| 5 | Transaktionen UX | ☐ | ☐ |
-| 6 | Analyse | ☐ | ☐ |
-| 7 | More banks | ☐ | ☐ |
-| 8 | Related txs | ☐ | ☐ |
-| 9 | Hardening | ☐ | ☐ |
+| 1 | Categories | ☑ | ☐ |
+| 2 | Import DKB + list | ☑ | ☐ |
+| 3 | Categorize | ☑ | ☐ |
+| 4 | Accounts / balance | ☑ | ☐ |
+| 5 | Transaktionen UX | ☑ | ☐ |
+| 6 | Analyse | ☑ | ☐ |
+| 7 | More banks | ☑ | ☐ |
+| 8 | Related txs | ☑ | ☑ |
+| 9 | Hardening | ☑ | ☐ |
 
 **MVP complete** when Thin of slices **0–6** are done (Analyse thin = summary only).
 
@@ -89,8 +89,8 @@ DB models beyond defaults; import; charts.
 
 ### Thin DoD
 
-- [ ] Fresh DB → seed runs → UI shows seeded German categories
-- [ ] Re-start does not duplicate seed
+- [x] Fresh DB → seed runs → UI shows seeded German categories
+- [x] Re-start does not duplicate seed
 
 ### Thick (later)
 
@@ -120,9 +120,9 @@ Transaction FKs required for display; keyword matching engine.
 
 ### Thin DoD
 
-- [ ] Real file from `Bankauszüge/DKB/` imports without crash
-- [ ] Rows visible in table
-- [ ] Re-import same file → duplicates skipped or reported
+- [x] Real file from `Bankauszüge/DKB/` imports without crash
+- [x] Rows visible in table
+- [x] Re-import same file → duplicates skipped or reported
 
 ### Thick (later)
 
@@ -145,13 +145,13 @@ Other banks; related-detect; full filters; Analyse.
 1. Ensure txs link to category/subcategory FKs + `confidenceScore` + `categorySource` (`manual` \| `keyword` \| `learned` \| `none`).
 2. `src/features/categorization/` — keyword matcher (sub then main keywords per README).
 3. Run matcher inside import action before insert.
-4. Details overlay: show fields; select Kategorie → Unterkategorie; save via `categorizeTransaction` (source `manual`, score 1.0).
+4. Details overlay: show fields; select Kategorie → Unterkategorie; save via `categorizeTransaction` (source `manual`, score 1.0). After Slice 8: also sync category to linked partner.
 5. Table: confidence color + label; amount red/green.
 
 ### Thin DoD
 
-- [ ] New import gets non-all-Sonstige when keywords match seed
-- [ ] Manual categorize updates row + colors
+- [x] New import gets non-all-Sonstige when keywords match seed
+- [x] Manual categorize updates row + colors
 
 ### Thick (later)
 
@@ -178,11 +178,14 @@ Related pairs; Analyse; category tree editing (unless Slice 1 thick done).
 
 ### Thin DoD
 
-- [ ] After import + entering balance, header shows that value (multi-account = sum)
+- [x] After import + entering balance, header shows that value (multi-account = sum)
 
 ### Thick (later)
 
-Synthetic opening tx + `isBalanceAdjustment`; exclude from Analyse; filter on Transaktionen.
+1. **Roll-forward header (per account):**  
+   `Anzeige = kalibrierter Stand + Summe(Betrag) der Buchungen dieses Kontos mit Datum > asOfDate`  
+   (cutoff `>` = bank balance is end-of-day on `asOfDate`). Header = sum of those per-account displays. Recompute when txs are imported/changed.
+2. Synthetic opening tx + `isBalanceAdjustment`; exclude from Analyse; filter on Transaktionen.
 
 ### Out of scope
 
@@ -206,8 +209,8 @@ Related netting; full Analyse.
 
 ### Thin DoD
 
-- [ ] Change page size/page works
-- [ ] Summary matches filtered set (not only current page)
+- [x] Change page size/page works
+- [x] Summary matches filtered set (not only current page)
 
 ### Thick (later)
 
@@ -233,7 +236,7 @@ Related-detect overlay; Analyse charts.
 
 ### Thin DoD
 
-- [ ] Default year filter shows plausible totals for imported data
+- [x] Default year filter shows plausible totals for imported data
 
 ### Thick (later)
 
@@ -259,11 +262,11 @@ Related-detect UI; Excel export.
 
 ### Thin DoD
 
-- [ ] Second bank imports into same table with correct `bank`/`konto`
+- [x] Second bank imports into same table with correct `bank`/`konto` (PayPal TSV → `bank=paypal`, `konto=PayPal`; smoke-tested `2026_Paypal.TXT`)
 
 ### Thick (later)
 
-Remaining banks (PayPal/Sparkasse/Trade Republic); format drift handling.
+Remaining banks (Sparkasse / Trade Republic); format drift handling.
 
 ### Out of scope
 
@@ -288,12 +291,21 @@ Related-detect (can start Slice 8 thin after ≥2 sources exist).
 
 ### Thin DoD
 
-- [ ] At least one real PayPal↔DKB or Giro↔Tagesgeld pair can be confirmed
-- [ ] Analyse totals change sensibly when both legs in scope
+- [x] At least one real PayPal↔DKB or Giro↔Tagesgeld pair can be confirmed (detector: PayPal↔Bank; confirm bidirectional)
+- [x] Analyse totals change sensibly when both legs in scope (PayPal leg kept once)
+
+### UX locks (post-Thin, documented)
+
+- Partner link in table → page jump + scroll/highlight + Details (`getTransactionNav`)
+- Overlays centered on frosted **page** panel, not full display ([`design.md`](design.md))
+- Linked legs share category: sync on categorize + on confirm ([`categorization.md`](categorization.md))
 
 ### Thick (later)
 
-All three detectors; scoring/greedy; reject persistence; unlink; batch confirm; poll if slow.
+- [x] All three detectors (PayPal↔Bank, Umbuchung, Ähnlich) + greedy merge with type priority
+- [ ] Unlink in Details; batch confirm; poll if slow
+
+(Reject persistence already in Thin via `RelatedRejection`.)
 
 ### Out of scope
 
@@ -311,9 +323,24 @@ Auto-delete duplicates; Jobs unless detect &gt; ~15s.
 2. Fix UI bugs blocking daily use.
 3. Update feature docs if behavior changed.
 
+### Thin DoD
+
+- [x] Smoke-tested all `Bankauszüge/DKB/*.csv` + `PayPal/*.TXT` parsers (0 failures; keyword categorize hits on real rows)
+- [x] Daily-use fixes: Details form resets on partner switch; DKB imports only `Status=Gebucht`; category sync note in Details
+- [x] Documented remaining formats: Sparkasse = MT940-like; Trade Republic = cash CSV (Slice 7 Thick)
+
 ### Thick (later)
 
 Export, Jobs, auth, deploy — only if product goals change.
+
+### Hardening notes (samples)
+
+| Source | Format | Status |
+|---|---|---|
+| DKB Giro / Tagesgeld | Semicolon CSV | Supported |
+| PayPal | German TSV/TXT, `Abgeschlossen`+EUR | Supported |
+| Sparkasse | MT940-style `:61:`/`:86:` blocks | Not yet (Slice 7 Thick) |
+| Trade Republic | ISO datetime cash CSV | Not yet (Slice 7 Thick) |
 
 ---
 

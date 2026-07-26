@@ -5,6 +5,7 @@ import {
   List,
   Settings,
 } from "lucide-react";
+import { getHeaderBalance, useQuery } from "wasp/client/operations";
 
 const navItems = [
   { to: "/upload", label: "Upload", Icon: ArrowUpFromLine },
@@ -13,6 +14,11 @@ const navItems = [
   { to: "/analyse", label: "Analyse", Icon: BarChart3 },
 ] as const;
 
+const eur = new Intl.NumberFormat("de-DE", {
+  style: "currency",
+  currency: "EUR",
+});
+
 function isActive(pathname: string, to: string) {
   if (to === "/") return pathname === "/";
   return pathname === to || pathname.startsWith(`${to}/`);
@@ -20,6 +26,15 @@ function isActive(pathname: string, to: string) {
 
 export function Header() {
   const { pathname } = useLocation();
+  const { data: balance } = useQuery(getHeaderBalance);
+
+  const balanceLabel =
+    balance?.total != null ? eur.format(Number(balance.total)) : "—";
+
+  const title =
+    balance && balance.calibratedCount > 0
+      ? `Kalibrierter Kontostand (Summe von ${balance.calibratedCount} Konto/Konten)`
+      : "Kalibrierter Kontostand (Summe) — nach Import kalibrieren";
 
   return (
     <header className="zm-header">
@@ -32,8 +47,8 @@ export function Header() {
         <span className="zm-brand-text">Zaster Master</span>
       </Link>
 
-      <p className="zm-balance" title="Kalibrierter Kontostand (Summe)">
-        Kontostand: <span className="zm-balance-value">—</span>
+      <p className="zm-balance" title={title}>
+        Kontostand: <span className="zm-balance-value">{balanceLabel}</span>
       </p>
 
       <nav className="zm-nav" aria-label="Hauptnavigation">

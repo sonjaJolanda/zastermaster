@@ -6,3 +6,101 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
 }
+
+model Category {
+  id            Int               @id @default(autoincrement())
+  name          String            @unique
+  color         String
+  sortOrder     Int               @default(0)
+  subcategories Subcategory[]
+  keywords      CategoryKeyword[]
+  transactions  Transaction[]
+}
+
+model Subcategory {
+  id           Int               @id @default(autoincrement())
+  name         String
+  color        String
+  sortOrder    Int               @default(0)
+  categoryId   Int
+  category     Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  keywords     CategoryKeyword[]
+  transactions Transaction[]
+
+  @@unique([categoryId, name])
+}
+
+/// Exactly one of categoryId / subcategoryId must be set (enforced in app code).
+model CategoryKeyword {
+  id            Int          @id @default(autoincrement())
+  keyword       String
+  categoryId    Int?
+  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subcategoryId Int?
+  subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+}
+
+enum CategorySource {
+  manual
+  learned
+  keyword
+  none
+}
+
+enum RelatedType {
+  paypal_bank
+  transfer
+  near_duplicate
+}
+
+model Transaction {
+  id                   Int             @id @default(autoincrement())
+  datum                DateTime        @db.Date
+  betrag               Decimal         @db.Decimal(12, 2)
+  sender               String          @default("")
+  empfaenger           String          @default("")
+  verwendungszweck     String          @default("")
+  iban                 String          @default("")
+  kundenreferenz       String          @default("")
+  bank                 String
+  konto                String
+  balance              Decimal?        @db.Decimal(12, 2)
+  categoryId           Int?
+  subcategoryId        Int?
+  category             Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subcategory          Subcategory?    @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
+  confidenceScore      Float           @default(0)
+  categorySource       CategorySource  @default(none)
+  /// Bidirectional partner id (both legs set on confirm).
+  relatedTransactionId Int?
+  relatedType          RelatedType?
+  createdAt            DateTime        @default(now())
+
+  @@unique([bank, konto, datum, betrag, verwendungszweck, iban, kundenreferenz], name: "Transaction_dedup_key")
+  @@index([datum(sort: Desc)])
+  @@index([relatedTransactionId])
+}
+
+/// Undirected rejected suggestion pair (txIdLow < txIdHigh).
+model RelatedRejection {
+  id        Int      @id @default(autoincrement())
+  txIdLow   Int
+  txIdHigh  Int
+  createdAt DateTime @default(now())
+
+  @@unique([txIdLow, txIdHigh])
+}
+
+model Account {
+  id              Int       @id @default(autoincrement())
+  bank            String
+  konto           String
+  accountIban     String    @default("")
+  /// Null until the user calibrates (header uses only calibrated balances).
+  currentBalance  Decimal?  @db.Decimal(12, 2)
+  asOfDate        DateTime? @db.Date
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([bank, konto])
+}

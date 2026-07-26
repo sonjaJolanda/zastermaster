@@ -111,9 +111,17 @@ On main-only keyword hit → that category + subcategory **Unbekannt** (or “Al
 
 ### Manual override
 
-User picks category/sub in Details → `categorySource = manual`, `confidenceScore = 1.0`.
+User picks category/sub in Details → `categorySource = manual`, `confidenceScore = 1.0`.  
+If the row has a **confirmed related partner**, apply the same category/sub/source/score to the partner as well (linked pairs always share one category).
 
 If **Diese Zuordnung merken** (Thick): upsert `LearnedRule` with fragment = Verwendungszweck if non-empty, else sender, else empfaenger.
+
+### Related-pair category sync
+
+| Moment | Behavior |
+|---|---|
+| `categorizeTransaction` | Write category to the edited row **and** `relatedTransactionId` partner |
+| `confirmRelatedPair` | After linking, copy the stronger existing category onto the other leg (`manual` > `learned` > `keyword` > `none`; tie → prefer A) |
 
 ## Konfidenz UI
 
@@ -133,7 +141,8 @@ Pair color with text/icon (a11y). Optional filter by source on Transaktionen (Sl
 | Moment | Behavior |
 |---|---|
 | Import | Auto hybrid pipeline on each new row |
-| Details save | Manual (+ optional merken) |
+| Details save | Manual (+ optional merken); sync to related partner if linked |
+| Confirm related pair | Align both legs to one category (stronger source wins) |
 | Re-import deduped row | Do **not** overwrite an existing manual/learned category on duplicate skip |
 | Bulk re-categorize | Out of scope v1 (nice later: only `none`/`keyword` rows) |
 
@@ -144,7 +153,7 @@ Pair color with text/icon (a11y). Optional filter by source on Transaktionen (Sl
 | `getCategories` | query | Full tree + keywords |
 | `seedCategoriesIfEmpty` | action | Idempotent seed |
 | Category CRUD | actions | Slice 1 Thick — name/color/subs/keywords |
-| `categorizeTransaction` | action | Manual assign; `remember?: boolean` |
+| `categorizeTransaction` | action | Manual assign on row **and related partner**; `remember?: boolean` |
 | (internal) `categorizeRow(text fields)` | pure fn | Used by import |
 
 Learned-rule CRUD can stay internal to `categorizeTransaction` + matcher.

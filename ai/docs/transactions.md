@@ -103,7 +103,7 @@ Server-side pagination only — never load all rows into the client for normal b
 | **Betrag** | `de-DE` EUR; signed; **green** if `> 0`, **red** if `< 0` |
 | **Kategorie** | Main name; subcategory secondary (muted) or `Haupt › Unter` |
 | **Konfidenz** | Color + short label (see below). Not color-only (a11y) |
-| **Verknüpfte Transaktion** | Link/icon → scroll/focus or open Details of the partner row (same page navigation) |
+| **Verknüpfte Transaktion** | Clickable link/icon → `getTransactionNav` → jump list page if needed → **scroll to row** (brief highlight) → open **Details** of partner. If current filters hide the partner, open Details only. |
 | **Details** | Button opens Details overlay |
 | Long text | Truncate Verwendungszweck with tooltip/title for full text |
 
@@ -140,7 +140,7 @@ Balance-adjustment rows: badge “Saldo / Eröffnung” so they’re recognizabl
 1. Select **Kategorie** (from DB tree managed in Einstellungen).
 2. Select **Unterkategorie** (filtered by category).
 3. Checkbox: **Diese Zuordnung merken** → create/update `LearnedRule` (fragment rules in [`categorization.md`](categorization.md); Slice 3 Thick).
-4. Speichern → updates row; closes or stays open with success state; table row refreshes.
+4. Speichern → updates row **and linked partner** (same category/subcategory/source); closes or stays open with success state; table row refreshes.
 
 Categories/subcategories are **not** created here — only chosen. Tree editing = Einstellungen.
 
@@ -221,7 +221,7 @@ Between columns / above:
 
 Actions per card:
 
-- **Bestätigen** → `confirmRelatedPair({ aId, bId, type })` → remove card from list, update local state
+- **Bestätigen** → `confirmRelatedPair({ aId, bId, type })` → remove card from list, update local state; **sync category** onto both legs (prefer stronger `categorySource`, else the first leg that has category/sub)
 - **Ablehnen** → `rejectRelatedPair({ aId, bId })` → remove card
 
 Batch (optional v1):
@@ -234,7 +234,8 @@ Footer: Schließen (keeps already confirmed links; unfinished suggestions are si
 
 - Invalidate `getTransactions` (and summary if needed).
 - Show link icon in **Verknüpfte Transaktion** column when that column is visible; always show a small link affordance in Details.
-- Click partner: `getTransaction(partnerId)` or navigate list to `datum`/id — open Details of partner or scroll to row (if on another page, jump page then highlight row).
+- Click partner: `getTransactionNav` → jump list page if needed → **scroll to row** (highlight) → open **Details** of partner. If filters hide the partner, open Details only.
+- Overlays (Details, Zusammengehörige erkennen, Balance): centered over the **frosted content panel (page)**, not the full browser viewport/display.
 
 #### Unlink (v1 nice-to-have)
 
@@ -453,12 +454,22 @@ Synthetic opening / calibration transactions:
 |---|---|---|
 | `getTransactions` | query | Paginated list + filter args; returns rows for page |
 | `getTransactionsSummary` | query | Einnahmen / Ausgaben / count for **same filters** (all matching rows, not one page) |
-| `categorizeTransaction` | action | Set category/subcategory/source/score; optional `remember: true` → LearnedRule |
+| `categorizeTransaction` | action | Set category/subcategory/source/score on row **and related partner**; optional `remember: true` → LearnedRule |
 | `detectRelatedTransactions` | action | Run detectors; return suggestion list (may be chunked later) |
-| `confirmRelatedPair` / `rejectRelatedPair` | actions | Persist link or rejection |
-| `getTransaction` | query | Optional single row for Details / deep link |
+| `confirmRelatedPair` / `rejectRelatedPair` | actions | Persist link (and **sync category** to both legs) or rejection |
+| `getTransactionNav` | query | Resolve partner row + list page under current filters (related-link navigation) |
 
 List + summary share one filter input type. Categorize invalidates list/summary queries.
+
+## UX locks (v1 product decisions)
+
+Captured from product feedback; keep these when changing UI:
+
+1. **Partner navigation** — Verknüpfung column is a real link: scroll + highlight + Details (not a dead icon).
+2. **Overlay placement** — Details / Zusammengehörige erkennen / Balance open centered on the **content page** (frosted panel), not the middle of the full display.
+3. **Shared category on related pairs** — editing category on one leg updates the other; confirming a pair aligns categories.
+
+---
 
 ## Empty & loading
 
