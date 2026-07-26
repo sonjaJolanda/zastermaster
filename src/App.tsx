@@ -11,7 +11,6 @@ const LOADING_COPY: Record<string, { title: string; hint?: string }> = {
   "/": { title: "Transaktionen werden geladen…" },
   "/analyse": {
     title: "Auswertung wird geladen…",
-    hint: "Das kann bei vielen Buchungen etwas dauern.",
   },
   "/upload": { title: "Upload wird geladen…" },
   "/einstellungen": { title: "Einstellungen werden geladen…" },

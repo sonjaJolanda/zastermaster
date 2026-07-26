@@ -17,7 +17,7 @@ Answer, without paying for AI:
 
 ```
 ┌─ Top bar ────────────────────────────────────────────────┐
-│ Einnahmen · Ausgaben · Netto · Buchungen                 │
+│ Kontostand · Investiert · Einnahmen · Ausgaben · Netto · Buchungen │
 │                         CSV exportieren · Filter (toggle)│
 ├─ Filters (collapsible, default closed) ──────────────────┤
 │ Zeitraum · Typ · Kategorie · Banken/Konten · …           │
@@ -58,7 +58,12 @@ Three complementary controls (German labels):
 
 Simplest v1 UX that still matches the brief:
 
-- Preset: **Dieses Jahr** | **Dieser Monat** | **Benutzerdefiniert**
+- Preset chips: **Dieses Jahr** | **Letztes Jahr** | **Dieser Monat** | **Letzter Monat** | **Letzte 3 Monate** | **Benutzerdefiniert**
+  - Dieses Jahr: 1 Jan current year → today
+  - Letztes Jahr: 1 Jan–31 Dec previous calendar year
+  - Dieser Monat: 1st of current month → today
+  - Letzter Monat: full previous calendar month
+  - Letzte 3 Monate: 1st of the month two months ago → today
 - Benutzerdefiniert: date-from + date-to (required if custom)
 - Year/month pickers can implement the presets under the hood
 
@@ -105,12 +110,14 @@ Always for the **current filters** (after netting):
 
 | Metric | Definition |
 |---|---|
-| **Einnahmen** | Sum of positive `betrag` (display abs as EUR) |
-| **Ausgaben** | Sum of absolute values of negative `betrag` |
+| **Kontostand** | Calibrated wealth (`getHeaderBalance`); same as Transaktionen — **not** period-filtered |
+| **Investiert** | Confirmed investment EK (`getInvestedTotal`); see [`investments.md`](investments.md) — excluded from Ausgaben |
+| **Einnahmen** | Sum of positive `betrag` (display abs as EUR); excludes confirmed investments |
+| **Ausgaben** | Sum of absolute values of negative `betrag`; excludes confirmed investments |
 | **Saldo / Netto** | Einnahmen − Ausgaben (signed) |
-| **Buchungen** | Count of transactions **included** after filters and netting rules |
+| **Buchungen** | Count of transactions **included** after filters, netting, and investment exclusion |
 
-Calibrated **wealth** (header balance) is **not** recomputed here; Analyse is about flow in the period.
+Calibrated wealth is shown for orientation; Analyse flow metrics still describe the **period** under filters. Edit balances under Einstellungen → Konten.
 
 ## The five analyses
 
@@ -196,3 +203,14 @@ All aggregation and netting happen **on the server**. Client only renders.
 
 - Excel/PDF export of Analyse (CSV export of summary + breakdown is available)
 - Click-through from breakdown row → filtered Transaktionen (nice follow-up)
+
+## Open / known issues
+
+**Perceived slow load (even with empty DB)** — not fixed yet:
+
+- Analyse fires many parallel queries; route overlay waits until most of them finish.
+- `getAnalysisTimeSeries` still builds empty day buckets for the whole default year (~15 KB) with no rows.
+- Each analysis query runs `loadNettedRows` separately (4× DB work when data exists).
+- First visit may also pay Chart.js client chunk load.
+
+Possible follow-ups: clear nav overlay after summary; skip empty bucket fill; consolidate into one query; lazy-load charts.

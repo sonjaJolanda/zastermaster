@@ -37,7 +37,8 @@ Actionable runbook for building Zaster Master. **Behavior details live in featur
 | 8 | Related txs | ☑ | ☑ |
 | 9 | Hardening | ☑ | ☑ |
 | 10 | Design polish | ☑ | — |
-| 11 | Automated tests | ☐ | — |
+| 11 | Automated tests | ☑ | — |
+| 12 | Investments (EK) | ☑ | — |
 
 **MVP complete** when Thin of slices **0–6** are done (Analyse thin = summary only).
 Slice **10** is post-MVP visual polish (docs in [`design.md`](design.md)).
@@ -427,7 +428,7 @@ New features; DB wipe / fixtures (separate manual test prep); auth/Jobs/deploy.
 
 **Goal:** Vitest unit coverage for the money-critical domain logic. No E2E, no DB integration.
 
-**Specs:** [`transactions.md`](transactions.md) · [`categorization.md`](categorization.md) · [`analysis.md`](analysis.md) · bank parsers under `src/features/import/`
+**Specs:** [`testing.md`](testing.md) · [`transactions.md`](transactions.md) · [`categorization.md`](categorization.md) · [`analysis.md`](analysis.md) · bank parsers under `src/features/import/`
 
 ### Thin steps
 
@@ -446,10 +447,10 @@ New features; DB wipe / fixtures (separate manual test prep); auth/Jobs/deploy.
 
 ### Thin DoD
 
-- [ ] `npm test` green
-- [ ] P0: parsers, categorize, related detect, netting covered as above
-- [ ] Summen helper: Einnahmen, Ausgaben, Netto, Buchungen asserted
-- [ ] No Playwright / no live-DB tests in this slice
+- [x] `npm test` green
+- [x] P0: parsers, categorize, related detect, netting covered as above
+- [x] Summen helper: Einnahmen, Ausgaben, Netto, Buchungen asserted
+- [x] No Playwright / no live-DB tests in this slice
 
 ### Thick (later, optional)
 
@@ -492,4 +493,6 @@ Prefer Wasp queries/actions; no auth; German UI; design.md for shell.
 | [`transactions.md`](transactions.md) | Table + related |
 | [`analysis.md`](analysis.md) | Analyse + netting |
 | [`categorization.md`](categorization.md) | Hybrid categorizer, tree, seed, Konfidenz |
+| [`testing.md`](testing.md) | Unit tests + manuelle `_Tester`-Bankdateien |
+| [`investments.md`](investments.md) | Investiert (EK), Keywords, Confirm-Flow |
 | `categories_seed.json` | Slice 1 seed |

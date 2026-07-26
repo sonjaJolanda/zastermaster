@@ -10,6 +10,9 @@ import {
   useQuery,
 } from "wasp/client/operations";
 import { EditIconButton, PageTitle } from "../components/PageChrome";
+import { InvestiertSummaryStat } from "../components/InvestiertSummaryStat";
+import { KontostandSummaryStat } from "../components/KontostandSummaryStat";
+import { InvestmentDetectOverlay } from "../components/InvestmentDetectOverlay";
 import { RelatedDetectOverlay } from "../components/RelatedDetectOverlay";
 import { TransactionDetailsOverlay } from "../components/TransactionDetailsOverlay";
 import { downloadCsv } from "../features/export/csv";
@@ -97,6 +100,7 @@ export function TransaktionenPage() {
   );
   const [selected, setSelected] = useState<TransactionListItem | null>(null);
   const [relatedOpen, setRelatedOpen] = useState(false);
+  const [investmentOpen, setInvestmentOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const [pendingNavId, setPendingNavId] = useState<number | null>(null);
   const [navBusy, setNavBusy] = useState(false);
@@ -233,7 +237,6 @@ export function TransaktionenPage() {
     if (pendingNavId == null || isLoading) return;
     const found = items.find((tx) => tx.id === pendingNavId);
     if (!found) return;
-    setSelected(found);
     flashHighlight(found.id);
     scrollToRow(found.id);
     setPendingNavId(null);
@@ -250,7 +253,6 @@ export function TransaktionenPage() {
   async function openRelatedPartner(partnerId: number) {
     const onPage = items.find((tx) => tx.id === partnerId);
     if (onPage) {
-      setSelected(onPage);
       flashHighlight(partnerId);
       scrollToRow(partnerId);
       return;
@@ -278,7 +280,6 @@ export function TransaktionenPage() {
         return;
       }
 
-      setSelected(nav.item);
       flashHighlight(partnerId);
       if (nav.page != null) scrollToRow(partnerId);
     } finally {
@@ -315,6 +316,8 @@ export function TransaktionenPage() {
 
       <div className="zm-tx-topbar" aria-live="polite">
         <div className="zm-summary-inline">
+          <KontostandSummaryStat />
+          <InvestiertSummaryStat />
           <div>
             <span className="zm-summary-label">Einnahmen</span>
             <span className="zm-amount-income">
@@ -372,8 +375,16 @@ export function TransaktionenPage() {
           </button>
           <button
             type="button"
+            className="zm-btn zm-btn-ghost"
+            disabled={relatedOpen || investmentOpen}
+            onClick={() => setInvestmentOpen(true)}
+          >
+            Investitionen erkennen
+          </button>
+          <button
+            type="button"
             className="zm-btn zm-btn-primary"
-            disabled={relatedOpen}
+            disabled={relatedOpen || investmentOpen}
             onClick={() => setRelatedOpen(true)}
           >
             Zusammengehörige erkennen
@@ -625,8 +636,9 @@ export function TransaktionenPage() {
               <tbody>
                 {items.map((tx) => {
                   const amount = Number(tx.betrag);
-                  const amountClass =
-                    amount > 0
+                  const amountClass = tx.isInvestment
+                    ? "zm-amount-investment"
+                    : amount > 0
                       ? "zm-amount-income"
                       : amount < 0
                         ? "zm-amount-expense"
@@ -800,6 +812,18 @@ export function TransaktionenPage() {
         <RelatedDetectOverlay
           onClose={() => {
             setRelatedOpen(false);
+            void refetch();
+          }}
+          onChanged={() => {
+            void refetch();
+          }}
+        />
+      )}
+
+      {investmentOpen && (
+        <InvestmentDetectOverlay
+          onClose={() => {
+            setInvestmentOpen(false);
             void refetch();
           }}
           onChanged={() => {

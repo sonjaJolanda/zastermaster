@@ -1,0 +1,62 @@
+/** Synthetic PayPal TSV — no real account data. */
+const header = [
+  "Datum",
+  "Uhrzeit",
+  "Zeitzone",
+  "Name",
+  "Typ",
+  "Status",
+  "Währung",
+  "Brutto",
+  "Gebühr",
+  "Netto",
+  "Absender E-Mail-Adresse",
+  "Empfänger E-Mail-Adresse",
+  "Transaktionscode",
+  "Artikelbezeichnung",
+  "Betreff",
+  "Hinweis",
+  "Guthaben",
+].join("\t");
+
+const done = [
+  "20.07.2026",
+  "12:00:00",
+  "Europe/Berlin",
+  "Shop GmbH",
+  "Allgemeine Zahlung",
+  "Abgeschlossen",
+  "EUR",
+  "-25,00",
+  "0,00",
+  "-25,00",
+  "buyer@example.com",
+  "seller@example.com",
+  "TXN1",
+  "Artikel",
+  "Betreff",
+  "",
+  "10,00",
+].join("\t");
+
+const pending = [
+  "19.07.2026",
+  "12:00:00",
+  "Europe/Berlin",
+  "Shop GmbH",
+  "Autorisierung",
+  "Ausstehend",
+  "EUR",
+  "-10,00",
+  "0,00",
+  "-10,00",
+  "buyer@example.com",
+  "seller@example.com",
+  "TXN2",
+  "",
+  "",
+  "",
+  "10,00",
+].join("\t");
+
+export const paypalSampleTxt = [header, done, pending].join("\n");

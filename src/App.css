@@ -145,6 +145,9 @@ textarea:focus-visible {
 
 .zm-page-enter {
   animation: zm-page-in 0.22s ease-out;
+  flex: 1;
+  min-height: 0;
+  position: relative;
 }
 
 .zm-page-enter.is-route-loading {
@@ -191,18 +194,21 @@ textarea:focus-visible {
   padding: 2rem 4.25rem 1.25rem 1.25rem;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .zm-surface {
   position: relative;
   width: min(1520px, 96vw);
+  min-height: 100%;
   background: var(--zm-surface);
   backdrop-filter: blur(12px);
   border: 1px solid var(--zm-surface-border);
   border-radius: 0.75rem;
   padding: 1.5rem;
   box-shadow: 0 8px 30px rgba(40, 30, 20, 0.08);
+  display: flex;
+  flex-direction: column;
 }
 
 .zm-page-title {
@@ -709,6 +715,19 @@ textarea:focus-visible {
   font-weight: 500;
 }
 
+.zm-summary-label-with-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.zm-summary-info {
+  display: inline-flex;
+  color: var(--zm-text-muted);
+  opacity: 0.85;
+  cursor: help;
+}
+
 .zm-summary-value {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -871,6 +890,11 @@ textarea:focus-visible {
   font-weight: 600;
 }
 
+.zm-amount-investment {
+  color: #000000;
+  font-weight: 600;
+}
+
 .zm-conf {
   display: inline-block;
   font-size: 0.75rem;
@@ -936,28 +960,29 @@ textarea:focus-visible {
 }
 
 .zm-overlay {
-  /* Cover the frosted content panel (page), not the full viewport/display. */
+  /* Cover the frosted content panel (surface), not the full viewport/display. */
   position: absolute;
   inset: 0;
   z-index: 40;
   background: rgba(28, 25, 23, 0.35);
   border-radius: inherit;
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .zm-overlay-anchor {
-  position: sticky;
-  top: 0;
-  min-height: min(100%, calc(100vh - 5.5rem));
+  box-sizing: border-box;
+  min-height: 100%;
+  width: 100%;
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
   padding: 1rem;
 }
 
 .zm-overlay-panel {
   width: min(920px, 100%);
-  max-height: min(85vh, 820px);
+  max-height: min(calc(100vh - 6rem), 820px);
   overflow: auto;
   background: #ffffff;
   backdrop-filter: blur(12px);

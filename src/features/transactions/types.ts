@@ -25,6 +25,8 @@ export type TransactionListItem = {
   categorySource: CategorySource;
   relatedTransactionId: number | null;
   relatedType: "paypal_bank" | "transfer" | "near_duplicate" | null;
+  /** Confirmed investment — amount shown neutrally (not as expense red). */
+  isInvestment: boolean;
 };
 
 export type TransactionFilterArgs = {
@@ -116,7 +118,7 @@ export const TX_COLUMN_DEFS: {
   { key: "kundenreferenz", label: "Kundenreferenz", defaultVisible: false },
   { key: "kategorie", label: "Kategorie", defaultVisible: true },
   { key: "konfidenz", label: "Konfidenz", defaultVisible: true },
-  { key: "related", label: "Verknüpfung", defaultVisible: false },
+  { key: "related", label: "Verknüpfung", defaultVisible: true },
   { key: "betrag", label: "Betrag", defaultVisible: true },
 ];
 

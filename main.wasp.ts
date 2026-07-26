@@ -50,6 +50,14 @@ import {
   detectRelatedTransactions,
   rejectRelatedPair,
 } from "./src/features/related/operations" with { type: "ref" };
+import {
+  confirmInvestment,
+  detectInvestments,
+  getInvestedTotal,
+  getInvestmentKeywords,
+  rejectInvestment,
+  setInvestmentKeywords,
+} from "./src/features/investments/operations" with { type: "ref" };
 
 export default app({
   name: "ZasterMaster",
@@ -159,6 +167,19 @@ export default app({
     }),
     action(confirmRelatedPair, { entities: ["Transaction"] }),
     action(rejectRelatedPair, { entities: ["RelatedRejection"] }),
+    //#endregion
+
+    //#region Investments
+    query(getInvestmentKeywords, { entities: ["InvestmentKeyword"] }),
+    query(getInvestedTotal, { entities: ["Transaction"] }),
+    action(setInvestmentKeywords, { entities: ["InvestmentKeyword"] }),
+    action(detectInvestments, {
+      entities: ["Transaction", "InvestmentKeyword", "InvestmentRejection"],
+    }),
+    action(confirmInvestment, {
+      entities: ["Transaction", "InvestmentRejection"],
+    }),
+    action(rejectInvestment, { entities: ["InvestmentRejection"] }),
     //#endregion
   ],
 });

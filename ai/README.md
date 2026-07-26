@@ -79,6 +79,8 @@ wasp db migrate-dev
 wasp start
 ```
 
+**Unit tests** (no DB): `npm test` — see [`docs/testing.md`](docs/testing.md). Synthetic fixtures only (no real bank exports). Manual smoke: `Bankauszüge/*_Tester*` + checklist in that doc.
+
 | Piece | Role | Typical port |
 |---|---|---|
 | PostgreSQL (`zastermaster-db`) | Database (Docker) | `5432` |
@@ -104,7 +106,7 @@ A **job queue** (in Wasp: Jobs + PgBoss on PostgreSQL) runs long work **outside*
 ## Documentation & conventions
 
 - **Config source of truth:** `main.wasp` (routes, pages, operations) + `schema.prisma` (models).
-- **Feature docs (existing):** [`prd.md`](docs/prd.md), [`implementation-plan.md`](docs/implementation-plan.md), [`design.md`](docs/design.md), [`transactions.md`](docs/transactions.md) (includes related-detect), [`analysis.md`](docs/analysis.md), [`categorization.md`](docs/categorization.md). Import and accounts domain rules live in **this README** until split out. Update the matching doc when behavior changes.
+- **Feature docs (existing):** [`prd.md`](docs/prd.md), [`implementation-plan.md`](docs/implementation-plan.md), [`design.md`](docs/design.md), [`transactions.md`](docs/transactions.md) (includes related-detect), [`analysis.md`](docs/analysis.md), [`categorization.md`](docs/categorization.md), [`investments.md`](docs/investments.md), [`testing.md`](docs/testing.md). Import and accounts domain rules live in **this README** until split out. Update the matching doc when behavior changes.
 - **Code:** `src/features/{featureName}/` with `operations.ts` for that feature’s queries/actions.
 - **Regions in `main.wasp`:** group feature declarations with `//#region` / `//#endregion`.
 - **TypeScript only** for app code (`.ts` / `.tsx`).

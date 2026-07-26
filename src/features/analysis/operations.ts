@@ -62,6 +62,7 @@ function buildWhere(args: AnalysisFilterArgs): PrismaWhere {
   const clauses: PrismaWhere[] = [
     { datum: { gte: dateFrom, lte: dateTo } },
     { isBalanceAdjustment: false },
+    { isInvestment: false },
   ];
 
   if (args.banks && args.banks.length > 0) {

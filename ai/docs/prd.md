@@ -64,4 +64,6 @@ Do **not** duplicate slice tables here. Follow and check off:
 | [`transactions.md`](transactions.md) | Table + related-detect |
 | [`analysis.md`](analysis.md) | Analyse + netting |
 | [`categorization.md`](categorization.md) | Categorizer + tree |
+| [`investments.md`](investments.md) | Investiert (EK) + confirm flow |
+| [`testing.md`](testing.md) | Automated + manual test concept |
 | `categories_seed.json` | Seed data |

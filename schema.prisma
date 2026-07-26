@@ -92,12 +92,15 @@ model Transaction {
   relatedType          RelatedType?
   /// Synthetic / calibration plumbing — excluded from Analyse by default.
   isBalanceAdjustment  Boolean         @default(false)
+  /// Confirmed investment (ETF buy etc.) — EK in Investiert; excluded from flow totals.
+  isInvestment         Boolean         @default(false)
   createdAt            DateTime        @default(now())
 
   @@unique([bank, konto, datum, betrag, verwendungszweck, iban, kundenreferenz], name: "Transaction_dedup_key")
   @@index([datum(sort: Desc)])
   @@index([relatedTransactionId])
   @@index([bank, konto, datum])
+  @@index([isInvestment])
 }
 
 /// Undirected rejected suggestion pair (txIdLow < txIdHigh).
@@ -108,6 +111,20 @@ model RelatedRejection {
   createdAt DateTime @default(now())
 
   @@unique([txIdLow, txIdHigh])
+}
+
+/// User-configured keywords that flag investment candidates (confirm required).
+model InvestmentKeyword {
+  id        Int      @id @default(autoincrement())
+  keyword   String   @unique
+  createdAt DateTime @default(now())
+}
+
+/// Rejected investment suggestion (tx will not be re-suggested).
+model InvestmentRejection {
+  id            Int      @id @default(autoincrement())
+  transactionId Int      @unique
+  createdAt     DateTime @default(now())
 }
 
 model Account {

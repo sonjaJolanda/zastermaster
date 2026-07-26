@@ -4,7 +4,9 @@ import {
   createSubcategory,
   getAccounts,
   getCategories,
+  getInvestmentKeywords,
   seedCategoriesIfEmpty,
+  setInvestmentKeywords,
   setKeywords,
   updateCategory,
   updateSubcategory,
@@ -178,6 +180,11 @@ export function EinstellungenPage() {
               </ul>
             )}
           </div>
+
+          <InvestmentKeywordsPanel
+            busy={busy}
+            onRun={run}
+          />
         </div>
 
         <div className="zm-settings-col">
@@ -253,6 +260,90 @@ export function EinstellungenPage() {
         />
       )}
     </section>
+  );
+}
+
+function InvestmentKeywordsPanel({
+  busy,
+  onRun,
+}: {
+  busy: boolean;
+  onRun: (label: string, fn: () => Promise<unknown>) => Promise<void>;
+}) {
+  const { data: keywords, refetch } = useQuery(getInvestmentKeywords);
+  const [draft, setDraft] = useState("");
+
+  async function addKeyword() {
+    const next = draft.trim();
+    if (!next) return;
+    const list = [...(keywords ?? [])];
+    if (list.some((k) => k.toLowerCase() === next.toLowerCase())) {
+      setDraft("");
+      return;
+    }
+    await onRun("Investitions-Stichwort gespeichert.", async () => {
+      await setInvestmentKeywords({ keywords: [...list, next] });
+      await refetch();
+    });
+    setDraft("");
+  }
+
+  async function removeKeyword(keyword: string) {
+    const list = (keywords ?? []).filter((k) => k !== keyword);
+    await onRun("Stichwort entfernt.", async () => {
+      await setInvestmentKeywords({ keywords: list });
+      await refetch();
+    });
+  }
+
+  return (
+    <div className="zm-accounts-panel" style={{ marginTop: "1.25rem" }}>
+      <h2 className="zm-cat-section-title">Investitionen</h2>
+      <p className="zm-page-lead">
+        Stichwörter für „Investitionen erkennen“ (z. B. BUY, MSCI, Savings
+        plan). Treffer werden erst nach Bestätigung zu <strong>Investiert</strong>.
+      </p>
+      <div className="zm-chip-row" style={{ marginBottom: "0.75rem" }}>
+        {(keywords ?? []).length === 0 && (
+          <span className="zm-cat-meta">Noch keine Stichwörter</span>
+        )}
+        {(keywords ?? []).map((kw) => (
+          <button
+            key={kw}
+            type="button"
+            className="zm-chip is-active"
+            disabled={busy}
+            title="Entfernen"
+            onClick={() => void removeKeyword(kw)}
+          >
+            {kw} ×
+          </button>
+        ))}
+      </div>
+      <div className="zm-cat-edit-row">
+        <input
+          className="zm-input"
+          value={draft}
+          placeholder="Neues Stichwort…"
+          disabled={busy}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void addKeyword();
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="zm-btn zm-btn-primary"
+          disabled={busy || !draft.trim()}
+          onClick={() => void addKeyword()}
+        >
+          Hinzufügen
+        </button>
+      </div>
+    </div>
   );
 }
 

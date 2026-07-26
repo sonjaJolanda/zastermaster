@@ -8,6 +8,7 @@ import type {
 } from "wasp/server/operations";
 import { toSemicolonCsv } from "../export/csv";
 import type { CsvExportResult } from "../export/types";
+import { toTransactionsSummary } from "./summary";
 import type {
   TransactionFilterArgs,
   TransactionFilterOptions,
@@ -28,6 +29,7 @@ export type {
   TransactionsPageResult,
   TransactionsSummary,
 } from "./types";
+export { computeTransactionsSummary, toTransactionsSummary } from "./summary";
 
 const EXPORT_MAX_ROWS = 100_000;
 
@@ -46,9 +48,14 @@ function parseOptionalIsoDate(raw: string | undefined): Date | null {
   return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
 }
 
-function buildWhere(args: TransactionFilterArgs | void): PrismaWhere {
+function buildWhere(
+  args: TransactionFilterArgs | void,
+  opts?: { excludeInvestments?: boolean },
+): PrismaWhere {
   if (!args || typeof args !== "object") {
-    return { isBalanceAdjustment: false };
+    return opts?.excludeInvestments
+      ? { isBalanceAdjustment: false, isInvestment: false }
+      : { isBalanceAdjustment: false };
   }
 
   const clauses: PrismaWhere[] = [];
@@ -69,6 +76,9 @@ function buildWhere(args: TransactionFilterArgs | void): PrismaWhere {
   }
   if (!args.includeBalanceAdjustments) {
     clauses.push({ isBalanceAdjustment: false });
+  }
+  if (opts?.excludeInvestments) {
+    clauses.push({ isInvestment: false });
   }
 
   const dateFrom = parseOptionalIsoDate(args.dateFrom);
@@ -113,6 +123,7 @@ function mapRow(row: {
   categorySource: TransactionListItem["categorySource"];
   relatedTransactionId: number | null;
   relatedType: TransactionListItem["relatedType"];
+  isInvestment: boolean;
   category: { id: number; name: string; color: string } | null;
   subcategory: { id: number; name: string } | null;
 }): TransactionListItem {
@@ -136,6 +147,7 @@ function mapRow(row: {
     categorySource: row.categorySource,
     relatedTransactionId: row.relatedTransactionId,
     relatedType: row.relatedType,
+    isInvestment: row.isInvestment,
   };
 }
 
@@ -180,7 +192,7 @@ export const getTransactionsSummary: GetTransactionsSummary<
   TransactionFilterArgs | void,
   TransactionsSummary
 > = async (args, context) => {
-  const base = buildWhere(args);
+  const base = buildWhere(args, { excludeInvestments: true });
 
   const incomeWhere =
     Object.keys(base).length === 0
@@ -205,15 +217,7 @@ export const getTransactionsSummary: GetTransactionsSummary<
 
   const income = Number(incomeAgg._sum.betrag?.toString() ?? 0);
   const expenseRaw = Number(expenseAgg._sum.betrag?.toString() ?? 0);
-  const expense = Math.abs(expenseRaw);
-  const net = income - expense;
-
-  return {
-    income: income.toFixed(2),
-    expense: expense.toFixed(2),
-    net: net.toFixed(2),
-    count,
-  };
+  return toTransactionsSummary(income, expenseRaw, count);
 };
 
 export const getTransactionFilterOptions: GetTransactionFilterOptions<

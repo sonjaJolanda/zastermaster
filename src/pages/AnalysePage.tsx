@@ -16,6 +16,8 @@ import {
 } from "../components/AnalysisCharts";
 import { AnalysisBreakdownTable } from "../components/AnalysisBreakdownTable";
 import { PageTitle } from "../components/PageChrome";
+import { InvestiertSummaryStat } from "../components/InvestiertSummaryStat";
+import { KontostandSummaryStat } from "../components/KontostandSummaryStat";
 import { downloadCsv } from "../features/export/csv";
 import type { AnalysisTyp } from "../features/analysis/types";
 import { useClearNavPendingWhen } from "../features/shell/NavPendingContext";
@@ -25,7 +27,13 @@ const eur = new Intl.NumberFormat("de-DE", {
   currency: "EUR",
 });
 
-type Preset = "year" | "month" | "custom";
+type Preset =
+  | "year"
+  | "lastYear"
+  | "month"
+  | "lastMonth"
+  | "last3Months"
+  | "custom";
 
 function isoDate(d: Date): string {
   const y = d.getFullYear();
@@ -48,6 +56,24 @@ function monthRange(now = new Date()): { from: string; to: string } {
 
 function defaultYearRange(now = new Date()): { from: string; to: string } {
   return { from: yearStart(now.getFullYear()), to: isoDate(now) };
+}
+
+function lastYearRange(now = new Date()): { from: string; to: string } {
+  const y = now.getFullYear() - 1;
+  return { from: yearStart(y), to: `${y}-12-31` };
+}
+
+function lastMonthRange(now = new Date()): { from: string; to: string } {
+  const firstThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastPrev = new Date(firstThisMonth.getTime() - 86_400_000);
+  const firstPrev = new Date(lastPrev.getFullYear(), lastPrev.getMonth(), 1);
+  return { from: isoDate(firstPrev), to: isoDate(lastPrev) };
+}
+
+/** Current month + previous two calendar months, through today. */
+function last3MonthsRange(now = new Date()): { from: string; to: string } {
+  const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  return { from: isoDate(from), to: isoDate(now) };
 }
 
 function toggleValue(list: string[], value: string): string[] {
@@ -118,15 +144,19 @@ export function AnalysePage() {
 
   function applyPreset(next: Preset) {
     setPreset(next);
-    if (next === "year") {
-      const r = defaultYearRange();
-      setDateFrom(r.from);
-      setDateTo(r.to);
-    } else if (next === "month") {
-      const r = monthRange();
-      setDateFrom(r.from);
-      setDateTo(r.to);
-    }
+    if (next === "custom") return;
+    const r =
+      next === "year"
+        ? defaultYearRange()
+        : next === "lastYear"
+          ? lastYearRange()
+          : next === "month"
+            ? monthRange()
+            : next === "lastMonth"
+              ? lastMonthRange()
+              : last3MonthsRange();
+    setDateFrom(r.from);
+    setDateTo(r.to);
   }
 
   function drillToCategory(id: number | null) {
@@ -164,6 +194,8 @@ export function AnalysePage() {
 
       <div className="zm-tx-topbar" aria-live="polite">
         <div className="zm-summary-inline">
+          <KontostandSummaryStat />
+          <InvestiertSummaryStat />
           {showIncome && (
             <div>
               <span className="zm-summary-label">Einnahmen</span>
@@ -237,7 +269,10 @@ export function AnalysePage() {
             {(
               [
                 ["year", "Dieses Jahr"],
+                ["lastYear", "Letztes Jahr"],
                 ["month", "Dieser Monat"],
+                ["lastMonth", "Letzter Monat"],
+                ["last3Months", "Letzte 3 Monate"],
                 ["custom", "Benutzerdefiniert"],
               ] as const
             ).map(([key, label]) => (
@@ -398,9 +433,6 @@ export function AnalysePage() {
         >
           <div className="zm-related-spinner" aria-hidden />
           <p>Auswertung wird geladen…</p>
-          <p className="zm-page-lead">
-            Das kann bei vielen Buchungen etwas dauern.
-          </p>
         </div>
       )}
       {!isLoading && error && (

@@ -16,7 +16,7 @@ Browse, filter, categorize, and link imported bank rows. Overview also in [`../R
 
 ```
 ┌─ Top bar ────────────────────────────────────────────────┐
-│ Einnahmen · Ausgaben · Netto · Buchungen                 │
+│ Kontostand · Investiert · Einnahmen · Ausgaben · Netto · Buchungen │
 │              CSV · Filter & Optionen · Zusammengehörige… │
 ├─ Filters (collapsible, default closed) ──────────────────┤
 │ …                                                        │
@@ -35,14 +35,16 @@ Shown **inline in the top bar** (not a separate boxed strip).
 
 | Metric | Definition |
 |---|---|
-| **Einnahmen** | Sum of positive `betrag` in the **current filtered set** (not only the current page) |
-| **Ausgaben** | Sum of abs(negative `betrag`) in that set |
+| **Kontostand** | Calibrated wealth: sum of roll-forward balances (`getHeaderBalance`). **Not** affected by TX filters. Shows „—“ until at least one account is calibrated. Tooltip notes partial calibration. |
+| **Investiert** | Confirmed investment cost basis (`getInvestedTotal`); see [`investments.md`](investments.md). Info-(i): not counted in Ausgaben. |
+| **Einnahmen** | Sum of positive `betrag` in the **current filtered set** (not only the current page); **excludes** confirmed investments |
+| **Ausgaben** | Sum of abs(negative `betrag`) in that set; **excludes** confirmed investments |
 | **Netto** | Einnahmen − Ausgaben (signed) |
-| **Buchungen** | Count of rows in that set |
+| **Buchungen** | Count of rows in that set (flow set — excludes confirmed investments from the summary count) |
 
 **Defaults:** no date filter → **all imported transactions** (unlike Analyse, which defaults to the current calendar year).
 
-Header **Balance** (wealth) is under Einstellungen → Konten and is **not** repeated here.
+Per-account calibrate/edit remains under Einstellungen → Konten.
 
 ## Filters & Optionen
 
@@ -107,7 +109,7 @@ Server-side pagination only — never load all rows into the client for normal b
 | **Betrag** | `de-DE` EUR; signed; **green** if `> 0`, **red** if `< 0` |
 | **Kategorie** | Main name; subcategory secondary (muted) or `Haupt › Unter` |
 | **Konfidenz** | Color + short label (see below). Not color-only (a11y) |
-| **Verknüpfte Transaktion** | Clickable link/icon → `getTransactionNav` → jump list page if needed → **scroll to row** (brief highlight) → open **Details** of partner. If current filters hide the partner, open Details only. |
+| **Verknüpfte Transaktion** | Clickable link/icon → `getTransactionNav` → jump list page if needed → **scroll to row** + brief highlight. Does **not** open Details (use the edit icon for that). |
 | **Details** | Button opens Details overlay |
 | Long text | Truncate Verwendungszweck with tooltip/title for full text |
 
@@ -238,7 +240,7 @@ Footer: Schließen (keeps already confirmed links; unfinished suggestions are si
 
 - Invalidate `getTransactions` (and summary if needed).
 - Show link icon in **Verknüpfte Transaktion** column when that column is visible; always show a small link affordance in Details.
-- Click partner: `getTransactionNav` → jump list page if needed → **scroll to row** (highlight) → open **Details** of partner. If filters hide the partner, open Details only.
+- Click partner: `getTransactionNav` → jump list page if needed → **scroll to row** + highlight. Does **not** open Details.
 - Overlays (Details, Zusammengehörige erkennen, Balance): centered over the **frosted content panel (page)**, not the full browser viewport/display.
 
 #### Unlink (v1 nice-to-have)
@@ -469,7 +471,7 @@ List + summary share one filter input type. Categorize invalidates list/summary 
 
 Captured from product feedback; keep these when changing UI:
 
-1. **Partner navigation** — Verknüpfung column is a real link: scroll + highlight + Details (not a dead icon).
+1. **Partner navigation** — Verknüpfung column: scroll + highlight (not Details; edit icon opens Details).
 2. **Overlay placement** — Details / Zusammengehörige erkennen / Balance open centered on the **content page** (frosted panel), not the middle of the full display.
 3. **Shared category on related pairs** — editing category on one leg updates the other; confirming a pair aligns categories.
 

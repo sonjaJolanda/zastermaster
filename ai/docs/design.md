@@ -44,7 +44,7 @@ Served copies live under `public/design/` (and `public/favicon.svg` for the logo
 
 - **No full header bar.** Only a fixed **logo** top-left (icon only, no wordmark).
 - **Side nav (right):** sticky, vertically centered; order top→bottom: **Transaktionen → Analyse → Upload → Einstellungen** (custom SVGs `Tables`, `Analysis`, `Upload`, `Settings`) — **no** frosted boxes/backgrounds behind them. German tooltip/`aria-label`. Active = full opacity + slight scale; inactive muted. Import lock still mutes non-Upload icons.
-- **No** Kontostand in chrome (wealth under Einstellungen → Konten).
+- **No** Kontostand in the **chrome** (logo / side nav). Wealth appears in the Transaktionen & Analyse **summary strip** as **Kontostand** (calibrated roll-forward via `getHeaderBalance`); details/edit still under Einstellungen → Konten.
 - **Content panel:** ~`2rem` top padding; leave right padding so the side nav doesn’t cover the panel. Prefer **one** main panel. Width ~`min(1520px, 96vw)`.
 - **Desktop-primary**; on narrow screens keep side nav, stack content as needed.
 - Default landing: **Transaktionen**.
@@ -109,6 +109,7 @@ Soft filled pills by Konto-Typ (match name heuristically: Giro / Tagesgeld / Pay
 
 - **v1 lock:** custom `zm-*` CSS design system (tokens in `App.css`). Full Shadcn/Tailwind install deferred — map “Tailwind-like” badge colors above to plain CSS classes.
 - Prefer consistent primitives: Button (`.zm-btn`), Dialog (`.zm-overlay`), Table (`.zm-table`), Select/Input, chips, Progress (related spinner).
+- **Overlays** (Details, Related, Konto bearbeiten) sit inside the white content panel (`.zm-surface`), which fills the main column height so short pages (e.g. Upload) still have room; panel body scrolls if needed.
 - **Overlays** (Details, Related-detect, Balance calibration): modal centered over the **frosted content panel**, **not** the full browser viewport. Dim only that panel; keep logo, side nav, and photo outside the dim.
 - **Tables:** hairline rows; sticky header optional; confidence as colored pill + label; **category** with color swatch/dot; **Bank/Konto** as badges/pills (tables above); **Details** as icon button (not a text button).
 - **Related link in table:** icon button; target row briefly highlighted after navigation.
@@ -135,7 +136,7 @@ No continuous parallax on the background; keep the photo still.
 - Icons top→bottom: `Tables.svg`, `Analysis.svg`, `Upload.svg`, `Settings.svg` (not Lucide). Active = opacity 1 + slight scale.
 - Each page **h1** repeats the matching side-nav icon before the German title; icon and text share a **bottom** alignment.
 - Edit actions use `Edit.svg` (categories, accounts, transaction row) — not Lucide pencil/panel icons.
-- Kontostand **not** in chrome — Einstellungen → Konten.
+- Kontostand **not** in chrome — shown in Transaktionen/Analyse summary strip; edit under Einstellungen → Konten.
 - No page intro/lead blurbs under titles (Upload / Analyse / Einstellungen).
 
 ### Upload
@@ -165,8 +166,8 @@ No continuous parallax on the background; keep the photo still.
 
 ### Analyse
 
-- Sticky-ish top bar: summary left; CSV + collapsible **Filter** right (default collapsed); sections below (see [`analysis.md`](analysis.md)).
-- While queries run: visible loading (spinner + German copy). **Any side-nav click** shows a full content-panel spinner until that page reports ready.
+- Sticky-ish top bar: **Kontostand · Investiert** + period summary left; CSV + collapsible **Filter** right (default collapsed); sections below (see [`analysis.md`](analysis.md)).
+- While queries run: visible loading (spinner + German copy). **Any side-nav click** shows a full content-panel spinner until that page reports ready. *(Perf of that wait with many queries is still open — see [`analysis.md`](analysis.md) “Open / known issues”.)*
 - **Expense pie and income pie side-by-side** on desktop (only those two); other sections stay stacked (trend, breakdowns).
 - Charts use category DB colors and income/expense tokens; flat legends, no 3D.
 - When Typ is Ausgaben or Einnahmen, hide the opposite pie and breakdown.
