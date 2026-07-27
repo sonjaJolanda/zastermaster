@@ -628,6 +628,8 @@ export const exportAnalysisCsv: ExportAnalysisCsv<
     ],
     ["Zusammenfassung", "Netto", net.toFixed(2).replace(".", ","), "", ""],
     ["Zusammenfassung", "Buchungen", count, "", ""],
+    [], // blank between summary and breakdown
+    ["Abschnitt", "Name", "Betrag", "Anteil_%", "Buchungen"],
   ];
 
   for (const row of expenses) {
@@ -648,6 +650,7 @@ export const exportAnalysisCsv: ExportAnalysisCsv<
       ]);
     }
   }
+  outRows.push([]); // blank between Ausgaben and Einnahmen
   for (const row of incomes) {
     outRows.push([
       "Einnahmen",
@@ -667,10 +670,7 @@ export const exportAnalysisCsv: ExportAnalysisCsv<
     }
   }
 
-  const csv = toSemicolonCsv(
-    ["Abschnitt", "Name", "Betrag", "Anteil_%", "Buchungen"],
-    outRows,
-  );
+  const csv = toSemicolonCsv(null, outRows);
   const stamp = `${filter.dateFrom}_${filter.dateTo}`;
   return {
     csv,

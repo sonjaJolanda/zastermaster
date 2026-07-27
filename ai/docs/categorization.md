@@ -66,7 +66,7 @@ Ensure seeded defaults include usable **Sonstige** / **Unbekannt** (or create th
 
 Also: add subcategory via the small row at the bottom of the expanded card.
 
-**v1 delete policy (locked):** Block delete of a category/subcategory while transactions still reference it, **or** require reassigning those txs to Sonstige/Unbekannt first. Do not leave dangling FKs. Analyse always displays current FK labels ([`analysis.md`](analysis.md)).
+**v1 delete policy (locked):** Trash on category/subcategory cards. If no txs reference it → delete immediately. If txs remain → **modal** (`CategoryDeleteModal`): pick **any other subcategory** (not necessarily same main category) to reassign those txs, then delete. Last subcategory of a category cannot be deleted. Do not leave dangling FKs. Analyse always displays current FK labels ([`analysis.md`](analysis.md)).
 
 Categories are **not** created from the Transaktionen Details overlay — only selected there.
 

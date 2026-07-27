@@ -257,13 +257,15 @@ Full spec: [`ai/docs/transactions.md`](docs/transactions.md).
 
 Full spec: [`ai/docs/analysis.md`](docs/analysis.md).
 
-**Defaults:** all Konten, current calendar year (1 Jan → today).
+**Defaults:** all Konten, **dieser Monat**; filters persisted in `localStorage`.
 
-**Filters:** Zeitraum (year / month / custom from–to), optional Kategorie / Unterkategorie, multi bank/Konto, Typ (alle / Ausgaben / Einnahmen).
+**Filters:** Zeitraum (year / month / vorletzter Monat / custom from–to), optional Kategorie / Unterkategorie, multi bank/Konto, Typ (alle / Ausgaben / Einnahmen).
 
-**Views:** (1) Zeitlicher Trend Einnahmen vs Ausgaben · (2) Ausgaben nach Kategorie · (3) Einnahmen nach Kategorie · (4) Ausgaben-Aufschlüsselung · (5) Einnahmen-Aufschlüsselung — plus summary strip (Einnahmen, Ausgaben, Netto, Buchungen).
+**Views:** (1) Zeitlicher Trend · (2–4) pies Total / Ausgaben / Einnahmen · (5–7) matching Aufschlüsselungen — plus summary strip (Kontostand, Investiert, Einnahmen, Ausgaben, Netto, Buchungen).
 
-**Netting:** confirmed related pairs must not double-count; own-account transfers drop both legs when both are in scope; PayPal↔bank counts the PayPal/wallet leg once when both are in scope. Server-side aggregation only.
+**Netting:** confirmed related pairs/groups must not double-count; own-account transfers drop both legs when both are in scope; PayPal↔bank counts the PayPal/wallet leg once when both are in scope; PayPal-Kauf (`paypal_purchase`) nets nothing. Server-side aggregation only.
+
+**Background:** per-tab image under Einstellungen (from `Design/` rasters); see [`design.md`](docs/design.md).
 
 ---
 
@@ -349,7 +351,7 @@ zastermaster/
 - Header icon nav; Transaktionen / Analyse / Upload
 - Related detect → confirm + analysis netting (action + progress UI, no job queue)
 - Account balance calibration
-- Design background + logo, German UI ([`ai/docs/design.md`](docs/design.md))
+- Design background + logo (per-tab background pick from `Design/`), German UI ([`ai/docs/design.md`](docs/design.md))
 - Cursor rules aligned with this README
 
 ### Later

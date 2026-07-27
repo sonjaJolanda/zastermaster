@@ -4,7 +4,7 @@
   --zm-surface-border: rgba(90, 70, 50, 0.18);
   --zm-text: #1c1917;
   --zm-text-muted: #57534e;
-  --zm-accent: #c2410c;
+  --zm-accent: #1c1917;
   --zm-income: #15803d;
   --zm-expense: #b91c1c;
   --zm-conf-manual: #166534;
@@ -15,7 +15,7 @@
   --zm-conf-keyword-bg: rgba(202, 138, 4, 0.16);
   --zm-conf-none: #57534e;
   --zm-conf-none-bg: rgba(87, 83, 78, 0.12);
-  --zm-focus-ring: 0 0 0 3px rgba(194, 65, 12, 0.35);
+  --zm-focus-ring: 0 0 0 3px rgba(28, 25, 23, 0.28);
   --zm-main-pad-top: 2rem;
   --zm-main-pad-left: 1.25rem;
   --zm-main-pad-right: 4.25rem;
@@ -33,6 +33,11 @@ html,
 body,
 #root {
   min-height: 100%;
+}
+
+html {
+  /* Keep left gutter / panel centering stable when switching long ↔ short pages. */
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -227,6 +232,7 @@ textarea:focus-visible {
   box-shadow: 0 8px 30px rgba(40, 30, 20, 0.08);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .zm-page-title {
@@ -654,7 +660,7 @@ textarea:focus-visible {
 
 .zm-dropzone.is-dragover {
   border-color: var(--zm-accent);
-  background: rgba(194, 65, 12, 0.08);
+  background: rgba(28, 25, 23, 0.08);
 }
 
 .zm-dropzone.is-busy {
@@ -785,8 +791,8 @@ textarea:focus-visible {
 
 .zm-chip.is-active {
   color: var(--zm-accent);
-  border-color: rgba(194, 65, 12, 0.45);
-  background: rgba(194, 65, 12, 0.1);
+  border-color: rgba(28, 25, 23, 0.45);
+  background: rgba(28, 25, 23, 0.1);
   font-weight: 600;
 }
 
@@ -1106,7 +1112,7 @@ textarea:focus-visible {
 
 .zm-link-candidate:hover,
 .zm-link-candidate.is-selected {
-  background: rgba(194, 65, 12, 0.08);
+  background: rgba(28, 25, 23, 0.08);
 }
 
 .zm-link-candidate-meta {
@@ -1205,7 +1211,7 @@ textarea:focus-visible {
 }
 
 .zm-related-link:hover:not(:disabled) {
-  background: rgba(194, 65, 12, 0.1);
+  background: rgba(28, 25, 23, 0.1);
 }
 
 .zm-related-link:disabled {
@@ -1214,8 +1220,8 @@ textarea:focus-visible {
 }
 
 .zm-table tbody tr.is-highlight {
-  background: rgba(194, 65, 12, 0.12);
-  outline: 1px solid rgba(194, 65, 12, 0.35);
+  background: rgba(28, 25, 23, 0.12);
+  outline: 1px solid rgba(28, 25, 23, 0.35);
   outline-offset: -1px;
   transition: background 0.3s ease;
 }
@@ -1484,7 +1490,7 @@ textarea:focus-visible {
 }
 
 .zm-pie-legend-btn:not(:disabled):hover {
-  background: rgba(194, 65, 12, 0.08);
+  background: rgba(28, 25, 23, 0.08);
 }
 
 .zm-pie-swatch {

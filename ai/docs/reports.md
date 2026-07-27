@@ -54,11 +54,11 @@ Data: query `exportTransactionsForPdf` (same filters as list/CSV).
 
 1. Summary (as strip; respects Typ visibility)  
 2. Filter / Zeitraum  
-3. Trend chart image (if rendered)  
-4. Pie chart images (Ausgaben / Einnahmen when shown)  
-5. Breakdown tables (Ausgaben / Einnahmen)
+3. **Zeitlicher Trend** chart image (if rendered) — drawn **preserving the on-screen aspect ratio** (not stretched into a fixed box)  
+4. **Pie chart row** — Total / Ausgaben / Einnahmen (whichever are shown for Typ) **side by side** in one row (`addChartImageRow`). Each pie is capped (~36 mm, ≈ on-screen ~132 px triple pies), centered in its column, aspect ratio preserved — not stretched to full column width.  
+5. Breakdown tables: Total (when Alle), then Ausgaben, then Einnahmen (matching UI order)
 
-Uses already-loaded Analyse query data + chart refs — no extra server PDF op.
+Uses already-loaded Analyse query data + chart refs — no extra server PDF op. Trend export also passes `getAspectRatio()` from the Chart.js canvas.
 
 ---
 

@@ -36,6 +36,7 @@ const eur = new Intl.NumberFormat("de-DE", {
 
 export type ChartExportHandle = {
   toDataUrl: () => string | null;
+  getAspectRatio: () => number | null;
 };
 
 type TrendProps = {
@@ -62,6 +63,11 @@ export const AnalysisTrendChart = forwardRef<ChartExportHandle, TrendProps>(
         } catch {
           return null;
         }
+      },
+      getAspectRatio: () => {
+        const chart = chartRef.current;
+        if (!chart || !chart.width || !chart.height) return null;
+        return chart.width / chart.height;
       },
     }));
 
@@ -166,6 +172,11 @@ export const AnalysisCategoryPie = forwardRef<ChartExportHandle, PieProps>(
         } catch {
           return null;
         }
+      },
+      getAspectRatio: () => {
+        const chart = chartRef.current;
+        if (!chart || !chart.width || !chart.height) return null;
+        return chart.width / chart.height;
       },
     }));
 

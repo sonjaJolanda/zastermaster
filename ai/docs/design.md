@@ -13,15 +13,22 @@ Visual and UX requirements for the UI. Product behavior lives in [`../README.md`
 | Analysis icon | [`Design/Analysis.svg`](../../Design/Analysis.svg) | Side nav → Analyse; also page title |
 | Edit icon | [`Design/Edit.svg`](../../Design/Edit.svg) | Edit actions: category cards, Konten kalibrieren/anpassen, Transaktionen row action (opens Details overlay) |
 | Close icon | [`Design/Close.svg`](../../Design/Close.svg) | Dismiss overlays / expanded editors (top-right): TX details, related detect, account calibration, category card expand |
-| Background | [`Design/BackgroundImage_Office.JPEG`](../../Design/BackgroundImage_Office.JPEG) | **Full-app** background on every view (fixed/cover). Softly blurred (~6px) so the photo stays atmosphere, not competition for the content panel. Warm daylight office: light wood, soft walls, greenery, natural light. |
+| Backgrounds | Raster files in [`Design/`](../../Design/) matching `BackgroundImage_*` (JPEG/PNG/WebP) | **Per-tab** full-viewport background (fixed/cover), softly blurred (~6px). Default historically: office photo; user picks separately for Transaktionen / Analyse / Upload / Einstellungen under Einstellungen. |
 
-Served copies live under `public/design/` (and `public/favicon.svg` for the logo). Do not replace these with generic gradients, stock “fintech purple” themes, or Lucide icons for chrome nav. The office photo *is* the atmosphere.
+Served copies live under `public/design/` (and `public/favicon.svg` for the logo). Do not replace these with generic gradients, stock “fintech purple” themes, or Lucide icons for chrome nav. Photos remain atmosphere, not competition for the content panel.
+
+### Per-tab background selection
+
+- **UI:** Einstellungen → **Hintergrundbilder** — one select per tab.
+- **Storage:** `localStorage` key `zm-backgrounds-v1` (event `zm-backgrounds-changed` so `App` updates without reload).
+- **Options:** query `getBackgroundOptions` lists raster files from `Design/`, sync-copies them into `public/design/`, and returns `/design/…` URLs. **New images dropped into `Design/` appear after reload** (no code change).
+- **Apply:** `App` sets `--zm-bg-image` from the preference for the current route.
 
 ## Visual direction
 
 **Mood:** calm, personal, desk-at-home — clear enough for money work, soft enough not to feel like a bank terminal.
 
-**Inspired by the background:** natural light, oak/wood warmth, off-white surfaces, muted greens, one restrained warm accent (fruit/poster orange in the photo — use sparingly for focus states / primary CTA, not as a purple/indigo substitute).
+**Inspired by the background:** natural light, oak/wood warmth, off-white surfaces, muted greens. Primary UI accent is **near-black / warm gray** (CTAs, active chips, focus) — not orange, not purple/indigo.
 
 **Avoid:**
 
@@ -61,7 +68,7 @@ Define CSS variables (`--zm-*` in `App.css`) and reuse everywhere:
 | `--zm-surface-border` | Soft warm gray / wood-tinted hairline |
 | `--zm-text` | Near-black for body text on surfaces |
 | `--zm-text-muted` | Secondary labels |
-| `--zm-accent` | Sparse warm accent (CTA, focus ring) — not purple |
+| `--zm-accent` | Near-black CTA / active chips / focus (`#1c1917`) — not orange or purple |
 | `--zm-income` | Green for positive amounts |
 | `--zm-expense` | Red/rose for negative amounts |
 | `--zm-conf-manual` | Green |
@@ -159,9 +166,9 @@ No continuous parallax on the background; keep the photo still.
 
 ### Einstellungen
 
-- **Konten & Kontostand** and **Kategorien** as a **two-column** layout on desktop (stack on mobile).
+- **Konten & Kontostand** and **Kategorien** as a **two-column** layout on desktop (stack on mobile). Left column also: **Investitionen** keywords + **Hintergrundbilder** (per-tab selects).
 - Account rows: calibrate/adjust via `Edit.svg` icon (not text buttons); color swatch + color picker in the calibration modal (defaults = bank badge tokens). Modal: `Close.svg` top-right dismiss; **Speichern** bottom-right only (no “Später”).
-- Category cards: tinted by main color; card pencil expands a **read-only overview** (main row + **2-column** subcategory grid with comma-separated keywords). No subcategory-count badge on the card. Expanded: `Close.svg` top-right collapses (inline saves stay on node edit icons).
+- Category cards: tinted by main color; card pencil expands a **read-only overview** (main row + **2-column** subcategory grid with comma-separated keywords). No subcategory-count badge on the card. Expanded: `Close.svg` top-right collapses (inline saves stay on node edit icons). Delete (`Trash`) on main/sub with reassign modal when txs remain — see [`categorization.md`](categorization.md).
 - Second pencil on main/sub row enters **edit mode** for that node only (color, name, keywords add/remove); pencil again = Fertig.
 - “Neue Kategorie” is **another card in the category grid**, not a special block above the list.
 
@@ -169,9 +176,8 @@ No continuous parallax on the background; keep the photo still.
 
 - Sticky-ish top bar: **Kontostand · Investiert** + period summary left; CSV + collapsible **Filter** right (default collapsed); sections below (see [`analysis.md`](analysis.md)).
 - While queries run: visible loading (spinner + German copy). **Any side-nav click** shows a full content-panel spinner until that page reports ready. *(Perf of that wait with many queries is still open — see [`analysis.md`](analysis.md) “Open / known issues”.)*
-- **Expense pie and income pie side-by-side** on desktop (only those two); other sections stay stacked (trend, breakdowns).
+- When Typ is **Alle**: **three pies side-by-side** (Total · Ausgaben · Einnahmen). When Typ is Ausgaben or Einnahmen, show only that pie (+ matching breakdown); hide Total and the opposite.
 - Charts use category DB colors and income/expense tokens; flat legends, no 3D.
-- When Typ is Ausgaben or Einnahmen, hide the opposite pie and breakdown.
 
 ## Accessibility & readability
 
@@ -182,6 +188,6 @@ No continuous parallax on the background; keep the photo still.
 
 ## Implementation notes
 
-- Assets: copy or import from `Design/` into `public/` (or Wasp static) for the client build.
-- Token values live in `src/App.css`; tweak against the real JPEG.
+- Nav/chrome SVGs: keep copies under `public/design/`. Background rasters: prefer files in `Design/`; `getBackgroundOptions` syncs them to `public/design/` when Einstellungen (or App prefs refresh) loads options.
+- Token values live in `src/App.css`; tweak against the real photos (`--zm-bg-image` overridden per tab from prefs).
 - When design decisions change, update this file (and Slice 10 DoD in [`implementation-plan.md`](implementation-plan.md)).

@@ -8,14 +8,25 @@ export function csvEscape(value: string | number | null | undefined): string {
   return s;
 }
 
+/**
+ * Build a semicolon CSV. Pass `headers: null` to omit the header line.
+ * An empty row `[]` inserts a blank line between sections.
+ */
 export function toSemicolonCsv(
-  headers: string[],
+  headers: string[] | null,
   rows: (string | number | null | undefined)[][],
 ): string {
-  const lines = [
-    headers.map(csvEscape).join(";"),
-    ...rows.map((r) => r.map(csvEscape).join(";")),
-  ];
+  const lines: string[] = [];
+  if (headers) {
+    lines.push(headers.map(csvEscape).join(";"));
+  }
+  for (const r of rows) {
+    if (r.length === 0) {
+      lines.push("");
+    } else {
+      lines.push(r.map(csvEscape).join(";"));
+    }
+  }
   return `\uFEFF${lines.join("\r\n")}\r\n`;
 }
 

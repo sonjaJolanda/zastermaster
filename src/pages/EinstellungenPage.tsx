@@ -5,6 +5,7 @@ import {
   deleteCategory,
   deleteSubcategory,
   getAccounts,
+  getBackgroundOptions,
   getCategories,
   getInvestmentKeywords,
   seedCategoriesIfEmpty,
@@ -25,6 +26,13 @@ import {
   EditIconButton,
   PageTitle,
 } from "../components/PageChrome";
+import {
+  loadBackgroundPrefs,
+  saveBackgroundPrefs,
+  TAB_PATHS,
+  type BackgroundTabKey,
+  type BackgroundPrefs,
+} from "../features/backgrounds/persist";
 import type { CategoryTreeNode } from "../features/categories/types";
 import { useClearNavPendingWhen } from "../features/shell/NavPendingContext";
 
@@ -78,15 +86,46 @@ export function EinstellungenPage() {
   const {
     data: categories,
     isLoading,
+    isFetching: categoriesFetching,
     error: queryError,
     refetch,
   } = useQuery(getCategories, undefined, { enabled: seedReady });
   const {
     data: accounts,
+    isFetching: accountsFetching,
     refetch: refetchAccounts,
   } = useQuery(getAccounts);
+  const {
+    data: backgroundOptions,
+    isFetching: backgroundsFetching,
+  } = useQuery(getBackgroundOptions);
 
-  useClearNavPendingWhen(seedReady && !isLoading);
+  const [backgroundPrefs, setBackgroundPrefs] = useState<BackgroundPrefs>(() =>
+    loadBackgroundPrefs("/design/BackgroundImage_Office%20-%20Kopie.JPEG"),
+  );
+
+  useClearNavPendingWhen(
+    seedReady &&
+      !categoriesFetching &&
+      !accountsFetching &&
+      !backgroundsFetching &&
+      (categories !== undefined || queryError != null),
+  );
+
+  useEffect(() => {
+    if (!backgroundOptions || backgroundOptions.length === 0) return;
+    setBackgroundPrefs((prev) => {
+      const fallback = backgroundOptions[0]?.url ?? null;
+      const next = {
+        transaktionen: prev.transaktionen ?? fallback,
+        analyse: prev.analyse ?? fallback,
+        upload: prev.upload ?? fallback,
+        einstellungen: prev.einstellungen ?? fallback,
+      };
+      saveBackgroundPrefs(next);
+      return next;
+    });
+  }, [backgroundOptions]);
 
   async function run(label: string, fn: () => Promise<unknown>) {
     setBusy(true);
@@ -297,6 +336,18 @@ export function EinstellungenPage() {
             busy={busy}
             onRun={run}
           />
+
+          <BackgroundSettingsPanel
+            options={backgroundOptions ?? []}
+            prefs={backgroundPrefs}
+            onChange={(tabKey, value) => {
+              setBackgroundPrefs((prev) => {
+                const next = { ...prev, [tabKey]: value };
+                saveBackgroundPrefs(next);
+                return next;
+              });
+            }}
+          />
         </div>
 
         <div className="zm-settings-col">
@@ -468,6 +519,57 @@ function InvestmentKeywordsPanel({
         >
           Hinzufügen
         </button>
+      </div>
+    </div>
+  );
+}
+
+function BackgroundSettingsPanel({
+  options,
+  prefs,
+  onChange,
+}: {
+  options: { id: string; name: string; url: string }[];
+  prefs: BackgroundPrefs;
+  onChange: (tabKey: BackgroundTabKey, value: string | null) => void;
+}) {
+  const tabs: [BackgroundTabKey, string][] = [
+    ["transaktionen", "Transaktionen"],
+    ["analyse", "Analyse"],
+    ["upload", "Upload"],
+    ["einstellungen", "Einstellungen"],
+  ];
+
+  return (
+    <div className="zm-accounts-panel" style={{ marginTop: "1.25rem" }}>
+      <h2 className="zm-cat-section-title">Hintergrundbilder</h2>
+      <p className="zm-page-lead">
+        Für jeden Tab separat. Neue JPEG-, PNG- oder WebP-Dateien im
+        Design-Ordner erscheinen nach dem Neuladen automatisch in der Auswahl.
+      </p>
+      <div className="zm-cat-editor" style={{ marginTop: "0.75rem" }}>
+        {tabs.map(([tabKey, label]) => (
+          <label key={tabKey} className="zm-field">
+            <span className="zm-field-label">
+              {label} ({TAB_PATHS[tabKey]})
+            </span>
+            <select
+              className="zm-select"
+              value={prefs[tabKey] ?? ""}
+              disabled={options.length === 0}
+              onChange={(e) => onChange(tabKey, e.target.value || null)}
+            >
+              {options.map((option) => (
+                <option key={option.id} value={option.url}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
+        {options.length === 0 && (
+          <p className="zm-cat-meta">Keine Hintergrundbilder gefunden.</p>
+        )}
       </div>
     </div>
   );

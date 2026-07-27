@@ -266,13 +266,14 @@ export function TransaktionenPage() {
   const { data: options } = useQuery(getTransactionFilterOptions);
   const { data: categories } = useQuery(getCategories);
   const { data: accounts } = useQuery(getAccounts);
-  const { data, isLoading, error, refetch } = useQuery(
+  const { data, isLoading, isFetching, error, refetch } = useQuery(
     getTransactions,
     filterArgs,
   );
   const { data: summary } = useQuery(getTransactionsSummary, summaryArgs);
 
-  useClearNavPendingWhen(!isLoading && (data !== undefined || error != null));
+  // Prefer isFetching so cached pages still show the route overlay while refetching.
+  useClearNavPendingWhen(!isFetching && (data !== undefined || error != null));
 
   const items = data?.items ?? [];
   const accountColorByKey = useMemo(() => {
@@ -577,6 +578,7 @@ export function TransaktionenPage() {
             className="zm-btn zm-btn-primary zm-btn-with-icon"
             disabled={relatedOpen || investmentOpen}
             onClick={() => setInvestmentOpen(true)}
+            title="Erkennt mögliche Investments (z. B. ETF-Käufe) anhand der Stichwörter aus den Einstellungen — du bestätigst danach."
             aria-label="Investitionen erkennen"
           >
             <img
@@ -592,6 +594,7 @@ export function TransaktionenPage() {
             className="zm-btn zm-btn-primary zm-btn-with-icon"
             disabled={relatedOpen || investmentOpen}
             onClick={() => setRelatedOpen(true)}
+            title="Sucht verknüpfbare Buchungen (PayPal↔Bank, Umbuchungen, ähnliche) — du bestätigst oder verwirfst die Vorschläge."
             aria-label="Zusammengehörige erkennen"
           >
             <img

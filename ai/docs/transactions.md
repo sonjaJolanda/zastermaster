@@ -109,7 +109,7 @@ Server-side pagination only — never load all rows into the client for normal b
 | **Betrag** | `de-DE` EUR; signed; **green** if `> 0`, **red** if `< 0` |
 | **Kategorie** | Main name; subcategory secondary (muted) or `Haupt › Unter` |
 | **Konfidenz** | Color + short label (see below). Not color-only (a11y) |
-| **Verknüpfte Transaktion** | Clickable link/icon → `getTransactionNav` → jump list page if needed → **scroll to row** + brief highlight. Does **not** open Details (use the edit icon for that). |
+| **Verknüpfte Transaktion** | Link icon(s) only in the table; partner **IDs on hover** (`title`). Click → `getTransactionNav` → jump list page if needed → **scroll to row** (keep prior row’s screen Y when possible) + brief highlight. Does **not** open Details (use the edit icon for that). |
 | **Details** | Button opens Details overlay |
 | Long text | Truncate Verwendungszweck with tooltip/title for full text |
 

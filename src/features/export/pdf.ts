@@ -222,7 +222,7 @@ export function addSimpleTable(
       textColor: [28, 25, 23],
     },
     headStyles: {
-      fillColor: [194, 65, 12],
+      fillColor: [28, 25, 23],
       textColor: 255,
       fontStyle: "bold",
     },
@@ -239,12 +239,25 @@ export function addChartImage(
   dataUrl: string | null | undefined,
   title: string,
   maxHeightMm = 70,
+  aspectRatio?: number | null,
 ): number {
   let y = startY;
   if (!dataUrl) return y;
 
+  const pageW = doc.internal.pageSize.getWidth();
+  const maxW = pageW - 28;
+  let drawW = maxW;
+  let drawH = maxHeightMm;
+  if (aspectRatio && aspectRatio > 0) {
+    drawH = drawW / aspectRatio;
+    if (drawH > maxHeightMm) {
+      drawH = maxHeightMm;
+      drawW = drawH * aspectRatio;
+    }
+  }
+
   const pageH = doc.internal.pageSize.getHeight();
-  if (y + maxHeightMm + 20 > pageH - 16) {
+  if (y + drawH + 20 > pageH - 16) {
     doc.addPage();
     y = 30;
   }
@@ -255,10 +268,83 @@ export function addChartImage(
   doc.text(title, 14, y);
   y += 4;
 
+  const x = 14 + (maxW - drawW) / 2;
+  doc.addImage(dataUrl, "PNG", x, y, drawW, drawH, undefined, "FAST");
+  return y + drawH + 8;
+}
+
+export function addChartImageRow(
+  doc: DocWithAutoTable,
+  startY: number,
+  charts: {
+    title: string;
+    dataUrl: string | null | undefined;
+    aspectRatio?: number | null;
+  }[],
+  /** Cap each chart image so PDF pies stay ≤ on-screen size (~132–220 CSS px). */
+  maxImageMm = 36,
+): number {
+  const visibleCharts = charts.filter((chart) => chart.dataUrl);
+  let y = startY;
+  if (visibleCharts.length === 0) return y;
+
+  const pageH = doc.internal.pageSize.getHeight();
   const pageW = doc.internal.pageSize.getWidth();
-  const maxW = pageW - 28;
-  doc.addImage(dataUrl, "PNG", 14, y, maxW, maxHeightMm, undefined, "FAST");
-  return y + maxHeightMm + 8;
+  const gap = 4;
+  const usableW = pageW - 28;
+  const colW =
+    (usableW - gap * Math.max(visibleCharts.length - 1, 0)) /
+    visibleCharts.length;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(28, 25, 23);
+
+  const wrappedTitles = visibleCharts.map((chart) =>
+    doc.splitTextToSize(chart.title, colW),
+  );
+  const titleHeight =
+    Math.max(...wrappedTitles.map((lines) => lines.length), 1) * 4.2;
+
+  const sized = visibleCharts.map((chart) => {
+    const ratio =
+      chart.aspectRatio && chart.aspectRatio > 0 ? chart.aspectRatio : 1;
+    // Fit inside the smaller of maxImageMm and the column, preserving ratio.
+    const maxSide = Math.min(maxImageMm, colW);
+    let drawW = maxSide;
+    let drawH = drawW / ratio;
+    if (drawH > maxSide) {
+      drawH = maxSide;
+      drawW = drawH * ratio;
+    }
+    return { drawW, drawH };
+  });
+  const rowImageH = Math.max(...sized.map((s) => s.drawH), 0);
+
+  if (y + titleHeight + rowImageH + 10 > pageH - 16) {
+    doc.addPage();
+    y = 30;
+  }
+
+  visibleCharts.forEach((chart, index) => {
+    const colX = 14 + index * (colW + gap);
+    const titleLines = wrappedTitles[index] ?? [chart.title];
+    doc.text(titleLines, colX + colW / 2, y, { align: "center" });
+    const { drawW, drawH } = sized[index]!;
+    const imgX = colX + (colW - drawW) / 2;
+    doc.addImage(
+      chart.dataUrl!,
+      "PNG",
+      imgX,
+      y + titleHeight,
+      drawW,
+      drawH,
+      undefined,
+      "FAST",
+    );
+  });
+
+  return y + titleHeight + rowImageH + 8;
 }
 
 export { autoTable };

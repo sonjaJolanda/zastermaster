@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { AnalysisBreakdownRow } from "../features/analysis/types";
 
@@ -8,7 +8,7 @@ const eur = new Intl.NumberFormat("de-DE", {
 });
 
 type Props = {
-  title: string;
+  title: ReactNode;
   rows: AnalysisBreakdownRow[];
   emptyLabel: string;
   onCategoryClick?: (id: number | null) => void;

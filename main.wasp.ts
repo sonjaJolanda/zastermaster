@@ -62,6 +62,9 @@ import {
   rejectInvestment,
   setInvestmentKeywords,
 } from "./src/features/investments/operations" with { type: "ref" };
+import { getBackgroundOptions } from "./src/features/backgrounds/operations" with {
+  type: "ref",
+};
 
 export default app({
   name: "ZasterMaster",
@@ -148,6 +151,10 @@ export default app({
     query(getHeaderBalance, { entities: ["Account", "Transaction"] }),
     query(getAccounts, { entities: ["Account", "Transaction"] }),
     action(setAccountBalance, { entities: ["Account", "Transaction"] }),
+    //#endregion
+
+    //#region Backgrounds
+    query(getBackgroundOptions, { entities: [] }),
     //#endregion
 
     //#region Analysis

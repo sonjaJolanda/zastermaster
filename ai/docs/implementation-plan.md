@@ -106,7 +106,7 @@ DB models beyond defaults; import; charts.
 ### Thick (later)
 
 - [x] Create/edit/delete category & sub; edit keywords; colors
-- [x] Delete policy: block while transactions still reference the category/sub (German error); last subcategory cannot be deleted
+- [x] Delete policy: if txs still reference category/sub → modal reassign to any other subcategory, then delete (German UI); last subcategory cannot be deleted
 
 ### Out of scope
 
@@ -404,7 +404,7 @@ Product locks unchanged: **no** Jobs, auth, or cloud deploy.
 1. **Wider content panel** — bump `.zm-surface` width (target ~`min(1520px, 96vw)`).
 2. **Chrome** — no header bar; logo top-left only; sticky right side nav with custom SVGs (`Upload` / `Settings` / `Tables` / `Analysis`), **no** frosted boxes; no Kontostand in chrome.
 3. **Einstellungen layout** — Konten | Kategorien as two columns on desktop; “Neue Kategorie” as a normal card in the category grid (not a block above).
-4. **Analyse pies** — Ausgaben- and Einnahmen-pie side-by-side on desktop only; other sections stay stacked.
+4. **Analyse pies** — when Typ is Alle: Total + Ausgaben + Einnahmen side-by-side; otherwise the matching single pie.
 5. **Transaktionen table polish**
    - Category color swatch/dot next to name
    - Details = `Edit.svg` icon button (German label)
@@ -417,7 +417,7 @@ Product locks unchanged: **no** Jobs, auth, or cloud deploy.
 - [x] No header bar; logo-only top-left; no balance in chrome; side nav = custom SVGs without boxes
 - [x] Content panel clearly wider than the old ~1280px lock
 - [x] Einstellungen: two columns + “Neue Kategorie” in the grid
-- [x] Analyse: dual pies side-by-side on desktop
+- [x] Analyse: three pies side-by-side when Typ Alle (Total · Ausgaben · Einnahmen)
 - [x] Transaktionen: category swatch, bank/konto badges, icon Details, collapsible filters
 - [x] [`design.md`](design.md) matches shipped UI (logo + side SVG nav)
 
@@ -505,7 +505,7 @@ Live market value; auto-tag on import; Investiert filtered by date range.
 1. Add `APP_VERSION` (`package.json` + [`src/version.ts`](../../src/version.ts)); write [`reports.md`](reports.md).
 2. Deps: `jspdf` + `jspdf-autotable`; shared helpers in `src/features/export/pdf.ts` (header/footer, logo rasterize, download).
 3. Transaktionen: **PDF exportieren**; summary + filters + table; query `exportTransactionsForPdf` with **2 000** row cap (+ note / alert).
-4. Analyse: **PDF exportieren**; summary + filters + Chart.js images + breakdown tables (client data + chart refs).
+4. Analyse: **PDF exportieren**; summary + filters + Chart.js images (trend keeps aspect ratio; pies in one row) + breakdown tables (client data + chart refs).
 5. Filenames: `zastermaster-transaktionen-YYYY-MM-DD.pdf` / `zastermaster-analyse-YYYY-MM-DD.pdf`.
 
 ### Thin DoD

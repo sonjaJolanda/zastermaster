@@ -1,5 +1,11 @@
+import { useEffect, useState, type CSSProperties } from "react";
 import { Outlet, useLocation } from "react-router";
 import { Header } from "./components/Header";
+import {
+  BACKGROUND_PREFS_EVENT,
+  loadBackgroundPrefs,
+  tabKeyForPath,
+} from "./features/backgrounds/persist";
 import { ImportLockProvider } from "./features/import/ImportLockContext";
 import {
   NavPendingProvider,
@@ -32,9 +38,36 @@ function AppShell() {
   const showRouteLoading = pendingTo != null;
   const copy =
     LOADING_COPY[pendingTo ?? ""] ?? { title: "Seite wird geladen…" };
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(() => {
+    const prefs = loadBackgroundPrefs("/design/BackgroundImage_Office%20-%20Kopie.JPEG");
+    return prefs[tabKeyForPath(pathname)];
+  });
+
+  useEffect(() => {
+    const refresh = () => {
+      const prefs = loadBackgroundPrefs(
+        "/design/BackgroundImage_Office%20-%20Kopie.JPEG",
+      );
+      setBackgroundUrl(prefs[tabKeyForPath(pathname)]);
+    };
+    refresh();
+    window.addEventListener(BACKGROUND_PREFS_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(BACKGROUND_PREFS_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, [pathname]);
 
   return (
-    <div className="zm-app">
+    <div
+      className="zm-app"
+      style={
+        backgroundUrl
+          ? ({ "--zm-bg-image": `url("${backgroundUrl}")` } as CSSProperties)
+          : undefined
+      }
+    >
       <Header />
       <main className="zm-main">
         <div className="zm-surface">

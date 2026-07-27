@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Info } from "lucide-react";
 import {
   exportAnalysisCsv,
   getAnalysisBreakdown,
@@ -41,10 +41,26 @@ const eur = new Intl.NumberFormat("de-DE", {
   currency: "EUR",
 });
 
+const ANALYSIS_APPROX_HINT =
+  "Hinweis: Diese Zahl ist aktuell noch nicht vollständig korrekt und dient eher als grobe Orientierung.";
+
 function toggleValue(list: string[], value: string): string[] {
   return list.includes(value)
     ? list.filter((v) => v !== value)
     : [...list, value];
+}
+
+function AnalysisApproxInfo() {
+  return (
+    <span
+      className="zm-summary-info"
+      title={ANALYSIS_APPROX_HINT}
+      aria-label={ANALYSIS_APPROX_HINT}
+      role="img"
+    >
+      <Info size={12} aria-hidden />
+    </span>
+  );
 }
 
 export function AnalysePage() {
@@ -265,9 +281,13 @@ export function AnalysePage() {
         metrics,
         filterLines,
         trendImage: trendChartRef.current?.toDataUrl() ?? null,
+        trendAspectRatio: trendChartRef.current?.getAspectRatio() ?? null,
         expensePieImage: expensePieRef.current?.toDataUrl() ?? null,
         incomePieImage: incomePieRef.current?.toDataUrl() ?? null,
         netPieImage: netPieRef.current?.toDataUrl() ?? null,
+        expensePieAspectRatio: expensePieRef.current?.getAspectRatio() ?? null,
+        incomePieAspectRatio: incomePieRef.current?.getAspectRatio() ?? null,
+        netPieAspectRatio: netPieRef.current?.getAspectRatio() ?? null,
         expenseBreakdown: breakdown?.expenses ?? [],
         incomeBreakdown: breakdown?.income ?? [],
         netBreakdown: breakdown?.net ?? [],
@@ -294,7 +314,9 @@ export function AnalysePage() {
           <InvestiertSummaryStat banks={banks} konten={konten} />
           {showIncome && (
             <div>
-              <span className="zm-summary-label">Einnahmen</span>
+              <span className="zm-summary-label zm-summary-label-with-info">
+                Einnahmen <AnalysisApproxInfo />
+              </span>
               <span className="zm-amount-income">
                 {eur.format(Number(summary?.income ?? 0))}
               </span>
@@ -302,7 +324,9 @@ export function AnalysePage() {
           )}
           {showExpense && (
             <div>
-              <span className="zm-summary-label">Ausgaben</span>
+              <span className="zm-summary-label zm-summary-label-with-info">
+                Ausgaben <AnalysisApproxInfo />
+              </span>
               <span className="zm-amount-expense">
                 {eur.format(Number(summary?.expense ?? 0))}
               </span>
@@ -310,7 +334,9 @@ export function AnalysePage() {
           )}
           {showNet && (
             <div>
-              <span className="zm-summary-label">Netto</span>
+              <span className="zm-summary-label zm-summary-label-with-info">
+                Netto <AnalysisApproxInfo />
+              </span>
               <span
                 className={
                   Number(summary?.net ?? 0) > 0
@@ -593,6 +619,8 @@ export function AnalysePage() {
                     {byCategory?.mode === "subcategory"
                       ? "Unterkategorie"
                       : "Kategorie"}
+                    {" "}
+                    <AnalysisApproxInfo />
                   </h2>
                   <AnalysisCategoryPie
                     ref={netPieRef}
@@ -611,6 +639,8 @@ export function AnalysePage() {
                     {byCategory?.mode === "subcategory"
                       ? "Unterkategorie"
                       : "Kategorie"}
+                    {" "}
+                    <AnalysisApproxInfo />
                   </h2>
                   <AnalysisCategoryPie
                     ref={expensePieRef}
@@ -629,6 +659,8 @@ export function AnalysePage() {
                     {byCategory?.mode === "subcategory"
                       ? "Unterkategorie"
                       : "Kategorie"}
+                    {" "}
+                    <AnalysisApproxInfo />
                   </h2>
                   <AnalysisCategoryPie
                     ref={incomePieRef}
@@ -645,7 +677,11 @@ export function AnalysePage() {
 
           {showNet && (
             <AnalysisBreakdownTable
-              title="Total-Aufschlüsselung"
+              title={
+                <>
+                  Total-Aufschlüsselung <AnalysisApproxInfo />
+                </>
+              }
               rows={breakdown?.net ?? []}
               emptyLabel="Kein Netto zum Aufschlüsseln."
               signedAmounts
@@ -657,7 +693,11 @@ export function AnalysePage() {
 
           {showExpense && (
             <AnalysisBreakdownTable
-              title="Ausgaben-Aufschlüsselung"
+              title={
+                <>
+                  Ausgaben-Aufschlüsselung <AnalysisApproxInfo />
+                </>
+              }
               rows={breakdown?.expenses ?? []}
               emptyLabel="Keine Ausgaben zum Aufschlüsseln."
               onCategoryClick={
@@ -668,7 +708,11 @@ export function AnalysePage() {
 
           {showIncome && (
             <AnalysisBreakdownTable
-              title="Einnahmen-Aufschlüsselung"
+              title={
+                <>
+                  Einnahmen-Aufschlüsselung <AnalysisApproxInfo />
+                </>
+              }
               rows={breakdown?.income ?? []}
               emptyLabel="Keine Einnahmen zum Aufschlüsseln."
               onCategoryClick={
