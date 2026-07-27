@@ -116,7 +116,7 @@ Always for the **current filters** (after netting):
 | **Saldo / Netto** | Einnahmen − Ausgaben (signed) |
 | **Buchungen** | Count of transactions **included** after filters, netting, and investment exclusion |
 
-**Caveat (UI):** Einnahmen, Ausgaben, and Netto (and matching pie / Aufschlüsselung headings) show an **(i)** tooltip: these figures are still only a **rough orientation** — netting, categorization, and related groups are not fully “bank-true” yet. Kontostand / Investiert / Buchungen do not get that hint.
+**Caveat (UI):** Einnahmen, Ausgaben, and Netto show an **(i)** tooltip on **Analyse and Transaktionen** (and matching Analyse pie / Aufschlüsselung headings): these figures are still only a **rough orientation**. Kontostand / Investiert / Buchungen do not get that hint.
 
 Calibrated wealth is shown for orientation; Analyse flow metrics still describe the **period** under filters. Edit balances under Einstellungen → Konten.
 

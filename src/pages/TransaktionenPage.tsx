@@ -15,6 +15,7 @@ import {
 import { EditIconButton, PageTitle } from "../components/PageChrome";
 import { InvestiertSummaryStat } from "../components/InvestiertSummaryStat";
 import { KontostandSummaryStat } from "../components/KontostandSummaryStat";
+import { SummaryApproxInfo } from "../components/SummaryApproxInfo";
 import { InvestmentDetectOverlay } from "../components/InvestmentDetectOverlay";
 import { RelatedDetectOverlay } from "../components/RelatedDetectOverlay";
 import { TransactionDetailsOverlay } from "../components/TransactionDetailsOverlay";
@@ -540,19 +541,25 @@ export function TransaktionenPage() {
           <KontostandSummaryStat banks={banks} konten={konten} />
           <InvestiertSummaryStat banks={banks} konten={konten} />
           <div>
-            <span className="zm-summary-label">Einnahmen</span>
+            <span className="zm-summary-label zm-summary-label-with-info">
+              Einnahmen <SummaryApproxInfo />
+            </span>
             <span className="zm-amount-income">
               {eur.format(Number(summary?.income ?? 0))}
             </span>
           </div>
           <div>
-            <span className="zm-summary-label">Ausgaben</span>
+            <span className="zm-summary-label zm-summary-label-with-info">
+              Ausgaben <SummaryApproxInfo />
+            </span>
             <span className="zm-amount-expense">
               {eur.format(Number(summary?.expense ?? 0))}
             </span>
           </div>
           <div>
-            <span className="zm-summary-label">Netto</span>
+            <span className="zm-summary-label zm-summary-label-with-info">
+              Netto <SummaryApproxInfo />
+            </span>
             <span
               className={
                 Number(summary?.net ?? 0) > 0

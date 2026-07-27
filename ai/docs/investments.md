@@ -31,7 +31,7 @@ Unter **Einstellungen → Investitionen** pflegt die Userin Stichwörter (z. B
 
 ## Erkennen + Absegnen (wie Zusammengehörige)
 
-1. Auf Transaktionen: Button **Investitionen erkennen**.
+1. Auf Transaktionen: Button **Investitionen erkennen** (near-black primary; hover `title` explains keyword-based detect + confirm).
 2. Overlay läuft Erkennung (Keyword-Match auf noch nicht investierte, nicht abgelehnte Buchungen).
 3. Review einzeln: **Bestätigen** → `isInvestment = true`; **Ablehnen** → Rejection, erscheint nicht wieder.
 4. Danach aktualisiert sich **Investiert**; die Buchung bleibt in der Tabelle sichtbar, fällt aber aus Konsum-Summen/Analyse-Flow.

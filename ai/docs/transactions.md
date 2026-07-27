@@ -27,7 +27,7 @@ Browse, filter, categorize, and link imported bank rows. Overview also in [`../R
 
 Default route after logo / app home. One frosted content panel; **wide multi-column table** (not a two-column page). Horizontal scroll on smaller widths is OK.
 
-**Top bar:** summary metrics left; **CSV exportieren** · **PDF exportieren**, **Filter**, and **Zusammengehörige** / **Investitionen** on the right (same row).
+**Top bar:** summary metrics left; **CSV exportieren** · **PDF exportieren**, **Filter**, and **Zusammengehörige** / **Investitionen** on the right (same row). Primary CTAs use near-black accent (`--zm-accent`), not orange. Both Magic buttons have German `title` tooltips on hover (what the detect flow does).
 
 ## Summary strip (page-level)
 
@@ -37,9 +37,9 @@ Shown **inline in the top bar** (not a separate boxed strip).
 |---|---|
 | **Kontostand** | Calibrated wealth for **currently selected** bank/konto filters (roll-forward via `getAccounts`). Empty filters = all accounts. Shows „—“ until at least one matching account is calibrated. Tooltip lists per-account balances. |
 | **Investiert** | Confirmed investment EK for **selected** bank/konto filters (`getInvestedTotal`); see [`investments.md`](investments.md). Info-(i): not counted in Ausgaben. |
-| **Einnahmen** | Sum of positive `betrag` in the **current filtered set** (not only the current page); **excludes** confirmed investments; **related netting** like Analyse ([`analysis.md`](analysis.md)) |
-| **Ausgaben** | Sum of abs(negative `betrag`) after same exclusions + netting |
-| **Netto** | Einnahmen − Ausgaben (signed) |
+| **Einnahmen** | Sum of positive `betrag` in the **current filtered set** (not only the current page); **excludes** confirmed investments; **related netting** like Analyse ([`analysis.md`](analysis.md)). Info-(i): rough orientation (same as Analyse). |
+| **Ausgaben** | Sum of abs(negative `betrag`) after same exclusions + netting. Info-(i): same caveat. |
+| **Netto** | Einnahmen − Ausgaben (signed). Info-(i): same caveat. |
 | **Buchungen** | Count of rows **after** investment exclusion + related netting (table still lists all filtered rows) |
 
 **Filter persistence:** Bank/Konto/Typ/Kategorie/Zeitraum/Suche/Seitengröße are stored in `localStorage` (`zm-tx-filters-v1`) and restored on reload. Relative date presets (e.g. Dieser Monat) recompute the range on load.
@@ -188,7 +188,7 @@ sequenceDiagram
 
 #### Entry points
 
-1. Toolbar button: **Zusammengehörige Transaktionen erkennen** (primary).
+1. Toolbar button: **Zusammengehörige Transaktionen erkennen** (near-black primary; hover `title` explains PayPal↔Bank / Umbuchung / ähnliche + confirm/reject).
 2. Optional later: from Details “Partner suchen” for one row (scoped detect) — not required for v1.
 
 While detect runs: disable the button (or show spinner on it); rest of the table stays usable. Do **not** lock the whole app nav unless the overlay is open and modal.

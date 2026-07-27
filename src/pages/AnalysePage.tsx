@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Info } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   exportAnalysisCsv,
   getAnalysisBreakdown,
@@ -21,6 +21,7 @@ import { AnalysisBreakdownTable } from "../components/AnalysisBreakdownTable";
 import { PageTitle } from "../components/PageChrome";
 import { InvestiertSummaryStat } from "../components/InvestiertSummaryStat";
 import { KontostandSummaryStat } from "../components/KontostandSummaryStat";
+import { SummaryApproxInfo } from "../components/SummaryApproxInfo";
 import { downloadCsv } from "../features/export/csv";
 import { buildAndDownloadAnalysisPdf } from "../features/export/analysisPdf";
 import type { AnalysisTyp } from "../features/analysis/types";
@@ -41,26 +42,10 @@ const eur = new Intl.NumberFormat("de-DE", {
   currency: "EUR",
 });
 
-const ANALYSIS_APPROX_HINT =
-  "Hinweis: Diese Zahl ist aktuell noch nicht vollständig korrekt und dient eher als grobe Orientierung.";
-
 function toggleValue(list: string[], value: string): string[] {
   return list.includes(value)
     ? list.filter((v) => v !== value)
     : [...list, value];
-}
-
-function AnalysisApproxInfo() {
-  return (
-    <span
-      className="zm-summary-info"
-      title={ANALYSIS_APPROX_HINT}
-      aria-label={ANALYSIS_APPROX_HINT}
-      role="img"
-    >
-      <Info size={12} aria-hidden />
-    </span>
-  );
 }
 
 export function AnalysePage() {
@@ -315,7 +300,7 @@ export function AnalysePage() {
           {showIncome && (
             <div>
               <span className="zm-summary-label zm-summary-label-with-info">
-                Einnahmen <AnalysisApproxInfo />
+                Einnahmen <SummaryApproxInfo />
               </span>
               <span className="zm-amount-income">
                 {eur.format(Number(summary?.income ?? 0))}
@@ -325,7 +310,7 @@ export function AnalysePage() {
           {showExpense && (
             <div>
               <span className="zm-summary-label zm-summary-label-with-info">
-                Ausgaben <AnalysisApproxInfo />
+                Ausgaben <SummaryApproxInfo />
               </span>
               <span className="zm-amount-expense">
                 {eur.format(Number(summary?.expense ?? 0))}
@@ -335,7 +320,7 @@ export function AnalysePage() {
           {showNet && (
             <div>
               <span className="zm-summary-label zm-summary-label-with-info">
-                Netto <AnalysisApproxInfo />
+                Netto <SummaryApproxInfo />
               </span>
               <span
                 className={
@@ -620,7 +605,7 @@ export function AnalysePage() {
                       ? "Unterkategorie"
                       : "Kategorie"}
                     {" "}
-                    <AnalysisApproxInfo />
+                    <SummaryApproxInfo />
                   </h2>
                   <AnalysisCategoryPie
                     ref={netPieRef}
@@ -640,7 +625,7 @@ export function AnalysePage() {
                       ? "Unterkategorie"
                       : "Kategorie"}
                     {" "}
-                    <AnalysisApproxInfo />
+                    <SummaryApproxInfo />
                   </h2>
                   <AnalysisCategoryPie
                     ref={expensePieRef}
@@ -660,7 +645,7 @@ export function AnalysePage() {
                       ? "Unterkategorie"
                       : "Kategorie"}
                     {" "}
-                    <AnalysisApproxInfo />
+                    <SummaryApproxInfo />
                   </h2>
                   <AnalysisCategoryPie
                     ref={incomePieRef}
@@ -679,7 +664,7 @@ export function AnalysePage() {
             <AnalysisBreakdownTable
               title={
                 <>
-                  Total-Aufschlüsselung <AnalysisApproxInfo />
+                  Total-Aufschlüsselung <SummaryApproxInfo />
                 </>
               }
               rows={breakdown?.net ?? []}
@@ -695,7 +680,7 @@ export function AnalysePage() {
             <AnalysisBreakdownTable
               title={
                 <>
-                  Ausgaben-Aufschlüsselung <AnalysisApproxInfo />
+                  Ausgaben-Aufschlüsselung <SummaryApproxInfo />
                 </>
               }
               rows={breakdown?.expenses ?? []}
@@ -710,7 +695,7 @@ export function AnalysePage() {
             <AnalysisBreakdownTable
               title={
                 <>
-                  Einnahmen-Aufschlüsselung <AnalysisApproxInfo />
+                  Einnahmen-Aufschlüsselung <SummaryApproxInfo />
                 </>
               }
               rows={breakdown?.income ?? []}
