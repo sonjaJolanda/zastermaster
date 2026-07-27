@@ -1,0 +1,15 @@
+# Used by docker compose -f docker-compose.ship.yml (build context = repo root).
+.git
+.wasp
+node_modules
+**/node_modules
+Bankauszüge
+.env
+.env.server
+.env.client
+.env.ship
+*.log
+.cursor
+.idea
+.vscode
+agent-transcripts

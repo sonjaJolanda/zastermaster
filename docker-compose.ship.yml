@@ -1,0 +1,69 @@
+# Ship stack: Postgres + Wasp server + static client (full app in Docker).
+# Bind to 127.0.0.1 only. Use with: docker compose -f docker-compose.ship.yml --env-file .env.ship up --build -d
+#
+# Separate project/volume from docker-compose.yml (dev Postgres only + wasp start in WSL).
+# API published on host :3002 so wasp start (:3001) can keep running in parallel.
+
+name: zastermaster-ship
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: zastermaster-ship-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zaster
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zaster}
+      POSTGRES_DB: zastermaster
+    volumes:
+      - zastermaster_ship_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zaster -d zastermaster"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # No host port — only reachable from other compose services.
+
+  server:
+    build:
+      context: .
+      dockerfile: ship/Dockerfile
+      target: server-production
+      args:
+        WASP_VERSION: ${WASP_VERSION:-0.24.0}
+    container_name: zastermaster-ship-server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DATABASE_URL: postgresql://zaster:${POSTGRES_PASSWORD:-zaster}@db:5432/zastermaster
+      WASP_WEB_CLIENT_URL: ${WASP_WEB_CLIENT_URL:-http://zastermaster}
+      WASP_SERVER_URL: ${WASP_SERVER_URL:-http://zastermaster:3002}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env.ship}
+    ports:
+      # Host 3002 avoids clash with wasp start on 3001; container still listens on 3001
+      - "127.0.0.1:3002:3001"
+
+  client:
+    build:
+      context: .
+      dockerfile: ship/Dockerfile
+      target: client-production
+      args:
+        WASP_VERSION: ${WASP_VERSION:-0.24.0}
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://zastermaster:3002}
+    container_name: zastermaster-ship-client
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      # Friendly URL http://zastermaster (hosts entry) — port 80
+      - "127.0.0.1:80:80"
+      # Fallback if something else owns port 80 (avoid 3000 — often taken by wasp start)
+      - "127.0.0.1:3080:80"
+
+volumes:
+  zastermaster_ship_pgdata:

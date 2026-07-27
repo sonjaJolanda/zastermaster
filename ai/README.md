@@ -9,8 +9,8 @@ Local personal finance app for importing German bank exports, categorizing trans
 | **Privacy** | Local-only — data stays on your machine |
 | **Auth** | None in v1 (single-user); may be added later |
 | **Stack** | [Wasp](https://wasp.sh) + React + Prisma + PostgreSQL |
-| **DB runtime** | PostgreSQL via Docker Compose (`docker compose up -d db`) |
-| **Windows** | **WSL required** for Wasp; Docker Desktop for the DB |
+| **DB runtime** | Dev: Postgres via `docker compose up -d db`. Ship: full stack in `docker-compose.ship.yml` |
+| **Windows** | **Dev:** WSL + Wasp. **Ship (end users):** Docker Desktop + Git only |
 
 Sample exports: [`Bankauszüge/`](../Bankauszüge/). Design assets: [`public/design/`](../public/design/). Feature specs: [`docs/`](docs/) (filled as features are built).
 
@@ -31,7 +31,7 @@ This README ([ai/README.md](ai/README.md)) is the product and architecture sourc
 - Authentication / multi-user (roadmap: may come later)
 - Public cloud hosting (roadmap: may come later; not Fly.io in v1)
 - Background job queue (import/related-detect use actions + UI progress instead)
-- Full-app Docker packaging (Compose is **Postgres only**)
+- Putting the **whole** app in Docker for **day-to-day maintainer development** (dev stays WSL + Postgres-only Compose; **ship** is the full Docker path for distribution)
 - Paid cloud AI as the default categorizer
 - Replacing your bank’s official app or doing payments
 
@@ -48,13 +48,16 @@ This README ([ai/README.md](ai/README.md)) is the product and architecture sourc
 | Backend | Node.js (Wasp server), TypeScript |
 | Client ↔ server | **Wasp operations** (queries = read, actions = write) |
 | Database | **PostgreSQL** via Prisma (`schema.prisma`) |
-| DB process | **PostgreSQL in Docker** (`docker compose up -d db`); `DATABASE_URL` in `.env.server` |
-| App process | `wasp start` (dev) — on Windows, run this **inside WSL** |
+| DB process (dev) | **PostgreSQL in Docker** (`docker compose up -d db`); `DATABASE_URL` in `.env.server` |
+| App process (dev) | `wasp start` — on Windows, run this **inside WSL** |
+| Distribution (ship) | Full stack in Docker: `docker-compose.ship.yml` (db + server + client). Host needs Docker Desktop + Git only — see [`docs/shipping-plan.md`](docs/shipping-plan.md) / [`../ANLEITUNG.md`](../ANLEITUNG.md) |
 | Network | Localhost only in v1 |
 
-**Why this stack:** Full-stack TypeScript with Wasp, Prisma models, typed operations, and a clear path to auth later. PostgreSQL fits Prisma well. **Docker runs Postgres only**; day-to-day app work stays on the Wasp CLI in WSL.
+**Why this stack:** Full-stack TypeScript with Wasp, Prisma models, typed operations, and a clear path to auth later. PostgreSQL fits Prisma well. **Two run modes:** (1) **Dev** — Docker = Postgres only, app via Wasp CLI in WSL. (2) **Ship** — db + Node server + static client all in Docker so recipients do not need WSL/Node/Wasp.
 
-**Windows / WSL:** Wasp needs a Unix environment — use **WSL** for `wasp start`. Docker Desktop provides the database. Keep the project on the **Linux filesystem** when possible for file watching; `/mnt/c/...` works but can be slower.
+**Windows / WSL (dev):** Wasp needs a Unix environment — use **WSL** for `wasp start`. Docker Desktop provides the database. Keep the project on the **Linux filesystem** when possible for file watching; `/mnt/c/...` works but can be slower.
+
+**Ship on the same PC:** Safe — separate Compose project and Postgres volume. Ship API uses port **`3002`** so `wasp start` can keep **`3001`**. `start.bat` / `stop.bat` when trying / leaving ship.
 
 ```mermaid
 flowchart LR
@@ -83,17 +86,18 @@ wasp start
 
 | Piece | Role | Typical port |
 |---|---|---|
-| PostgreSQL (`zastermaster-db`) | Database (Docker) | `5432` |
-| Wasp server | Operations / APIs | Wasp default (often `3001`) |
-| Wasp client | React UI | Wasp default (often `3000`) |
+| PostgreSQL (`zastermaster-db`) | Dev database (Docker) | `5432` |
+| Wasp server | Dev operations / APIs | often `3001` |
+| Wasp client | Dev React UI | often `3000` |
+| Ship client / server / db | Distribution stack | UI `80` (fallback `3080`), API **`3002`**, db internal only |
 
-**Persistence:** Docker volume `zastermaster_pgdata`. Back up that volume or use `pg_dump` if you care about history.
+**Persistence (dev):** Docker volume `zastermaster_pgdata`. **Ship:** separate volume `zastermaster_ship_pgdata`. Back up with `pg_dump` / `backup.bat` if you care about history.
 
 **Privacy:** Do not publish `Bankauszüge/` or DB dumps. Keep the app on localhost.
 
 **Design assets:** Serve logo + backgrounds from `public/design/`.
 
-**Docker scope:** Postgres only in v1. Do not containerize the whole Wasp app for normal development.
+**Docker scope:** Dev = Postgres only. Ship = full app stack in containers (do not use ship Compose for day-to-day coding).
 
 ### Background jobs — what they are (and v1 choice)
 
@@ -353,10 +357,10 @@ zastermaster/
 - Account balance calibration
 - Design background + logo (per-tab pick from `public/design/`), German UI ([`ai/docs/design.md`](docs/design.md))
 - Cursor rules aligned with this README
+- **Local distribution** via full Docker stack + Git — [`docs/shipping-plan.md`](docs/shipping-plan.md), setup [`../ANLEITUNG.md`](../ANLEITUNG.md)
 
 ### Later
 
-- **Local distribution** to other Windows users via Docker + Git — requirements locked in [`docs/shipping-plan.md`](docs/shipping-plan.md) (not implemented yet)
 - Auth (Wasp built-in), if sharing or remote access is needed
 - Cloud deploy (e.g. Fly.io), only if leaving pure local-only
 - Wasp Jobs for long related-detect / heavy import / ML

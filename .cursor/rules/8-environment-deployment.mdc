@@ -1,11 +1,11 @@
 ---
-description: Docker Postgres, wasp start in WSL, local-only deploy
+description: Dev (WSL + Postgres Docker) vs ship (full Docker stack)
 alwaysApply: true
 ---
 
 # Environment & deployment
 
-## Local (v1)
+## Local development (maintainers)
 
 ```bash
 # From repo root: Postgres in Docker
@@ -16,14 +16,22 @@ wasp db migrate-dev
 wasp start
 ```
 
-- **Docker = PostgreSQL only** (`docker-compose.yml` service `db`). App = **Wasp CLI in WSL**.
+- **Dev Docker = PostgreSQL only** (`docker-compose.yml` service `db`). App = **Wasp CLI in WSL**.
 - `DATABASE_URL` in `.env.server` (see `.env.server.example`). Never commit secrets or private `Bankauszüge/` data.
 
-## Deploy
+## Shipping / end-user run (full Docker stack)
 
-- **v1: local-only.** Later: optional full packaging and/or Fly if goals change.
+- Spec: [`ai/docs/shipping-plan.md`](mdc:ai/docs/shipping-plan.md) · setup: [`ANLEITUNG.md`](mdc:ANLEITUNG.md)
+- Stack: `docker-compose.ship.yml` + `ship/Dockerfile` — **db + server + client** all in containers
+- Host needs **Docker Desktop + Git only** (no WSL/Node/Wasp for recipients)
+- Bind **`127.0.0.1` only**; URL `http://zastermaster` (hosts + port 80; fallback `3080`)
+- Scripts: `start.bat` / `stop.bat` / `update.bat` / `backup.bat` / `setup-hosts.bat`
+- Separate Compose project + volume from dev — **does not wipe** `zastermaster_pgdata`
+- Trying ship on a maintainer PC: ship API is **`3002`** (wasp stays on `3001`); `start.bat` / `stop.bat`
+- Do **not** replace the WSL dev workflow with ship Compose for day-to-day coding
 
 ## Do not
 
-- Suggest installing Wasp on native Windows PowerShell/CMD
-- Put the whole Wasp app in Docker for normal dev
+- Suggest installing Wasp on native Windows for **recipients** (ship builds inside Docker)
+- Put the whole Wasp app in Docker for **normal maintainer dev** (keep `wasp start` + db-only Compose)
+- Cloud-host bank data or commit `.env.ship` / `Bankauszüge/`

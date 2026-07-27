@@ -1,0 +1,13 @@
+# Ignore heavy / local-only paths for ship image builds.
+.git
+.wasp
+node_modules
+Bankauszüge
+**/node_modules
+.env
+.env.*
+!.env.ship.example
+*.log
+.cursor
+.idea
+.vscode

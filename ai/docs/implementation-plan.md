@@ -8,7 +8,7 @@ Actionable runbook for building Zaster Master. **Behavior details live in featur
 
 ## Global rules (every coding session)
 
-1. **Stack:** Wasp + React + Prisma + PostgreSQL. No auth. Docker **only** for Postgres (`docker compose up -d db`). No custom REST for app features.
+1. **Stack:** Wasp + React + Prisma + PostgreSQL. No auth. **Dev:** Docker only for Postgres (`docker compose up -d db`) + `wasp start` in WSL. **Ship:** full Docker stack (`docker-compose.ship.yml`) for distribution — see [`shipping-plan.md`](shipping-plan.md). No custom REST for app features.
 2. **Source of truth:** [`ai/README.md`](../README.md) · [`prd.md`](prd.md) · feature docs linked on each card.
 3. **Layout:** `src/features/{feature}/operations.ts` + page components; group `main.wasp` with `//#region`.
 4. **German UI** copy. Design: [`design.md`](design.md) (background + logo + frosted panel).
@@ -554,5 +554,5 @@ Prefer Wasp queries/actions; no auth; German UI; design.md for shell.
 | [`testing.md`](testing.md) | Unit tests + manuelle `_Tester`-Bankdateien |
 | [`investments.md`](investments.md) | Investiert (EK), Keywords, Confirm-Flow |
 | [`reports.md`](reports.md) | PDF export (TX + Analyse) |
-| [`shipping-plan.md`](shipping-plan.md) | Local Docker distribution to other Windows users |
+| [`shipping-plan.md`](shipping-plan.md) | Local Docker distribution (full stack); try beside dev without wiping `zastermaster_pgdata` |
 | `categories_seed.json` | Slice 1 seed |

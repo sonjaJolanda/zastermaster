@@ -15,13 +15,14 @@ Personal finance app (German UI): import bank exports, hybrid free categorizatio
 
 ## Locked stack
 
-- **Wasp** + React + TypeScript + Prisma + **PostgreSQL** (local, inside WSL on Windows)
+- **Wasp** + React + TypeScript + Prisma + **PostgreSQL**
 - Client ↔ server: **Wasp operations** (queries/actions)
 - UI: Tailwind + **Shadcn/ui**
-- App via `wasp start` in WSL · **Postgres via Docker Compose** (`docker compose up -d db`)
-- **Windows: WSL required** for Wasp (no native Windows install)
+- **Dev (maintainers):** App via `wasp start` in **WSL** · Postgres via `docker compose up -d db`
+- **Ship (end users / try-ship):** Full stack in Docker (`docker-compose.ship.yml` — db + server + client). Host: Docker Desktop + Git only — see [`ai/docs/shipping-plan.md`](mdc:ai/docs/shipping-plan.md)
 - **No auth in v1** · **No cloud deploy in v1** · **No job queue in v1** (actions + UI progress)
 
 ## Do not
 
-- Assume native Windows Wasp, Docker-as-substitute-for-WSL, FastAPI/Vue, or Fly.io as required for v1
+- Assume native Windows Wasp for **day-to-day coding** (use WSL), or treat ship Docker as the maintainer edit loop
+- Assume FastAPI/Vue, or Fly.io as required for v1

@@ -1,9 +1,9 @@
 # Shipping plan — Zaster Master
 
 How to **distribute the app to other people** without putting bank data online.  
-Status: **requirements locked**; implementation not done yet (see checklist below).
+Status: **ready for local ship** — checklist complete (smoke-tested 2026-07-27).
 
-Related: [`../README.md`](../README.md) · [`.cursor/rules/8-environment-deployment.mdc`](../../.cursor/rules/8-environment-deployment.mdc) · [`design.md`](design.md)
+Related: [`../README.md`](../README.md) · [`../../ANLEITUNG.md`](../../ANLEITUNG.md) · [`.cursor/rules/8-environment-deployment.mdc`](../../.cursor/rules/8-environment-deployment.mdc) · [`design.md`](design.md)
 
 ---
 
@@ -68,7 +68,7 @@ Users should not type `localhost:3000`.
 |---|---|
 | Hostname | Windows **hosts** entry: `127.0.0.1 zastermaster` (once; needs Admin) |
 | Port | Map UI to **port 80** on `127.0.0.1` so the URL has no `:port` |
-| Fallback | If 80 is taken: `http://zastermaster:3000` or `http://127.0.0.1:3000` (document in setup guide) |
+| Fallback | If 80 is taken: `http://127.0.0.1:3080` (document in setup guide) |
 
 Still localhost-only; this is not exposing the app on the internet.
 
@@ -98,14 +98,46 @@ flowchart LR
   Server --> DB
 ```
 
-**Contrast with current v1 dev setup:** today [`docker-compose.yml`](../../docker-compose.yml) runs **Postgres only**; the app runs via `wasp start` in WSL.  
-**Ship** adds full **db + server + client** Compose. Builds happen **inside Docker** so recipients do **not** need WSL, Node, or the Wasp CLI.
+### Full stack in Docker (ship)
 
-Dev workflow for maintainers stays unchanged (WSL + `wasp start` + `docker compose up -d db`).
+For **recipients** (and when you run the ship path), **everything runs in Docker**:
+
+| Piece | Where it lives |
+|---|---|
+| PostgreSQL | Container `zastermaster-ship-db` (volume `zastermaster_ship_pgdata`) |
+| Node / Wasp server | Built **inside** `ship/Dockerfile` (Wasp CLI + `npm` in the image) → `zastermaster-ship-server` |
+| React client | Vite production build in the image → static files in `zastermaster-ship-client` |
+| Host needs | **Docker Desktop** + **Git** only — **no** WSL, Node, or Wasp CLI on the PC |
+
+Dependencies (Node modules, Prisma, Wasp toolchain) are resolved at **image build** time and stay inside the images/containers.
+
+### Contrast with maintainer **dev**
+
+| | Dev (you coding) | Ship (end users / try-ship) |
+|---|---|---|
+| Compose file | [`docker-compose.yml`](../../docker-compose.yml) | [`docker-compose.ship.yml`](../../docker-compose.ship.yml) |
+| Project / containers | `zastermaster-db` | `zastermaster-ship-*` |
+| Postgres volume | `zastermaster_pgdata` | `zastermaster_ship_pgdata` |
+| App process | `wasp start` in **WSL** | Server + client **containers** |
+| Host ports (typical) | DB `5432`, Wasp `3000`/`3001` | UI `80` (+ fallback `3080`), API **`3002`** |
+
+Dev workflow for day-to-day coding stays unchanged (WSL + `wasp start` + `docker compose up -d db`).
+
+### Trying ship on the same PC as dev (safe)
+
+**Yes** — ship does **not** wipe or reuse your dev database or WSL setup.
+
+- Separate Compose **project name** (`zastermaster-ship`) and **volume**
+- Does not modify `.env.server` / `Bankauszüge/` / your WSL Node install
+- Dev Postgres on `5432` can keep running while you try ship
+
+**Parallel with maintainer:** ship API uses host port **`3002`** so `wasp start` can keep **`3001`**. Before / after trying ship you only need `start.bat` / `stop.bat` — no need to stop Wasp for the API port.
+
+You can leave `docker compose up -d db` (dev) and even `wasp start` running; ship UI is on `80`/`3080`, ship API on `3002`.
 
 ---
 
-## Deliverables (to implement)
+## Deliverables (implemented)
 
 ### 1. Compose + images
 
@@ -150,21 +182,22 @@ Static design assets live only under **`public/design/`** (logos, nav SVGs, back
 
 - First `compose up --build` (and updates that change dependencies) can take **several minutes**
 - Git is a second install beside Docker (needed for update path)
-- Port 80 can conflict with other Windows software → document fallback
+- Port 80 can conflict with other Windows software → fallback `3080`
 - Hosts edit needs one elevated run
+- On a maintainer machine: ship API is on **`3002`** so it can run beside `wasp start` (`3001`)
 
 ---
 
 ## Implementation checklist
 
-- [ ] Ship Compose + Dockerfiles (server + client)
-- [ ] Localhost-only publish + `zastermaster` hosts helper
-- [ ] `start` / `stop` / `update` (+ optional `backup`) `.bat`
-- [ ] `.env.ship.example` + first-run copy
-- [ ] End-user **setup** guide (`ANLEITUNG.md`)
-- [ ] Link from README + environment Cursor rule
-- [ ] Smoke test: fresh clone path with **only** Docker Desktop + Git (no Wasp on host)
-- [ ] Pre-public repo scan (no `Bankauszüge`, no real env)
+- [x] Ship Compose + Dockerfiles (server + client) — `docker-compose.ship.yml`, `ship/Dockerfile`
+- [x] Localhost-only publish + `zastermaster` hosts helper — `setup-hosts.bat`
+- [x] `start` / `stop` / `update` / `backup` `.bat`
+- [x] `.env.ship.example` + first-run copy in `start.bat`
+- [x] End-user **setup** guide (`ANLEITUNG.md`)
+- [x] Link from README + environment Cursor rule
+- [x] Smoke test: `docker compose -f docker-compose.ship.yml up --build` — client `:80`/`:3080`, server host `:3002`, migrations + backgrounds OK (2026-07-27)
+- [x] Pre-public repo scan — `Bankauszüge/`, `.env.ship`, `.env.server`, `backups/` gitignored; only `.env.*.example` for env templates (confirm before making repo public)
 
 ---
 
@@ -178,3 +211,4 @@ Static design assets live only under **`public/design/`** (logos, nav SVGs, back
 | 2026-07-27 | Friendly URL `http://zastermaster` (port 80 + hosts); bind `127.0.0.1` |
 | 2026-07-27 | Setup Anleitung yes; app usage Anleitung no |
 | 2026-07-27 | Public repo OK given gitignore + localhost runtime |
+| 2026-07-27 | Ship = full Docker stack (db+server+client); safe beside dev via separate volume; ship API host port **3002** (wasp keeps 3001) |
