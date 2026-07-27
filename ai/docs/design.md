@@ -44,7 +44,8 @@ Served copies live under `public/design/` (and `public/favicon.svg` for the logo
 
 - **No full header bar.** Only a fixed **logo** top-left (icon only, no wordmark).
 - **Side nav (right):** sticky, vertically centered; order top→bottom: **Transaktionen → Analyse → Upload → Einstellungen** (custom SVGs `Tables`, `Analysis`, `Upload`, `Settings`) — **no** frosted boxes/backgrounds behind them. German tooltip/`aria-label`. Active = full opacity + slight scale; inactive muted. Import lock still mutes non-Upload icons.
-- **No** Kontostand in the **chrome** (logo / side nav). Wealth appears in the Transaktionen & Analyse **summary strip** as **Kontostand** (calibrated roll-forward via `getHeaderBalance`); details/edit still under Einstellungen → Konten.
+- **No** Kontostand in the **chrome** (logo / side nav). Wealth appears in the Transaktionen & Analyse **summary strip** as **Kontostand** (calibrated roll-forward; scoped to selected bank/konto filters); details/edit still under Einstellungen → Konten.
+- **Logo:** fixed; **top** aligns with the frosted content panel top; **horizontally centered** in the left gutter between viewport edge and panel.
 - **Content panel:** ~`2rem` top padding; leave right padding so the side nav doesn’t cover the panel. Prefer **one** main panel. Width ~`min(1520px, 96vw)`.
 - **Desktop-primary**; on narrow screens keep side nav, stack content as needed.
 - Default landing: **Transaktionen**.
@@ -148,8 +149,8 @@ No continuous parallax on the background; keep the photo still.
 
 - Full behavior: [`transactions.md`](transactions.md).
 - **Main view = wide data table** — not a two-column page layout.
-- Top bar: **Einnahmen / Ausgaben / Netto / Buchungen** left; **CSV · Filter & Optionen · Zusammengehörige** right (same row).
-- **Filters & Optionen:** collapsible, **default collapsed**; keep summary + table usable when collapsed.
+- Top bar: **Einnahmen / Ausgaben / Netto / Buchungen** left; **CSV · Filter · Zusammengehörige** right (same row).
+- **Filter:** collapsible, **default collapsed**; keep summary + table usable when collapsed.
 - Table polish:
   - Category cell: name + small color circle (category DB color)
   - Row action: `Edit.svg` icon button (opens Details overlay; German `title`/`aria-label` e.g. Bearbeiten)

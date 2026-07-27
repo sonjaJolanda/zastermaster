@@ -6,6 +6,7 @@ import {
 } from "wasp/client/operations";
 import type { InvestmentSuggestion } from "../features/investments/operations";
 import { CloseIconButton } from "./PageChrome";
+import { OverlayPortal } from "./OverlayPortal";
 
 const eur = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -94,22 +95,23 @@ export function InvestmentDetectOverlay({ onClose, onChanged }: Props) {
         : "";
 
   return (
-    <div
-      className="zm-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="zm-invest-title"
-      onClick={onClose}
-    >
-      <div className="zm-overlay-anchor">
-        <div
-          className="zm-overlay-panel zm-related-panel"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="zm-overlay-header">
-            <h2 id="zm-invest-title">Investitionen erkennen</h2>
-            <CloseIconButton onClick={onClose} />
-          </div>
+    <OverlayPortal>
+      <div
+        className="zm-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="zm-invest-title"
+        onClick={onClose}
+      >
+        <div className="zm-overlay-anchor">
+          <div
+            className="zm-overlay-panel zm-related-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="zm-overlay-header">
+              <h2 id="zm-invest-title">Investitionen erkennen</h2>
+              <CloseIconButton onClick={onClose} />
+            </div>
 
           {state === "running" && (
             <div className="zm-related-progress" aria-live="polite">
@@ -203,5 +205,6 @@ export function InvestmentDetectOverlay({ onClose, onChanged }: Props) {
         </div>
       </div>
     </div>
+    </OverlayPortal>
   );
 }

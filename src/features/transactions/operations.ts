@@ -1,13 +1,22 @@
 import { HttpError } from "wasp/server";
 import type {
   ExportTransactionsCsv,
+  ExportTransactionsForPdf,
   GetTransactionFilterOptions,
   GetTransactionNav,
   GetTransactions,
   GetTransactionsSummary,
 } from "wasp/server/operations";
 import { toSemicolonCsv } from "../export/csv";
-import type { CsvExportResult } from "../export/types";
+import { PDF_TX_MAX_ROWS } from "../export/pdfConstants";
+import type {
+  CsvExportResult,
+  TransactionsPdfExportResult,
+} from "../export/types";
+import {
+  summarizeNetted,
+  type NettedTx,
+} from "../analysis/netting";
 import { toTransactionsSummary } from "./summary";
 import type {
   TransactionFilterArgs,
@@ -29,6 +38,7 @@ export type {
   TransactionsPageResult,
   TransactionsSummary,
 } from "./types";
+export type { TransactionsPdfExportResult } from "../export/types";
 export { computeTransactionsSummary, toTransactionsSummary } from "./summary";
 
 const EXPORT_MAX_ROWS = 100_000;
@@ -74,6 +84,12 @@ function buildWhere(
   if (args.categorySource && args.categorySource !== "all") {
     clauses.push({ categorySource: args.categorySource });
   }
+  if (args.categoryId != null) {
+    clauses.push({ categoryId: args.categoryId });
+  }
+  if (args.subcategoryId != null) {
+    clauses.push({ subcategoryId: args.subcategoryId });
+  }
   if (!args.includeBalanceAdjustments) {
     clauses.push({ isBalanceAdjustment: false });
   }
@@ -106,27 +122,31 @@ function buildWhere(
   return { AND: clauses };
 }
 
-function mapRow(row: {
-  id: number;
-  datum: Date;
-  betrag: { toString(): string };
-  sender: string;
-  empfaenger: string;
-  verwendungszweck: string;
-  iban: string;
-  kundenreferenz: string;
-  bank: string;
-  konto: string;
-  categoryId: number | null;
-  subcategoryId: number | null;
-  confidenceScore: number;
-  categorySource: TransactionListItem["categorySource"];
-  relatedTransactionId: number | null;
-  relatedType: TransactionListItem["relatedType"];
-  isInvestment: boolean;
-  category: { id: number; name: string; color: string } | null;
-  subcategory: { id: number; name: string } | null;
-}): TransactionListItem {
+function mapRow(
+  row: {
+    id: number;
+    datum: Date;
+    betrag: { toString(): string };
+    sender: string;
+    empfaenger: string;
+    verwendungszweck: string;
+    iban: string;
+    kundenreferenz: string;
+    bank: string;
+    konto: string;
+    categoryId: number | null;
+    subcategoryId: number | null;
+    confidenceScore: number;
+    categorySource: TransactionListItem["categorySource"];
+    relatedTransactionId: number | null;
+    relatedGroupId: string | null;
+    relatedType: TransactionListItem["relatedType"];
+    isInvestment: boolean;
+    category: { id: number; name: string; color: string } | null;
+    subcategory: { id: number; name: string } | null;
+  },
+  relatedIds: number[] = [],
+): TransactionListItem {
   return {
     id: row.id,
     datum: row.datum.toISOString().slice(0, 10),
@@ -146,9 +166,59 @@ function mapRow(row: {
     confidenceScore: row.confidenceScore,
     categorySource: row.categorySource,
     relatedTransactionId: row.relatedTransactionId,
+    relatedGroupId: row.relatedGroupId,
+    relatedIds,
     relatedType: row.relatedType,
     isInvestment: row.isInvestment,
   };
+}
+
+async function relatedIdsByTxId(
+  rows: { id: number; relatedGroupId: string | null; relatedTransactionId: number | null }[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  entities: { Transaction: { findMany: (args: any) => Promise<{ id: number; relatedGroupId: string | null }[]> } },
+): Promise<Map<number, number[]>> {
+  const result = new Map<number, number[]>();
+  const groupIds = [
+    ...new Set(
+      rows
+        .map((r) => r.relatedGroupId)
+        .filter((g): g is string => g != null && g.length > 0),
+    ),
+  ];
+
+  if (groupIds.length > 0) {
+    const members = await entities.Transaction.findMany({
+      where: { relatedGroupId: { in: groupIds } },
+      select: { id: true, relatedGroupId: true },
+    });
+    const byGroup = new Map<string, number[]>();
+    for (const m of members) {
+      if (!m.relatedGroupId) continue;
+      const list = byGroup.get(m.relatedGroupId) ?? [];
+      list.push(m.id);
+      byGroup.set(m.relatedGroupId, list);
+    }
+    for (const row of rows) {
+      if (!row.relatedGroupId) continue;
+      const ids = byGroup.get(row.relatedGroupId) ?? [];
+      result.set(
+        row.id,
+        ids.filter((id) => id !== row.id).sort((a, b) => a - b),
+      );
+    }
+  }
+
+  for (const row of rows) {
+    if (result.has(row.id)) continue;
+    if (row.relatedTransactionId != null) {
+      result.set(row.id, [row.relatedTransactionId]);
+    } else {
+      result.set(row.id, []);
+    }
+  }
+
+  return result;
 }
 
 export const getTransactions: GetTransactions<
@@ -179,8 +249,10 @@ export const getTransactions: GetTransactions<
     },
   });
 
+  const relatedMap = await relatedIdsByTxId(rows, context.entities);
+
   return {
-    items: rows.map(mapRow),
+    items: rows.map((row) => mapRow(row, relatedMap.get(row.id) ?? [])),
     totalCount,
     page: safePage,
     pageSize,
@@ -194,30 +266,30 @@ export const getTransactionsSummary: GetTransactionsSummary<
 > = async (args, context) => {
   const base = buildWhere(args, { excludeInvestments: true });
 
-  const incomeWhere =
-    Object.keys(base).length === 0
-      ? { betrag: { gt: 0 } }
-      : { AND: [base, { betrag: { gt: 0 } }] };
-  const expenseWhere =
-    Object.keys(base).length === 0
-      ? { betrag: { lt: 0 } }
-      : { AND: [base, { betrag: { lt: 0 } }] };
+  const rows = await context.entities.Transaction.findMany({
+    where: base,
+    select: {
+      id: true,
+      datum: true,
+      betrag: true,
+      bank: true,
+      relatedTransactionId: true,
+      relatedType: true,
+    },
+  });
 
-  const [count, incomeAgg, expenseAgg] = await Promise.all([
-    context.entities.Transaction.count({ where: base }),
-    context.entities.Transaction.aggregate({
-      where: incomeWhere,
-      _sum: { betrag: true },
-    }),
-    context.entities.Transaction.aggregate({
-      where: expenseWhere,
-      _sum: { betrag: true },
-    }),
-  ]);
+  const netted: NettedTx[] = rows.map((r) => ({
+    id: r.id,
+    datum: r.datum,
+    betrag: Number(r.betrag.toString()),
+    bank: r.bank,
+    relatedTransactionId: r.relatedTransactionId,
+    relatedType: r.relatedType,
+  }));
 
-  const income = Number(incomeAgg._sum.betrag?.toString() ?? 0);
-  const expenseRaw = Number(expenseAgg._sum.betrag?.toString() ?? 0);
-  return toTransactionsSummary(income, expenseRaw, count);
+  const { income, expense, count } = summarizeNetted(netted);
+  // summarizeNetted returns expense as positive magnitude.
+  return toTransactionsSummary(income, -expense, count);
 };
 
 export const getTransactionFilterOptions: GetTransactionFilterOptions<
@@ -251,7 +323,8 @@ export const getTransactionNav: GetTransactionNav<
   });
   if (!row) return null;
 
-  const item = mapRow(row);
+  const relatedMap = await relatedIdsByTxId([row], context.entities);
+  const item = mapRow(row, relatedMap.get(row.id) ?? []);
   const pageSize = normalizePageSize(args.pageSize);
   const filterWhere = buildWhere({
     banks: args.banks,
@@ -262,6 +335,8 @@ export const getTransactionNav: GetTransactionNav<
     dateFrom: args.dateFrom,
     dateTo: args.dateTo,
     search: args.search,
+    categoryId: args.categoryId,
+    subcategoryId: args.subcategoryId,
   });
 
   const inFilterCount = await context.entities.Transaction.count({
@@ -359,5 +434,42 @@ export const exportTransactionsCsv: ExportTransactionsCsv<
     csv,
     rowCount: rows.length,
     fileName: `zaster-transaktionen-${stamp}.csv`,
+  };
+};
+
+/** Filtered TX rows for PDF report (cap 2k; truncated flag if more). */
+export const exportTransactionsForPdf: ExportTransactionsForPdf<
+  TransactionFilterArgs | void,
+  TransactionsPdfExportResult
+> = async (args, context) => {
+  const where = buildWhere(args);
+  const totalCount = await context.entities.Transaction.count({ where });
+  const rows = await context.entities.Transaction.findMany({
+    where,
+    orderBy: [{ datum: "desc" }, { id: "desc" }],
+    take: PDF_TX_MAX_ROWS,
+    include: {
+      category: { select: { name: true } },
+      subcategory: { select: { name: true } },
+    },
+  });
+
+  return {
+    totalCount,
+    truncated: totalCount > PDF_TX_MAX_ROWS,
+    rows: rows.map((r) => {
+      const cat =
+        r.category?.name && r.subcategory?.name
+          ? `${r.category.name} › ${r.subcategory.name}`
+          : (r.category?.name ?? "—");
+      return {
+        datum: r.datum.toISOString().slice(0, 10),
+        bank: r.bank,
+        konto: r.konto,
+        betrag: r.betrag.toString(),
+        verwendungszweck: r.verwendungszweck,
+        kategorie: cat,
+      };
+    }),
   };
 };

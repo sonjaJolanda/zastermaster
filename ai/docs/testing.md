@@ -54,7 +54,7 @@ Config: repo-root [`vitest.config.ts`](../../vitest.config.ts) — includes `src
 - **Parsers:** at least one happy path per bank; DKB skips non-`Gebucht`; PayPal skips non-`Abgeschlossen` / non-EUR; BOM tolerated where covered.
 - **Categorizer:** keyword hit; learned rule beats keyword; fallback Sonstiges/Unbekannt.
 - **Related:** PayPal↔Bank positive + opposite-sign negative; transfer positive + same-account negative; near-dup positive + unrelated negative.
-- **Netting:** transfer drops both legs; PayPal↔bank keeps PayPal, drops bank leg.
+- **Netting:** transfer drops both legs; PayPal↔bank keeps PayPal, drops bank leg; PayPal-Kauf (`paypal_purchase`) drops nothing.
 - **Summen:** Einnahmen / Ausgaben / Netto / Buchungen — `net = income − |expense|`; zero amounts count in `count` only.
 
 ### Rules for new unit tests

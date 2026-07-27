@@ -9,16 +9,31 @@ const eur = new Intl.NumberFormat("de-DE", {
 const INFO =
   "Bestätigter Kapitaleinsatz (EK), nicht Marktwert. Zählt nicht in Ausgaben/Einnahmen — Vermögensumschichtung, kein Konsum. So bleiben Sparen & Analyse ohne Doppelzählung.";
 
-/** Confirmed investment cost basis (EK); independent of TX/Analyse filters. */
-export function InvestiertSummaryStat() {
-  const { data } = useQuery(getInvestedTotal);
+type Props = {
+  banks?: string[];
+  konten?: string[];
+};
+
+/** Confirmed investment cost basis (EK), scoped to selected bank/konto filters. */
+export function InvestiertSummaryStat({
+  banks = [],
+  konten = [],
+}: Props) {
+  const queryArgs = {
+    banks: banks.length ? banks : undefined,
+    konten: konten.length ? konten : undefined,
+  };
+  const { data } = useQuery(getInvestedTotal, queryArgs);
   const total = data?.total;
   const count = data?.count ?? 0;
+  const filteredScope = banks.length > 0 || konten.length > 0;
 
   const title =
     count === 0
-      ? "Noch keine bestätigten Investitionen — unter Transaktionen „Investitionen erkennen“."
-      : `${INFO} Aus ${count} Buchung(en).`;
+      ? filteredScope
+        ? "Keine bestätigten Investitionen für die gewählten Filter."
+        : "Noch keine bestätigten Investitionen — unter Transaktionen „Investitionen erkennen“."
+      : `${INFO} Aus ${count} Buchung(en)${filteredScope ? " (gefiltert)" : ""}.`;
 
   return (
     <div title={title}>

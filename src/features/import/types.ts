@@ -41,12 +41,16 @@ export function stripBom(text: string): string {
 export function parseGermanAmount(raw: string): string {
   let cleaned = raw
     .replace(/\u00a0/g, "")
+    .replace(/\u202f/g, "")
     .replace(/\s/g, "")
-    .replace("€", "");
-  if (cleaned.includes(",") && cleaned.includes(".")) {
+    .replace(/€/g, "")
+    .replace(/[−–—]/g, "-")
+    .replace(/'/g, "");
+  if (cleaned.endsWith("-")) {
+    cleaned = `-${cleaned.slice(0, -1)}`;
+  }
+  if (cleaned.includes(",")) {
     cleaned = cleaned.replace(/\./g, "").replace(",", ".");
-  } else if (cleaned.includes(",")) {
-    cleaned = cleaned.replace(",", ".");
   }
   if (!cleaned || cleaned === "-" || cleaned === "+") {
     throw new ImportParseError(

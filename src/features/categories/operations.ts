@@ -15,6 +15,7 @@ import { loadCategoriesSeed } from "./seedData";
 import type {
   CategoryTreeNode,
   DeleteByIdArgs,
+  DeleteCategoryResult,
   SetKeywordsArgs,
   UpsertCategoryArgs,
   UpsertSubcategoryArgs,
@@ -23,6 +24,7 @@ import type {
 export type {
   CategoryTreeNode,
   DeleteByIdArgs,
+  DeleteCategoryResult,
   SetKeywordsArgs,
   UpsertCategoryArgs,
   UpsertSubcategoryArgs,
@@ -207,28 +209,85 @@ export const updateCategory: UpdateCategory<
 
 export const deleteCategory: DeleteCategory<
   DeleteByIdArgs,
-  { ok: true }
+  DeleteCategoryResult
 > = async (args, context) => {
   if (!args?.id) throw new HttpError(400, "id ist erforderlich.");
 
   const existing = await context.entities.Category.findUnique({
     where: { id: args.id },
-    select: { id: true, name: true },
+    select: {
+      id: true,
+      name: true,
+      subcategories: { select: { id: true } },
+    },
   });
   if (!existing) throw new HttpError(404, "Kategorie nicht gefunden.");
 
+  const subIds = existing.subcategories.map((s) => s.id);
   const txCount = await context.entities.Transaction.count({
-    where: { categoryId: args.id },
+    where: {
+      OR: [
+        { categoryId: args.id },
+        ...(subIds.length > 0 ? [{ subcategoryId: { in: subIds } }] : []),
+      ],
+    },
   });
-  if (txCount > 0) {
-    throw new HttpError(
-      409,
-      `„${existing.name}“ kann nicht gelöscht werden: ${txCount} Transaktion(en) verwenden sie noch. Bitte zuerst umkategorisieren.`,
-    );
+
+  if (txCount > 0 && args.reassignToSubcategoryId == null) {
+    return {
+      ok: false,
+      needsReassign: true,
+      txCount,
+      name: existing.name,
+    };
+  }
+
+  if (txCount > 0 && args.reassignToSubcategoryId != null) {
+    const target = await context.entities.Subcategory.findUnique({
+      where: { id: args.reassignToSubcategoryId },
+      select: { id: true, categoryId: true },
+    });
+    if (!target) {
+      throw new HttpError(404, "Ziel-Unterkategorie nicht gefunden.");
+    }
+    if (target.categoryId === args.id) {
+      throw new HttpError(
+        400,
+        "Ziel-Unterkategorie muss außerhalb der zu löschenden Kategorie liegen.",
+      );
+    }
+
+    await context.entities.Transaction.updateMany({
+      where: {
+        OR: [
+          { categoryId: args.id },
+          ...(subIds.length > 0 ? [{ subcategoryId: { in: subIds } }] : []),
+        ],
+      },
+      data: {
+        categoryId: target.categoryId,
+        subcategoryId: target.id,
+        categorySource: "manual",
+        confidenceScore: 1,
+      },
+    });
+
+    await context.entities.LearnedRule.updateMany({
+      where: {
+        OR: [
+          { categoryId: args.id },
+          ...(subIds.length > 0 ? [{ subcategoryId: { in: subIds } }] : []),
+        ],
+      },
+      data: {
+        categoryId: target.categoryId,
+        subcategoryId: target.id,
+      },
+    });
   }
 
   await context.entities.Category.delete({ where: { id: args.id } });
-  return { ok: true };
+  return { ok: true, reassigned: txCount };
 };
 
 export const createSubcategory: CreateSubcategory<
@@ -296,7 +355,7 @@ export const updateSubcategory: UpdateSubcategory<
 
 export const deleteSubcategory: DeleteSubcategory<
   DeleteByIdArgs,
-  { ok: true }
+  DeleteCategoryResult
 > = async (args, context) => {
   if (!args?.id) throw new HttpError(400, "id ist erforderlich.");
 
@@ -312,22 +371,56 @@ export const deleteSubcategory: DeleteSubcategory<
   if (siblingCount <= 1) {
     throw new HttpError(
       409,
-      "Die letzte Unterkategorie einer Kategorie kann nicht gelöscht werden.",
+      "Die letzte Unterkategorie einer Kategorie kann nicht gelöscht werden. Lösche ggf. die ganze Kategorie.",
     );
   }
 
   const txCount = await context.entities.Transaction.count({
     where: { subcategoryId: args.id },
   });
-  if (txCount > 0) {
-    throw new HttpError(
-      409,
-      `„${existing.name}“ kann nicht gelöscht werden: ${txCount} Transaktion(en) verwenden sie noch. Bitte zuerst umkategorisieren.`,
-    );
+
+  if (txCount > 0 && args.reassignToSubcategoryId == null) {
+    return {
+      ok: false,
+      needsReassign: true,
+      txCount,
+      name: existing.name,
+    };
+  }
+
+  if (txCount > 0 && args.reassignToSubcategoryId != null) {
+    if (args.reassignToSubcategoryId === args.id) {
+      throw new HttpError(400, "Ziel darf nicht die zu löschende Unterkategorie sein.");
+    }
+    const target = await context.entities.Subcategory.findUnique({
+      where: { id: args.reassignToSubcategoryId },
+      select: { id: true, categoryId: true },
+    });
+    if (!target) {
+      throw new HttpError(404, "Ziel-Unterkategorie nicht gefunden.");
+    }
+
+    await context.entities.Transaction.updateMany({
+      where: { subcategoryId: args.id },
+      data: {
+        categoryId: target.categoryId,
+        subcategoryId: target.id,
+        categorySource: "manual",
+        confidenceScore: 1,
+      },
+    });
+
+    await context.entities.LearnedRule.updateMany({
+      where: { subcategoryId: args.id },
+      data: {
+        categoryId: target.categoryId,
+        subcategoryId: target.id,
+      },
+    });
   }
 
   await context.entities.Subcategory.delete({ where: { id: args.id } });
-  return { ok: true };
+  return { ok: true, reassigned: txCount };
 };
 
 /** Replace keyword list for a category or subcategory. */

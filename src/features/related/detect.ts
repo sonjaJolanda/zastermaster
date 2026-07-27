@@ -51,6 +51,7 @@ const STOPWORDS = new Set([
 ]);
 
 const TYPE_PRIORITY: Record<RelatedType, number> = {
+  paypal_purchase: 4,
   transfer: 3,
   paypal_bank: 2,
   near_duplicate: 1,
@@ -58,6 +59,10 @@ const TYPE_PRIORITY: Record<RelatedType, number> = {
 
 export function pairKey(aId: number, bId: number): string {
   return aId < bId ? `${aId}:${bId}` : `${bId}:${aId}`;
+}
+
+export function groupKey(ids: number[]): string {
+  return [...ids].sort((a, b) => a - b).join(":");
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -176,50 +181,145 @@ function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
 }
 
-type RawPair = {
-  a: DetectCandidate;
-  b: DetectCandidate;
+export type RawGroup = {
+  members: DetectCandidate[];
   type: RelatedType;
   score: number;
   reason: string;
 };
 
-function preferPair(next: RawPair, prev: RawPair): boolean {
+function preferGroup(next: RawGroup, prev: RawGroup): boolean {
   if (next.score > prev.score + 0.05) return true;
   if (prev.score > next.score + 0.05) return false;
+  if (next.members.length !== prev.members.length) {
+    return next.members.length > prev.members.length;
+  }
   return TYPE_PRIORITY[next.type] > TYPE_PRIORITY[prev.type];
+}
+
+function spanDays(members: DetectCandidate[]): number {
+  let min = members[0]!.datum.getTime();
+  let max = min;
+  for (const m of members) {
+    const t = m.datum.getTime();
+    if (t < min) min = t;
+    if (t > max) max = t;
+  }
+  return Math.round((max - min) / (24 * 60 * 60 * 1000));
+}
+
+function bucketByCents(
+  list: DetectCandidate[],
+): Map<number, DetectCandidate[]> {
+  const map = new Map<number, DetectCandidate[]>();
+  for (const tx of list) {
+    const key = amountCents(tx.betrag);
+    const bucket = map.get(key) ?? [];
+    bucket.push(tx);
+    map.set(key, bucket);
+  }
+  for (const bucket of map.values()) {
+    bucket.sort((x, y) => x.datum.getTime() - y.datum.getTime());
+  }
+  return map;
+}
+
+function neighborsByCents(
+  byCents: Map<number, DetectCandidate[]>,
+  cents: number,
+): DetectCandidate[] {
+  const out: DetectCandidate[] = [];
+  for (const delta of [-1, 0, 1]) {
+    const bucket = byCents.get(cents + delta);
+    if (bucket) out.push(...bucket);
+  }
+  return out;
+}
+
+/**
+ * Detector D — PayPal purchase + bank debit + PayPal funding
+ * (paypal−, bank−, paypal+), same abs amount, ≤ 3 day span.
+ */
+export function detectPaypalPurchase(
+  candidates: DetectCandidate[],
+): RawGroup[] {
+  const purchases = candidates.filter(
+    (t) => isWallet(t.bank) && t.betrag < 0,
+  );
+  const fundings = candidates.filter(
+    (t) => isWallet(t.bank) && t.betrag > 0,
+  );
+  const bankDebits = candidates.filter(
+    (t) => isBankLeg(t.bank) && t.betrag < 0,
+  );
+  if (
+    purchases.length === 0 ||
+    fundings.length === 0 ||
+    bankDebits.length === 0
+  ) {
+    return [];
+  }
+
+  const fundingByCents = bucketByCents(fundings);
+  const bankByCents = bucketByCents(bankDebits);
+  const out: RawGroup[] = [];
+  const seen = new Set<string>();
+
+  for (const purchase of purchases) {
+    const cents = amountCents(purchase.betrag);
+    for (const funding of neighborsByCents(fundingByCents, cents)) {
+      const amountDiffFund = Math.abs(
+        Math.abs(purchase.betrag) - Math.abs(funding.betrag),
+      );
+      if (amountDiffFund > AMOUNT_TOLERANCE) continue;
+
+      for (const bank of neighborsByCents(bankByCents, cents)) {
+        const amountDiffBank = Math.abs(
+          Math.abs(purchase.betrag) - Math.abs(bank.betrag),
+        );
+        if (amountDiffBank > AMOUNT_TOLERANCE) continue;
+
+        const members = [purchase, funding, bank];
+        const daySpan = spanDays(members);
+        if (daySpan > DATE_TOLERANCE_DAYS) continue;
+
+        const key = groupKey(members.map((m) => m.id));
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const amountDiff = Math.max(amountDiffFund, amountDiffBank);
+        let score = clamp01(1.0 - 0.1 * daySpan - 5 * amountDiff);
+        if (searchBlob(bank).includes("paypal")) {
+          score = clamp01(score + 0.05);
+        }
+
+        out.push({
+          members,
+          type: "paypal_purchase",
+          score,
+          reason: `PayPal-Kauf + Funding + Bank (${formatAmountDe(Math.abs(purchase.betrag))}), ${dayLabel(daySpan)}`,
+        });
+      }
+    }
+  }
+
+  return out;
 }
 
 /** Detector A — PayPal ↔ bank (same sign, ≈ amount, ≤ 3 days). */
 export function detectPaypalBank(
   candidates: DetectCandidate[],
-): RawPair[] {
+): RawGroup[] {
   const wallets = candidates.filter((t) => isWallet(t.bank));
   const banks = candidates.filter((t) => isBankLeg(t.bank));
   if (wallets.length === 0 || banks.length === 0) return [];
 
-  const bankByCents = new Map<number, DetectCandidate[]>();
-  for (const b of banks) {
-    const key = amountCents(b.betrag);
-    const list = bankByCents.get(key) ?? [];
-    list.push(b);
-    bankByCents.set(key, list);
-  }
-  for (const list of bankByCents.values()) {
-    list.sort((x, y) => x.datum.getTime() - y.datum.getTime());
-  }
-
-  const out: RawPair[] = [];
+  const bankByCents = bucketByCents(banks);
+  const out: RawGroup[] = [];
 
   for (const w of wallets) {
     const cents = amountCents(w.betrag);
-    const neighbors: DetectCandidate[] = [];
-    for (const delta of [-1, 0, 1]) {
-      const bucket = bankByCents.get(cents + delta);
-      if (bucket) neighbors.push(...bucket);
-    }
-
-    for (const b of neighbors) {
+    for (const b of neighborsByCents(bankByCents, cents)) {
       if (sign(w.betrag) !== sign(b.betrag)) continue;
       if (sign(w.betrag) === 0) continue;
 
@@ -235,8 +335,7 @@ export function detectPaypalBank(
       }
 
       out.push({
-        a: w,
-        b,
+        members: [w, b],
         type: "paypal_bank",
         score,
         reason: `Gleicher Betrag (${formatAmountDe(w.betrag)}), ${dayLabel(dayDiff)}`,
@@ -248,7 +347,7 @@ export function detectPaypalBank(
 }
 
 /** Detector B — internal transfer (opposite sign, different account). */
-export function detectTransfers(candidates: DetectCandidate[]): RawPair[] {
+export function detectTransfers(candidates: DetectCandidate[]): RawGroup[] {
   const byAbsCents = new Map<number, DetectCandidate[]>();
   for (const tx of candidates) {
     if (sign(tx.betrag) === 0) continue;
@@ -258,7 +357,7 @@ export function detectTransfers(candidates: DetectCandidate[]): RawPair[] {
     byAbsCents.set(key, list);
   }
 
-  const out: RawPair[] = [];
+  const out: RawGroup[] = [];
   const seen = new Set<string>();
 
   for (const list of byAbsCents.values()) {
@@ -286,8 +385,7 @@ export function detectTransfers(candidates: DetectCandidate[]): RawPair[] {
         if (keyword) score = clamp01(score + 0.1);
 
         out.push({
-          a,
-          b,
+          members: [a, b],
           type: "transfer",
           score,
           reason: `Gegenbetrag, ${a.bank.toUpperCase()} ${a.konto} ↔ ${b.bank.toUpperCase()} ${b.konto}`,
@@ -302,7 +400,7 @@ export function detectTransfers(candidates: DetectCandidate[]): RawPair[] {
 /** Detector C — near-duplicate on same account/day. */
 export function detectNearDuplicates(
   candidates: DetectCandidate[],
-): RawPair[] {
+): RawGroup[] {
   const byAccountDay = new Map<string, DetectCandidate[]>();
   for (const tx of candidates) {
     const day = tx.datum.toISOString().slice(0, 10);
@@ -312,7 +410,7 @@ export function detectNearDuplicates(
     byAccountDay.set(key, list);
   }
 
-  const out: RawPair[] = [];
+  const out: RawGroup[] = [];
   const seen = new Set<string>();
 
   for (const list of byAccountDay.values()) {
@@ -333,8 +431,7 @@ export function detectNearDuplicates(
 
         const pct = Math.round(overlap * 100);
         out.push({
-          a,
-          b,
+          members: [a, b],
           type: "near_duplicate",
           score: clamp01(overlap),
           reason: `Gleiches Konto/Tag/Betrag, ${pct}% Textähnlichkeit`,
@@ -346,40 +443,55 @@ export function detectNearDuplicates(
   return out;
 }
 
+function anyPairRejected(
+  ids: number[],
+  rejectedKeys: Set<string>,
+): boolean {
+  const sorted = [...ids].sort((a, b) => a - b);
+  for (let i = 0; i < sorted.length; i++) {
+    for (let j = i + 1; j < sorted.length; j++) {
+      if (rejectedKeys.has(`${sorted[i]}:${sorted[j]}`)) return true;
+    }
+  }
+  return false;
+}
+
 export function mergeAndRank(
-  rawPairs: RawPair[],
+  rawGroups: RawGroup[],
   rejectedKeys: Set<string>,
 ): { suggestions: RelatedSuggestion[]; truncated: boolean } {
-  const bestByKey = new Map<string, RawPair>();
+  const bestByKey = new Map<string, RawGroup>();
 
-  for (const pair of rawPairs) {
-    const key = pairKey(pair.a.id, pair.b.id);
-    if (rejectedKeys.has(key)) continue;
+  for (const group of rawGroups) {
+    const ids = group.members.map((m) => m.id);
+    const key = groupKey(ids);
+    if (anyPairRejected(ids, rejectedKeys)) continue;
 
     const prev = bestByKey.get(key);
-    if (!prev || preferPair(pair, prev)) {
-      bestByKey.set(key, pair);
+    if (!prev || preferGroup(group, prev)) {
+      bestByKey.set(key, group);
     }
   }
 
   const ranked = [...bestByKey.values()].sort((x, y) => {
     if (y.score !== x.score) return y.score - x.score;
+    if (y.members.length !== x.members.length) {
+      return y.members.length - x.members.length;
+    }
     return TYPE_PRIORITY[y.type] - TYPE_PRIORITY[x.type];
   });
   const used = new Set<number>();
   const suggestions: RelatedSuggestion[] = [];
 
-  for (const pair of ranked) {
-    if (used.has(pair.a.id) || used.has(pair.b.id)) continue;
-    used.add(pair.a.id);
-    used.add(pair.b.id);
+  for (const group of ranked) {
+    if (group.members.some((m) => used.has(m.id))) continue;
+    for (const m of group.members) used.add(m.id);
     suggestions.push({
-      pairKey: pairKey(pair.a.id, pair.b.id),
-      type: pair.type,
-      score: Math.round(pair.score * 1000) / 1000,
-      reason: pair.reason,
-      a: toPublic(pair.a),
-      b: toPublic(pair.b),
+      groupKey: groupKey(group.members.map((m) => m.id)),
+      type: group.type,
+      score: Math.round(group.score * 1000) / 1000,
+      reason: group.reason,
+      members: group.members.map(toPublic),
     });
   }
 
@@ -390,12 +502,13 @@ export function mergeAndRank(
   };
 }
 
-/** Full pipeline: PayPal↔bank, Umbuchung, near-duplicate. */
+/** Full pipeline: PayPal-Kauf, PayPal↔bank, Umbuchung, near-duplicate. */
 export function runDetectPipeline(
   candidates: DetectCandidate[],
   rejectedKeys: Set<string>,
 ): { suggestions: RelatedSuggestion[]; truncated: boolean } {
   const raw = [
+    ...detectPaypalPurchase(candidates),
     ...detectPaypalBank(candidates),
     ...detectTransfers(candidates),
     ...detectNearDuplicates(candidates),

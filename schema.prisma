@@ -65,6 +65,7 @@ model LearnedRule {
 
 enum RelatedType {
   paypal_bank
+  paypal_purchase
   transfer
   near_duplicate
 }
@@ -87,8 +88,10 @@ model Transaction {
   subcategory          Subcategory?    @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
   confidenceScore      Float           @default(0)
   categorySource       CategorySource  @default(none)
-  /// Bidirectional partner id (both legs set on confirm).
+  /// Bidirectional partner id for pairs (both legs set on confirm).
   relatedTransactionId Int?
+  /// Shared id for a related group (2–3 members). Source of truth for membership.
+  relatedGroupId       String?
   relatedType          RelatedType?
   /// Synthetic / calibration plumbing — excluded from Analyse by default.
   isBalanceAdjustment  Boolean         @default(false)
@@ -99,6 +102,7 @@ model Transaction {
   @@unique([bank, konto, datum, betrag, verwendungszweck, iban, kundenreferenz], name: "Transaction_dedup_key")
   @@index([datum(sort: Desc)])
   @@index([relatedTransactionId])
+  @@index([relatedGroupId])
   @@index([bank, konto, datum])
   @@index([isInvestment])
 }

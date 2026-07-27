@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   detectNearDuplicates,
   detectPaypalBank,
+  detectPaypalPurchase,
   detectTransfers,
+  runDetectPipeline,
 } from "./detect";
 import type { DetectCandidate } from "./types";
 
@@ -40,6 +42,7 @@ describe("detectPaypalBank", () => {
     ]);
     expect(pairs).toHaveLength(1);
     expect(pairs[0]!.type).toBe("paypal_bank");
+    expect(pairs[0]!.members).toHaveLength(2);
   });
 
   it("rejects opposite signs", () => {
@@ -48,6 +51,67 @@ describe("detectPaypalBank", () => {
       tx({ id: 2, bank: "dkb", betrag: 25 }),
     ]);
     expect(pairs).toHaveLength(0);
+  });
+});
+
+describe("detectPaypalPurchase", () => {
+  it("groups purchase + funding + bank debit", () => {
+    const groups = detectPaypalPurchase([
+      tx({
+        id: 1,
+        bank: "paypal",
+        konto: "PayPal",
+        betrag: -25,
+        verwendungszweck: "Merchant XYZ",
+      }),
+      tx({
+        id: 2,
+        bank: "paypal",
+        konto: "PayPal",
+        betrag: 25,
+        verwendungszweck: "Bank account",
+        datum: new Date(Date.UTC(2026, 6, 20)),
+      }),
+      tx({
+        id: 3,
+        bank: "dkb",
+        betrag: -25,
+        verwendungszweck: "PayPal Europe S.a.r.l.",
+        datum: new Date(Date.UTC(2026, 6, 21)),
+      }),
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.type).toBe("paypal_purchase");
+    expect(groups[0]!.members.map((m) => m.id).sort()).toEqual([1, 2, 3]);
+  });
+
+  it("is preferred over pairwise paypal_bank in the pipeline", () => {
+    const candidates = [
+      tx({
+        id: 1,
+        bank: "paypal",
+        konto: "PayPal",
+        betrag: -25,
+        verwendungszweck: "Merchant",
+      }),
+      tx({
+        id: 2,
+        bank: "paypal",
+        konto: "PayPal",
+        betrag: 25,
+        verwendungszweck: "Funding",
+      }),
+      tx({
+        id: 3,
+        bank: "dkb",
+        betrag: -25,
+        verwendungszweck: "PayPal",
+      }),
+    ];
+    const { suggestions } = runDetectPipeline(candidates, new Set());
+    expect(suggestions).toHaveLength(1);
+    expect(suggestions[0]!.type).toBe("paypal_purchase");
+    expect(suggestions[0]!.members).toHaveLength(3);
   });
 });
 

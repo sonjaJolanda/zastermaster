@@ -37,6 +37,7 @@ export const categorizeTransaction: CategorizeTransaction<
     select: {
       id: true,
       relatedTransactionId: true,
+      relatedGroupId: true,
       sender: true,
       empfaenger: true,
       verwendungszweck: true,
@@ -53,20 +54,32 @@ export const categorizeTransaction: CategorizeTransaction<
     confidenceScore: 1,
   };
 
-  let partnerId = existing.relatedTransactionId;
-  if (partnerId == null) {
-    const reverse = await context.entities.Transaction.findFirst({
-      where: { relatedTransactionId: existing.id },
+  let ids: number[] = [existing.id];
+  if (existing.relatedGroupId != null) {
+    const members = await context.entities.Transaction.findMany({
+      where: { relatedGroupId: existing.relatedGroupId },
       select: { id: true },
     });
-    partnerId = reverse?.id ?? null;
+    ids = members.map((m) => m.id);
+  } else {
+    let partnerId = existing.relatedTransactionId;
+    if (partnerId == null) {
+      const reverse = await context.entities.Transaction.findFirst({
+        where: { relatedTransactionId: existing.id },
+        select: { id: true },
+      });
+      partnerId = reverse?.id ?? null;
+    }
+    if (partnerId != null) ids = [existing.id, partnerId];
   }
 
-  const ids = partnerId != null ? [existing.id, partnerId] : [existing.id];
   await context.entities.Transaction.updateMany({
     where: { id: { in: ids } },
     data: categoryData,
   });
+
+  const syncedRelatedId =
+    ids.find((id) => id !== existing.id) ?? null;
 
   let remembered = false;
   if (args.remember) {
@@ -99,5 +112,5 @@ export const categorizeTransaction: CategorizeTransaction<
     remembered = true;
   }
 
-  return { id: existing.id, syncedRelatedId: partnerId, remembered };
+  return { id: existing.id, syncedRelatedId, remembered };
 };

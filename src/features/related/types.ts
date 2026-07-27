@@ -1,4 +1,8 @@
-export type RelatedType = "paypal_bank" | "transfer" | "near_duplicate";
+export type RelatedType =
+  | "paypal_bank"
+  | "paypal_purchase"
+  | "transfer"
+  | "near_duplicate";
 
 export type RelatedTxPublic = {
   id: number;
@@ -12,12 +16,13 @@ export type RelatedTxPublic = {
 };
 
 export type RelatedSuggestion = {
-  pairKey: string;
+  /** Sorted member ids joined by `:`. */
+  groupKey: string;
   type: RelatedType;
   score: number;
   reason: string;
-  a: RelatedTxPublic;
-  b: RelatedTxPublic;
+  /** 2 or 3 legs. */
+  members: RelatedTxPublic[];
 };
 
 export type DetectRelatedResult = {
@@ -26,14 +31,28 @@ export type DetectRelatedResult = {
 };
 
 export type ConfirmRelatedArgs = {
-  aId: number;
-  bId: number;
+  /** Exactly 2 or 3 transaction ids. */
+  ids: number[];
   type: RelatedType;
 };
 
 export type RejectRelatedArgs = {
-  aId: number;
-  bId: number;
+  /** Exactly 2 or 3 transaction ids. */
+  ids: number[];
+};
+
+export type UnlinkRelatedArgs = {
+  transactionId: number;
+};
+
+export type SearchRelatedLinkArgs = {
+  /** Ids already chosen (current tx + selected partners) — excluded from results. */
+  excludeIds: number[];
+  /** Anchor date (YYYY-MM-DD) of the tx being linked — candidates limited to ±10 days. */
+  aroundDate: string;
+  /** Free text: id, zweck, sender, empfaenger, bank, konto */
+  search?: string;
+  limit?: number;
 };
 
 /** Candidate row for pure detectors (in-memory). */

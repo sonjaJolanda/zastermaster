@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Link2 } from "lucide-react";
 import {
   exportTransactionsCsv,
+  exportTransactionsForPdf,
   getAccounts,
+  getCategories,
+  getInvestedTotal,
   getTransactionFilterOptions,
   getTransactionNav,
   getTransactions,
@@ -16,6 +19,18 @@ import { InvestmentDetectOverlay } from "../components/InvestmentDetectOverlay";
 import { RelatedDetectOverlay } from "../components/RelatedDetectOverlay";
 import { TransactionDetailsOverlay } from "../components/TransactionDetailsOverlay";
 import { downloadCsv } from "../features/export/csv";
+import { buildAndDownloadTransactionsPdf } from "../features/export/transactionsPdf";
+import { PDF_TX_MAX_ROWS } from "../features/export/pdfConstants";
+import {
+  DATE_PRESET_CHIPS,
+  monthRange,
+  rangeForPreset,
+  type DatePreset,
+} from "../features/dates/presets";
+import {
+  loadTxFilters,
+  saveTxFilters,
+} from "../features/filters/persist";
 import { useClearNavPendingWhen } from "../features/shell/NavPendingContext";
 import {
   bankBadgeClass,
@@ -63,32 +78,58 @@ function toggleValue(list: string[], value: string): string[] {
     : [...list, value];
 }
 
-function yearStartIso(): string {
-  return `${new Date().getFullYear()}-01-01`;
-}
-
-function todayIso(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 export function TransaktionenPage() {
+  const defaults = useMemo(() => {
+    const month = monthRange();
+    return {
+      banks: [] as string[],
+      konten: [] as string[],
+      typ: "all" as TransactionTyp,
+      categorySource: "all" as CategorySourceFilter,
+      categoryId: null as number | null,
+      subcategoryId: null as number | null,
+      includeBalanceAdjustments: false,
+      preset: "month" as DatePreset,
+      dateFrom: month.from,
+      dateTo: month.to,
+      search: "",
+      pageSize: DEFAULT_PAGE_SIZE,
+    };
+  }, []);
+
+  const initial = useMemo(() => loadTxFilters(defaults), [defaults]);
+
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
-  const [banks, setBanks] = useState<string[]>([]);
-  const [konten, setKonten] = useState<string[]>([]);
-  const [typ, setTyp] = useState<TransactionTyp>("all");
-  const [categorySource, setCategorySource] =
-    useState<CategorySourceFilter>("all");
+  const [pageSize, setPageSize] = useState<number>(initial.pageSize);
+  const [banks, setBanks] = useState<string[]>(initial.banks);
+  const [konten, setKonten] = useState<string[]>(initial.konten);
+  const [typ, setTyp] = useState<TransactionTyp>(
+    (["all", "income", "expense"] as const).includes(
+      initial.typ as TransactionTyp,
+    )
+      ? (initial.typ as TransactionTyp)
+      : "all",
+  );
+  const [categorySource, setCategorySource] = useState<CategorySourceFilter>(
+    (
+      ["all", "manual", "learned", "keyword", "none"] as const
+    ).includes(initial.categorySource as CategorySourceFilter)
+      ? (initial.categorySource as CategorySourceFilter)
+      : "all",
+  );
+  const [categoryId, setCategoryId] = useState<number | null>(
+    initial.categoryId,
+  );
+  const [subcategoryId, setSubcategoryId] = useState<number | null>(
+    initial.subcategoryId,
+  );
   const [includeBalanceAdjustments, setIncludeBalanceAdjustments] =
-    useState(false);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+    useState(initial.includeBalanceAdjustments);
+  const [preset, setPreset] = useState<DatePreset>(initial.preset);
+  const [dateFrom, setDateFrom] = useState(initial.dateFrom);
+  const [dateTo, setDateTo] = useState(initial.dateTo);
+  const [searchInput, setSearchInput] = useState(initial.search);
+  const [search, setSearch] = useState(initial.search);
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columns, setColumns] = useState<ColumnVisibility>(() =>
@@ -106,7 +147,38 @@ export function TransaktionenPage() {
   const [navBusy, setNavBusy] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
   const highlightTimer = useRef<number | null>(null);
+  const pendingNavAnchorY = useRef<number | null>(null);
   const columnsPanelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    saveTxFilters({
+      banks,
+      konten,
+      typ,
+      categorySource,
+      categoryId,
+      subcategoryId,
+      includeBalanceAdjustments,
+      preset,
+      dateFrom,
+      dateTo,
+      search: searchInput,
+      pageSize,
+    });
+  }, [
+    banks,
+    konten,
+    typ,
+    categorySource,
+    categoryId,
+    subcategoryId,
+    includeBalanceAdjustments,
+    preset,
+    dateFrom,
+    dateTo,
+    searchInput,
+    pageSize,
+  ]);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -145,6 +217,8 @@ export function TransaktionenPage() {
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
       search: search || undefined,
+      categoryId: categoryId ?? undefined,
+      subcategoryId: subcategoryId ?? undefined,
     }),
     [
       page,
@@ -157,6 +231,8 @@ export function TransaktionenPage() {
       dateFrom,
       dateTo,
       search,
+      categoryId,
+      subcategoryId,
     ],
   );
 
@@ -170,6 +246,8 @@ export function TransaktionenPage() {
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
       search: search || undefined,
+      categoryId: categoryId ?? undefined,
+      subcategoryId: subcategoryId ?? undefined,
     }),
     [
       banks,
@@ -180,10 +258,13 @@ export function TransaktionenPage() {
       dateFrom,
       dateTo,
       search,
+      categoryId,
+      subcategoryId,
     ],
   );
 
   const { data: options } = useQuery(getTransactionFilterOptions);
+  const { data: categories } = useQuery(getCategories);
   const { data: accounts } = useQuery(getAccounts);
   const { data, isLoading, error, refetch } = useQuery(
     getTransactions,
@@ -203,8 +284,25 @@ export function TransaktionenPage() {
   }, [accounts]);
   const show = (key: TxColumnKey) => columns[key];
 
+  const selectedCategory = categories?.find((c) => c.id === categoryId);
+  const subOptions = selectedCategory?.subcategories ?? [];
+
   function resetPage() {
     setPage(1);
+  }
+
+  function applyPreset(next: DatePreset) {
+    setPreset(next);
+    resetPage();
+    if (next === "custom") return;
+    if (next === "all") {
+      setDateFrom("");
+      setDateTo("");
+      return;
+    }
+    const r = rangeForPreset(next);
+    setDateFrom(r.from);
+    setDateTo(r.to);
   }
 
   function setColumn(key: TxColumnKey, visible: boolean) {
@@ -226,10 +324,20 @@ export function TransaktionenPage() {
     }, 2200);
   }
 
-  function scrollToRow(id: number) {
+  function scrollToRow(id: number, anchorTop?: number | null) {
     window.requestAnimationFrame(() => {
-      const el = document.getElementById(`zm-tx-row-${id}`);
-      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.requestAnimationFrame(() => {
+        const el = document.getElementById(`zm-tx-row-${id}`);
+        if (!el) return;
+        if (anchorTop != null) {
+          const delta = el.getBoundingClientRect().top - anchorTop;
+          if (Math.abs(delta) > 1) {
+            window.scrollBy({ top: delta, behavior: "smooth" });
+          }
+          return;
+        }
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
     });
   }
 
@@ -237,8 +345,10 @@ export function TransaktionenPage() {
     if (pendingNavId == null || isLoading) return;
     const found = items.find((tx) => tx.id === pendingNavId);
     if (!found) return;
+    const anchor = pendingNavAnchorY.current;
+    pendingNavAnchorY.current = null;
     flashHighlight(found.id);
-    scrollToRow(found.id);
+    scrollToRow(found.id, anchor);
     setPendingNavId(null);
   }, [pendingNavId, items, isLoading]);
 
@@ -250,11 +360,14 @@ export function TransaktionenPage() {
     };
   }, []);
 
-  async function openRelatedPartner(partnerId: number) {
+  async function openRelatedPartner(partnerId: number, fromId: number) {
+    const fromEl = document.getElementById(`zm-tx-row-${fromId}`);
+    const anchorTop = fromEl?.getBoundingClientRect().top ?? null;
+
     const onPage = items.find((tx) => tx.id === partnerId);
     if (onPage) {
       flashHighlight(partnerId);
-      scrollToRow(partnerId);
+      scrollToRow(partnerId, anchorTop);
       return;
     }
 
@@ -271,17 +384,20 @@ export function TransaktionenPage() {
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
         search: search || undefined,
+        categoryId: categoryId ?? undefined,
+        subcategoryId: subcategoryId ?? undefined,
       });
       if (!nav) return;
 
       if (nav.page != null && nav.page !== page) {
+        pendingNavAnchorY.current = anchorTop;
         setPendingNavId(partnerId);
         setPage(nav.page);
         return;
       }
 
       flashHighlight(partnerId);
-      if (nav.page != null) scrollToRow(partnerId);
+      if (nav.page != null) scrollToRow(partnerId, anchorTop);
     } finally {
       setNavBusy(false);
     }
@@ -299,11 +415,115 @@ export function TransaktionenPage() {
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
         search: search || undefined,
+        categoryId: categoryId ?? undefined,
+        subcategoryId: subcategoryId ?? undefined,
       });
       downloadCsv(result.fileName, result.csv);
     } catch (err) {
       window.alert(
         err instanceof Error ? err.message : "Export fehlgeschlagen.",
+      );
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
+  async function handleExportPdf() {
+    setExportBusy(true);
+    try {
+      const filterArgs = {
+        banks: banks.length ? banks : undefined,
+        konten: konten.length ? konten : undefined,
+        typ,
+        categorySource,
+        includeBalanceAdjustments,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        search: search || undefined,
+        categoryId: categoryId ?? undefined,
+        subcategoryId: subcategoryId ?? undefined,
+      };
+      const [data, invested] = await Promise.all([
+        exportTransactionsForPdf(filterArgs),
+        getInvestedTotal({
+          banks: banks.length ? banks : undefined,
+          konten: konten.length ? konten : undefined,
+        }),
+      ]);
+      const balanceAccounts = (accounts ?? []).filter((a) => {
+        if (banks.length > 0 && !banks.includes(a.bank)) return false;
+        if (konten.length > 0 && !konten.includes(a.konto)) return false;
+        return a.displayBalance != null;
+      });
+      const balanceTotal =
+        balanceAccounts.length > 0
+          ? balanceAccounts.reduce(
+              (sum, a) => sum + Number(a.displayBalance),
+              0,
+            )
+          : null;
+
+      const typLabel =
+        typ === "income" ? "Einnahmen" : typ === "expense" ? "Ausgaben" : "Alle";
+      const catName = selectedCategory?.name ?? null;
+      const subName =
+        selectedCategory?.subcategories.find((s) => s.id === subcategoryId)
+          ?.name ?? null;
+      const filterLines = [
+        `Zeitraum: ${dateFrom || "—"} bis ${dateTo || "—"}`,
+        `Bank: ${banks.length ? banks.join(", ") : "alle"}`,
+        `Konto: ${konten.length ? konten.join(", ") : "alle"}`,
+        `Typ: ${typLabel}`,
+        `Konfidenz: ${categorySource === "all" ? "alle" : SOURCE_LABEL[categorySource]}`,
+        catName ? `Kategorie: ${catName}` : null,
+        subName ? `Unterkategorie: ${subName}` : null,
+        search ? `Suche: ${search}` : null,
+        includeBalanceAdjustments ? "Inkl. Saldo-Kalibrierung" : null,
+      ].filter((x): x is string => Boolean(x));
+
+      const result = await buildAndDownloadTransactionsPdf({
+        metrics: [
+          {
+            label: "Kontostand",
+            value:
+              balanceTotal != null ? eur.format(balanceTotal) : "—",
+          },
+          {
+            label: "Investiert",
+            value:
+              invested?.total != null
+                ? eur.format(Number(invested.total))
+                : "—",
+          },
+          {
+            label: "Einnahmen",
+            value: eur.format(Number(summary?.income ?? 0)),
+          },
+          {
+            label: "Ausgaben",
+            value: eur.format(Number(summary?.expense ?? 0)),
+          },
+          {
+            label: "Netto",
+            value: eur.format(Number(summary?.net ?? 0)),
+          },
+          {
+            label: "Buchungen",
+            value: (summary?.count ?? 0).toLocaleString("de-DE"),
+          },
+        ],
+        filterLines,
+        data,
+      });
+
+      if (result.truncated) {
+        window.alert(
+          `PDF enthält nur die ersten ${PDF_TX_MAX_ROWS.toLocaleString("de-DE")} von ${result.totalCount.toLocaleString("de-DE")} Buchungen. Für den vollständigen Export bitte CSV nutzen.`,
+        );
+      }
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "PDF-Export fehlgeschlagen.",
       );
     } finally {
       setExportBusy(false);
@@ -316,8 +536,8 @@ export function TransaktionenPage() {
 
       <div className="zm-tx-topbar" aria-live="polite">
         <div className="zm-summary-inline">
-          <KontostandSummaryStat />
-          <InvestiertSummaryStat />
+          <KontostandSummaryStat banks={banks} konten={konten} />
+          <InvestiertSummaryStat banks={banks} konten={konten} />
           <div>
             <span className="zm-summary-label">Einnahmen</span>
             <span className="zm-amount-income">
@@ -354,11 +574,63 @@ export function TransaktionenPage() {
         <div className="zm-tx-topbar-actions">
           <button
             type="button"
-            className="zm-btn zm-btn-ghost"
+            className="zm-btn zm-btn-primary zm-btn-with-icon"
+            disabled={relatedOpen || investmentOpen}
+            onClick={() => setInvestmentOpen(true)}
+            aria-label="Investitionen erkennen"
+          >
+            <img
+              src="/design/Magic.svg"
+              alt=""
+              className="zm-btn-magic"
+              aria-hidden
+            />
+            Investitionen
+          </button>
+          <button
+            type="button"
+            className="zm-btn zm-btn-primary zm-btn-with-icon"
+            disabled={relatedOpen || investmentOpen}
+            onClick={() => setRelatedOpen(true)}
+            aria-label="Zusammengehörige erkennen"
+          >
+            <img
+              src="/design/Magic.svg"
+              alt=""
+              className="zm-btn-magic"
+              aria-hidden
+            />
+            Zusammengehörige
+          </button>
+          <button
+            type="button"
+            className="zm-btn zm-btn-ghost zm-btn-with-icon"
             disabled={exportBusy || relatedOpen}
             onClick={() => void handleExportCsv()}
+            aria-label="CSV exportieren"
           >
-            {exportBusy ? "Export…" : "CSV exportieren"}
+            <img
+              src="/design/Export.svg"
+              alt=""
+              className="zm-btn-export"
+              aria-hidden
+            />
+            CSV
+          </button>
+          <button
+            type="button"
+            className="zm-btn zm-btn-ghost zm-btn-with-icon"
+            disabled={exportBusy || relatedOpen}
+            onClick={() => void handleExportPdf()}
+            aria-label="PDF exportieren"
+          >
+            <img
+              src="/design/Export.svg"
+              alt=""
+              className="zm-btn-export"
+              aria-hidden
+            />
+            PDF
           </button>
           <button
             type="button"
@@ -371,23 +643,7 @@ export function TransaktionenPage() {
             ) : (
               <ChevronDown size={16} aria-hidden />
             )}{" "}
-            Filter &amp; Optionen
-          </button>
-          <button
-            type="button"
-            className="zm-btn zm-btn-ghost"
-            disabled={relatedOpen || investmentOpen}
-            onClick={() => setInvestmentOpen(true)}
-          >
-            Investitionen erkennen
-          </button>
-          <button
-            type="button"
-            className="zm-btn zm-btn-primary"
-            disabled={relatedOpen || investmentOpen}
-            onClick={() => setRelatedOpen(true)}
-          >
-            Zusammengehörige erkennen
+            Filter
           </button>
         </div>
       </div>
@@ -443,6 +699,24 @@ export function TransaktionenPage() {
           </div>
         </div>
 
+        <div className="zm-filter-group">
+          <span className="zm-field-label">Zeitraum</span>
+          <div className="zm-chip-row">
+            {DATE_PRESET_CHIPS.filter((c) => c.transactions).map(
+              ({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`zm-chip${preset === key ? " is-active" : ""}`}
+                  onClick={() => applyPreset(key)}
+                >
+                  {label}
+                </button>
+              ),
+            )}
+          </div>
+        </div>
+
         <label className="zm-field zm-field-inline">
           <span className="zm-field-label">Von</span>
           <input
@@ -450,6 +724,7 @@ export function TransaktionenPage() {
             type="date"
             value={dateFrom}
             onChange={(e) => {
+              setPreset("custom");
               setDateFrom(e.target.value);
               resetPage();
             }}
@@ -462,35 +737,12 @@ export function TransaktionenPage() {
             type="date"
             value={dateTo}
             onChange={(e) => {
+              setPreset("custom");
               setDateTo(e.target.value);
               resetPage();
             }}
           />
         </label>
-        <div className="zm-chip-row zm-date-presets">
-          <button
-            type="button"
-            className="zm-chip"
-            onClick={() => {
-              setDateFrom(yearStartIso());
-              setDateTo(todayIso());
-              resetPage();
-            }}
-          >
-            Dieses Jahr
-          </button>
-          <button
-            type="button"
-            className="zm-chip"
-            onClick={() => {
-              setDateFrom("");
-              setDateTo("");
-              resetPage();
-            }}
-          >
-            Alle Zeiten
-          </button>
-        </div>
 
         <label className="zm-field zm-field-inline zm-field-search">
           <span className="zm-field-label">Suche</span>
@@ -518,6 +770,49 @@ export function TransaktionenPage() {
             <option value="income">Einnahmen</option>
           </select>
         </label>
+
+        <label className="zm-field zm-field-inline">
+          <span className="zm-field-label">Kategorie</span>
+          <select
+            className="zm-select"
+            value={categoryId ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setCategoryId(v ? Number(v) : null);
+              setSubcategoryId(null);
+              resetPage();
+            }}
+          >
+            <option value="">Alle</option>
+            {(categories ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {categoryId != null && (
+          <label className="zm-field zm-field-inline">
+            <span className="zm-field-label">Unterkategorie</span>
+            <select
+              className="zm-select"
+              value={subcategoryId ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSubcategoryId(v ? Number(v) : null);
+                resetPage();
+              }}
+            >
+              <option value="">Alle</option>
+              {subOptions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <label className="zm-field zm-field-inline">
           <span className="zm-field-label">Konfidenz</span>
@@ -728,24 +1023,32 @@ export function TransaktionenPage() {
                       )}
                       {show("related") && (
                         <td className="zm-related-cell">
-                          {tx.relatedTransactionId != null ? (
-                            <button
-                              type="button"
-                              className="zm-related-link"
-                              disabled={navBusy}
-                              title={`Zu verknüpfter Transaktion #${tx.relatedTransactionId}`}
-                              onClick={() =>
-                                void openRelatedPartner(
-                                  tx.relatedTransactionId!,
-                                )
-                              }
-                            >
-                              <Link2 size={16} aria-hidden />
-                              <span className="sr-only">
-                                Zu verknüpfter Transaktion{" "}
-                                {tx.relatedTransactionId}
-                              </span>
-                            </button>
+                          {(tx.relatedIds?.length ?? 0) > 0 ||
+                          tx.relatedTransactionId != null ? (
+                            <span className="zm-related-links">
+                              {(tx.relatedIds?.length
+                                ? tx.relatedIds
+                                : tx.relatedTransactionId != null
+                                  ? [tx.relatedTransactionId]
+                                  : []
+                              ).map((partnerId) => (
+                                <button
+                                  key={partnerId}
+                                  type="button"
+                                  className="zm-related-link"
+                                  disabled={navBusy}
+                                  title={`Zu verknüpfter Transaktion #${partnerId}`}
+                                  onClick={() =>
+                                    void openRelatedPartner(partnerId, tx.id)
+                                  }
+                                >
+                                  <Link2 size={16} aria-hidden />
+                                  <span className="sr-only">
+                                    Zu verknüpfter Transaktion {partnerId}
+                                  </span>
+                                </button>
+                              ))}
+                            </span>
                           ) : (
                             "—"
                           )}

@@ -24,7 +24,15 @@ export type TransactionListItem = {
   confidenceScore: number;
   categorySource: CategorySource;
   relatedTransactionId: number | null;
-  relatedType: "paypal_bank" | "transfer" | "near_duplicate" | null;
+  relatedGroupId: string | null;
+  /** Sibling ids in the related group (excludes self). */
+  relatedIds: number[];
+  relatedType:
+    | "paypal_bank"
+    | "paypal_purchase"
+    | "transfer"
+    | "near_duplicate"
+    | null;
   /** Confirmed investment — amount shown neutrally (not as expense red). */
   isInvestment: boolean;
 };
@@ -45,6 +53,10 @@ export type TransactionFilterArgs = {
   dateTo?: string;
   /** Free text over Verwendungszweck, Sender, Empfänger. */
   search?: string;
+  /** Filter by main category id. */
+  categoryId?: number | null;
+  /** Filter by subcategory id (implies category). */
+  subcategoryId?: number | null;
 };
 
 export type TransactionsPageResult = {
@@ -62,7 +74,7 @@ export type TransactionsSummary = {
   count: number;
 };
 
-export type { CsvExportResult } from "../export/types";
+export type { CsvExportResult, TransactionsPdfExportResult } from "../export/types";
 
 export type TransactionFilterOptions = {
   banks: string[];
@@ -80,6 +92,8 @@ export type TransactionNavArgs = {
   dateFrom?: string;
   dateTo?: string;
   search?: string;
+  categoryId?: number | null;
+  subcategoryId?: number | null;
 };
 
 export type TransactionNavResult = {

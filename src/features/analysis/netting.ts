@@ -10,8 +10,8 @@ export type NettedTx = {
 };
 
 /**
- * Drop ids that should not count in Analyse aggregates when both legs
- * of a confirmed pair are present in `rows`.
+ * Drop ids that should not count in flow aggregates when both legs
+ * of a confirmed pair are present in `rows` (Analyse + Transaktionen summary).
  */
 export function idsToDropForNetting(rows: NettedTx[]): Set<number> {
   const byId = new Map(rows.map((r) => [r.id, r]));

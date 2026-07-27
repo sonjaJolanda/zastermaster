@@ -29,6 +29,7 @@ import {
   getTransactionsSummary,
   getTransactionNav,
   exportTransactionsCsv,
+  exportTransactionsForPdf,
 } from "./src/features/transactions/operations" with { type: "ref" };
 import { categorizeTransaction } from "./src/features/categorization/operations" with {
   type: "ref",
@@ -49,8 +50,11 @@ import {
   confirmRelatedPair,
   detectRelatedTransactions,
   rejectRelatedPair,
+  searchRelatedLinkCandidates,
+  unlinkRelatedPair,
 } from "./src/features/related/operations" with { type: "ref" };
 import {
+  clearInvestment,
   confirmInvestment,
   detectInvestments,
   getInvestedTotal,
@@ -95,12 +99,12 @@ export default app({
     }),
     action(updateCategory, { entities: ["Category"] }),
     action(deleteCategory, {
-      entities: ["Category", "Transaction"],
+      entities: ["Category", "Subcategory", "Transaction", "LearnedRule"],
     }),
     action(createSubcategory, { entities: ["Category", "Subcategory"] }),
     action(updateSubcategory, { entities: ["Subcategory"] }),
     action(deleteSubcategory, {
-      entities: ["Subcategory", "Transaction"],
+      entities: ["Subcategory", "Transaction", "LearnedRule"],
     }),
     action(setKeywords, {
       entities: ["Category", "Subcategory", "CategoryKeyword"],
@@ -117,6 +121,9 @@ export default app({
       entities: ["Transaction", "Category", "Subcategory"],
     }),
     query(exportTransactionsCsv, {
+      entities: ["Transaction", "Category", "Subcategory"],
+    }),
+    query(exportTransactionsForPdf, {
       entities: ["Transaction", "Category", "Subcategory"],
     }),
     action(importBankFile, {
@@ -165,8 +172,14 @@ export default app({
     action(detectRelatedTransactions, {
       entities: ["Transaction", "RelatedRejection"],
     }),
-    action(confirmRelatedPair, { entities: ["Transaction"] }),
+    query(searchRelatedLinkCandidates, { entities: ["Transaction"] }),
+    action(confirmRelatedPair, {
+      entities: ["Transaction", "RelatedRejection"],
+    }),
     action(rejectRelatedPair, { entities: ["RelatedRejection"] }),
+    action(unlinkRelatedPair, {
+      entities: ["Transaction", "RelatedRejection"],
+    }),
     //#endregion
 
     //#region Investments
@@ -180,6 +193,9 @@ export default app({
       entities: ["Transaction", "InvestmentRejection"],
     }),
     action(rejectInvestment, { entities: ["InvestmentRejection"] }),
+    action(clearInvestment, {
+      entities: ["Transaction", "InvestmentRejection"],
+    }),
     //#endregion
   ],
 });

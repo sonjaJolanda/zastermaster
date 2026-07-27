@@ -131,8 +131,9 @@ Define models in `schema.prisma`. Apply with `wasp db migrate-dev`.
 | `bank` | `dkb` \| `sparkasse` \| `paypal` \| `traderepublic` |
 | `konto` | e.g. Girokonto, Tagesgeld, PayPal |
 | `balance` | Optional export snapshot; not a full ledger |
-| `relatedTransactionId` | One link; confirm writes both directions |
-| `relatedType` | `paypal_bank` \| `transfer` \| `near_duplicate` (set on confirm) |
+| `relatedTransactionId` | Pair partner id (both directions for size-2 groups) |
+| `relatedGroupId` | Shared group id for 2–3 linked txs (source of truth) |
+| `relatedType` | `paypal_bank` \| `paypal_purchase` \| `transfer` \| `near_duplicate` |
 
 **Dedup key:** unique on `(bank, konto, datum, betrag, verwendungszweck, iban, kundenreferenz)` (normalize empty `iban` / `kundenreferenz` to `''` so NULLs don’t bypass uniqueness). Bank+Konto are included because PayPal/Trade Republic rows often lack IBAN.
 
@@ -160,7 +161,7 @@ Seed: [`categories_seed.json`](../categories_seed.json). PostgreSQL is source of
 
 ### Related transactions
 
-Bidirectional link (`relatedTransactionId` + `relatedType` on both legs). Used for:
+Bidirectional pair link and/or shared `relatedGroupId` + `relatedType`. Used for:
 
 1. **Navigation** — table link icon → `getTransactionNav` → jump page if needed → scroll/highlight row → open Details.
 2. **Analyse netting** — confirmed pairs do not double-count (PayPal↔bank keeps PayPal leg when both in filter; transfers drop both when both in filter).
@@ -246,7 +247,7 @@ Full visual requirements: [`ai/docs/design.md`](docs/design.md).
 Full spec: [`ai/docs/transactions.md`](docs/transactions.md).
 
 - Wide filterable/paginated table; summary strip for **current table filters** (default: all time).
-- Default columns + optional IBAN / Kundenreferenz / Verknüpfung via Filter & Optionen.
+- Default columns + optional IBAN / Kundenreferenz / Verknüpfung via Filter.
 - Details overlay (categorize; “merken” = Slice 3 Thick); related-detect overlay (progress → confirm/reject).
 - Both legs of a link stay visible here; Analyse does the netting.
 - Partner column: clickable link → scroll to partner row + open Details (page jump via `getTransactionNav` when needed).

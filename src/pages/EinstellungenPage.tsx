@@ -2,6 +2,8 @@ import { useEffect, useState, type CSSProperties } from "react";
 import {
   createCategory,
   createSubcategory,
+  deleteCategory,
+  deleteSubcategory,
   getAccounts,
   getCategories,
   getInvestmentKeywords,
@@ -13,7 +15,16 @@ import {
   useQuery,
 } from "wasp/client/operations";
 import { BalanceCalibrationModal } from "../components/BalanceCalibrationModal";
-import { CloseIconButton, EditIconButton, PageTitle } from "../components/PageChrome";
+import {
+  CategoryDeleteModal,
+  type CategoryDeleteTarget,
+} from "../components/CategoryDeleteModal";
+import {
+  CloseIconButton,
+  DeleteIconButton,
+  EditIconButton,
+  PageTitle,
+} from "../components/PageChrome";
 import type { CategoryTreeNode } from "../features/categories/types";
 import { useClearNavPendingWhen } from "../features/shell/NavPendingContext";
 
@@ -43,6 +54,8 @@ export function EinstellungenPage() {
     suggestedBalance: string | null;
     color: string;
   } | null>(null);
+  const [deleteTarget, setDeleteTarget] =
+    useState<CategoryDeleteTarget | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +116,105 @@ export function EinstellungenPage() {
       setNewName("");
       setExpandedId(created.id);
     });
+  }
+
+  async function requestDeleteCategory(cat: CategoryTreeNode) {
+    setBusy(true);
+    setError(null);
+    setStatus(null);
+    try {
+      const result = await deleteCategory({ id: cat.id });
+      if (!result.ok) {
+        setDeleteTarget({
+          kind: "category",
+          id: cat.id,
+          name: result.name,
+          txCount: result.txCount,
+          excludeSubcategoryIds: cat.subcategories.map((s) => s.id),
+        });
+        return;
+      }
+      setStatus(
+        result.reassigned > 0
+          ? `Kategorie gelöscht (${result.reassigned} Buchungen verschoben).`
+          : "Kategorie gelöscht.",
+      );
+      if (expandedId === cat.id) setExpandedId(null);
+      await refetch();
+    } catch (err) {
+      setError(errMsg(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestDeleteSubcategory(
+    cat: CategoryTreeNode,
+    subId: number,
+  ) {
+    setBusy(true);
+    setError(null);
+    setStatus(null);
+    try {
+      const result = await deleteSubcategory({ id: subId });
+      if (!result.ok) {
+        setDeleteTarget({
+          kind: "subcategory",
+          id: subId,
+          name: result.name,
+          txCount: result.txCount,
+          excludeSubcategoryIds: [subId],
+        });
+        return;
+      }
+      setStatus(
+        result.reassigned > 0
+          ? `Unterkategorie gelöscht (${result.reassigned} Buchungen verschoben).`
+          : "Unterkategorie gelöscht.",
+      );
+      await refetch();
+    } catch (err) {
+      setError(errMsg(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmDeleteWithReassign(reassignToSubcategoryId: number) {
+    if (!deleteTarget) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result =
+        deleteTarget.kind === "category"
+          ? await deleteCategory({
+              id: deleteTarget.id,
+              reassignToSubcategoryId,
+            })
+          : await deleteSubcategory({
+              id: deleteTarget.id,
+              reassignToSubcategoryId,
+            });
+      if (!result.ok) {
+        setError("Löschen fehlgeschlagen — bitte erneut versuchen.");
+        return;
+      }
+      setStatus(
+        `${deleteTarget.kind === "category" ? "Kategorie" : "Unterkategorie"} gelöscht (${result.reassigned} Buchungen verschoben).`,
+      );
+      if (
+        deleteTarget.kind === "category" &&
+        expandedId === deleteTarget.id
+      ) {
+        setExpandedId(null);
+      }
+      setDeleteTarget(null);
+      await refetch();
+    } catch (err) {
+      setError(errMsg(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -209,6 +321,10 @@ export function EinstellungenPage() {
                     )
                   }
                   onRun={run}
+                  onDeleteCategory={() => void requestDeleteCategory(category)}
+                  onDeleteSubcategory={(subId) =>
+                    void requestDeleteSubcategory(category, subId)
+                  }
                 />
               ))}
               <li className="zm-cat-card zm-cat-card--create">
@@ -257,6 +373,16 @@ export function EinstellungenPage() {
             setStatus("Kontostand gespeichert.");
           }}
           onSkip={() => setCalibrateAccount(null)}
+        />
+      )}
+
+      {deleteTarget && categories && (
+        <CategoryDeleteModal
+          target={deleteTarget}
+          categories={categories}
+          busy={busy}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={(subId) => void confirmDeleteWithReassign(subId)}
         />
       )}
     </section>
@@ -353,6 +479,8 @@ type CardProps = {
   busy: boolean;
   onToggle: () => void;
   onRun: (label: string, fn: () => Promise<unknown>) => Promise<void>;
+  onDeleteCategory: () => void;
+  onDeleteSubcategory: (subId: number) => void;
 };
 
 type EditTarget = "main" | number | null;
@@ -363,6 +491,8 @@ function CategoryCard({
   busy,
   onToggle,
   onRun,
+  onDeleteCategory,
+  onDeleteSubcategory,
 }: CardProps) {
   const [editTarget, setEditTarget] = useState<EditTarget>(null);
   const [subName, setSubName] = useState("");
@@ -412,6 +542,11 @@ function CategoryCard({
             onClick={onToggle}
           />
         )}
+        <DeleteIconButton
+          label={`Kategorie ${category.name} löschen`}
+          disabled={busy}
+          onClick={onDeleteCategory}
+        />
       </header>
 
       {!expanded && category.subcategories.length > 0 && (
@@ -442,6 +577,7 @@ function CategoryCard({
             keywords={category.keywords.map((k) => k.keyword)}
             busy={busy}
             editing={editTarget === "main"}
+            canDelete={false}
             onToggleEdit={() =>
               setEditTarget((t) => (t === "main" ? null : "main"))
             }
@@ -466,6 +602,8 @@ function CategoryCard({
                 keywords={sub.keywords.map((k) => k.keyword)}
                 busy={busy}
                 editing={editTarget === sub.id}
+                canDelete={category.subcategories.length > 1}
+                onDelete={() => onDeleteSubcategory(sub.id)}
                 onToggleEdit={() =>
                   setEditTarget((t) => (t === sub.id ? null : sub.id))
                 }
@@ -543,6 +681,8 @@ function CategoryNodePanel({
   keywords,
   busy,
   editing,
+  canDelete,
+  onDelete,
   onToggleEdit,
   onSaveNameColor,
   onSaveKeywords,
@@ -552,6 +692,8 @@ function CategoryNodePanel({
   keywords: string[];
   busy: boolean;
   editing: boolean;
+  canDelete?: boolean;
+  onDelete?: () => void;
   onToggleEdit: () => void;
   onSaveNameColor: (name: string, color: string) => Promise<void>;
   onSaveKeywords: (keywords: string[]) => Promise<void>;
@@ -645,6 +787,13 @@ function CategoryNodePanel({
             else onToggleEdit();
           }}
         />
+        {canDelete && onDelete && (
+          <DeleteIconButton
+            label={`${name} löschen`}
+            disabled={busy}
+            onClick={onDelete}
+          />
+        )}
       </div>
 
       {editing ? (

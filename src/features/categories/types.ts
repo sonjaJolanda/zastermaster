@@ -33,7 +33,16 @@ export type UpsertSubcategoryArgs = {
 
 export type DeleteByIdArgs = {
   id: number;
+  /**
+   * When txs still reference this category/subcategory, move them here first
+   * (any subcategory in the tree is allowed).
+   */
+  reassignToSubcategoryId?: number;
 };
+
+export type DeleteCategoryResult =
+  | { ok: true; reassigned: number }
+  | { ok: false; needsReassign: true; txCount: number; name: string };
 
 export type SetKeywordsArgs = {
   /** Exactly one of categoryId / subcategoryId. */

@@ -56,4 +56,32 @@ describe("idsToDropForNetting", () => {
     expect(drop.has(1)).toBe(false);
     expect(drop.has(2)).toBe(true);
   });
+
+  it("does not drop any paypal_purchase legs", () => {
+    const rows = [
+      row({
+        id: 1,
+        betrag: -25,
+        bank: "paypal",
+        relatedTransactionId: null,
+        relatedType: "paypal_purchase",
+      }),
+      row({
+        id: 2,
+        betrag: 25,
+        bank: "paypal",
+        relatedTransactionId: null,
+        relatedType: "paypal_purchase",
+      }),
+      row({
+        id: 3,
+        betrag: -25,
+        bank: "dkb",
+        relatedTransactionId: null,
+        relatedType: "paypal_purchase",
+      }),
+    ];
+    const drop = idsToDropForNetting(rows);
+    expect(drop.size).toBe(0);
+  });
 });

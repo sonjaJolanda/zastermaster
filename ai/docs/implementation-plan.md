@@ -39,10 +39,13 @@ Actionable runbook for building Zaster Master. **Behavior details live in featur
 | 10 | Design polish | ☑ | — |
 | 11 | Automated tests | ☑ | — |
 | 12 | Investments (EK) | ☑ | — |
+| 13 | PDF reports | ☑ | — |
 
 **MVP complete** when Thin of slices **0–6** are done (Analyse thin = summary only).
 Slice **10** is post-MVP visual polish (docs in [`design.md`](design.md)).
 Slice **11** is unit-test coverage for parsers, categorizer, related/netting, and Transaktionen-Summen.
+Slice **12** is Investiert (EK) + keyword confirm flow ([`investments.md`](investments.md)).
+Slice **13** is client PDF reports for Transaktionen + Analyse ([`reports.md`](reports.md)).
 
 ---
 
@@ -464,6 +467,61 @@ UI/CSS regression, full operation coverage via Prisma, CI pipeline (can add late
 
 ---
 
+## Slice 12 — Investments (EK)
+
+**Goal:** Mark ETF/depot purchases as investments; show **Investiert** (cost basis) next to Kontostand; exclude confirmed investments from Konsum-Summen / Analyse-Flow.
+
+**Specs:** [`investments.md`](investments.md) · [`transactions.md`](transactions.md) · [`analysis.md`](analysis.md)
+
+### Thin steps
+
+1. Schema: `Transaction.isInvestment`; models `InvestmentKeyword`, `InvestmentRejection`; migrate.
+2. Ops: keywords CRUD, `getInvestedTotal`, detect / confirm / reject.
+3. Exclude `isInvestment` from TX summary + Analyse netted flow (still visible in TX table; amount styled black).
+4. UI: Einstellungen keywords; Transaktionen „Investitionen erkennen“ overlay; **Investiert** summary + info-(i).
+5. Docs: [`investments.md`](investments.md); link from TX / Analyse strips.
+
+### Thin DoD
+
+- [x] Keywords + detect/confirm/reject flow works
+- [x] **Investiert** = −Σ(betrag) over confirmed investments
+- [x] Confirmed investments out of Einnahmen/Ausgaben/Netto (TX + Analyse)
+- [x] Table still shows them (black amount); info-(i) explains exclusion
+
+### Out of scope
+
+Live market value; auto-tag on import; Investiert filtered by date range.
+
+---
+
+## Slice 13 — PDF reports
+
+**Goal:** Client-side PDF export on **Transaktionen** and **Analyse** — logo, date, app version in header; filename includes date.
+
+**Specs:** [`reports.md`](reports.md) · [`transactions.md`](transactions.md) · [`analysis.md`](analysis.md)
+
+### Thin steps
+
+1. Add `APP_VERSION` (`package.json` + [`src/version.ts`](../../src/version.ts)); write [`reports.md`](reports.md).
+2. Deps: `jspdf` + `jspdf-autotable`; shared helpers in `src/features/export/pdf.ts` (header/footer, logo rasterize, download).
+3. Transaktionen: **PDF exportieren**; summary + filters + table; query `exportTransactionsForPdf` with **2 000** row cap (+ note / alert).
+4. Analyse: **PDF exportieren**; summary + filters + Chart.js images + breakdown tables (client data + chart refs).
+5. Filenames: `zastermaster-transaktionen-YYYY-MM-DD.pdf` / `zastermaster-analyse-YYYY-MM-DD.pdf`.
+
+### Thin DoD
+
+- [x] PDF buttons on both pages
+- [x] Header: logo, title, created-at, `Zaster Master v…`; footer page numbers
+- [x] Filename includes date
+- [x] TX cap + truncation note; Analyse includes charts when rendered
+- [x] [`reports.md`](reports.md) matches shipped behavior
+
+### Out of scope
+
+UI screenshots; Excel; server/Puppeteer PDFs; e-mail; Office background in PDF.
+
+---
+
 ## LLM session template
 
 Copy when starting work:
@@ -495,4 +553,5 @@ Prefer Wasp queries/actions; no auth; German UI; design.md for shell.
 | [`categorization.md`](categorization.md) | Hybrid categorizer, tree, seed, Konfidenz |
 | [`testing.md`](testing.md) | Unit tests + manuelle `_Tester`-Bankdateien |
 | [`investments.md`](investments.md) | Investiert (EK), Keywords, Confirm-Flow |
+| [`reports.md`](reports.md) | PDF export (TX + Analyse) |
 | `categories_seed.json` | Slice 1 seed |

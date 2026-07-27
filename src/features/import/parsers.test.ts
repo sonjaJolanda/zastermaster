@@ -22,6 +22,21 @@ describe("parseDkbCsv", () => {
     const result = parseDkbCsv(`\uFEFF${dkbSampleCsv}`);
     expect(result.rows.length).toBe(2);
   });
+
+  it("parses DKB amounts with thousands separators", () => {
+    const csv = [
+      "Girokonto;DE00120300001234567890",
+      "",
+      "Kontostand vom 25.07.2026:;12.345,67",
+      "",
+      "Buchungsdatum;Wertstellung;Status;Zahlungspflichtige*r;Zahlungsempfänger*in;Verwendungszweck;Umsatztyp;IBAN;Betrag (€);Gläubiger-ID;Mandatsreferenz;Kundenreferenz",
+      "24.07.2026;24.07.2026;Gebucht;Arbeitgeber;Alice;Bonus;Eingang;DE00999999999999999999;1.234,56;;;REF1",
+    ].join("\n");
+
+    const result = parseDkbCsv(csv);
+    expect(result.balance).toBe("12345.67");
+    expect(result.rows[0]!.betrag).toBe("1234.56");
+  });
 });
 
 describe("parsePaypalTxt", () => {

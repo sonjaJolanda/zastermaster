@@ -17,7 +17,7 @@ Browse, filter, categorize, and link imported bank rows. Overview also in [`../R
 ```
 ┌─ Top bar ────────────────────────────────────────────────┐
 │ Kontostand · Investiert · Einnahmen · Ausgaben · Netto · Buchungen │
-│              CSV · Filter & Optionen · Zusammengehörige… │
+│              CSV · PDF · Filter · Zusammengehörige… │
 ├─ Filters (collapsible, default closed) ──────────────────┤
 │ …                                                        │
 ├─ Data table (many columns) ──────────────────────────────┤
@@ -27,7 +27,7 @@ Browse, filter, categorize, and link imported bank rows. Overview also in [`../R
 
 Default route after logo / app home. One frosted content panel; **wide multi-column table** (not a two-column page). Horizontal scroll on smaller widths is OK.
 
-**Top bar:** summary metrics left; **CSV exportieren**, **Filter & Optionen**, and **Zusammengehörige erkennen** on the right (same row).
+**Top bar:** summary metrics left; **CSV exportieren** · **PDF exportieren**, **Filter**, and **Zusammengehörige** / **Investitionen** on the right (same row).
 
 ## Summary strip (page-level)
 
@@ -35,18 +35,18 @@ Shown **inline in the top bar** (not a separate boxed strip).
 
 | Metric | Definition |
 |---|---|
-| **Kontostand** | Calibrated wealth: sum of roll-forward balances (`getHeaderBalance`). **Not** affected by TX filters. Shows „—“ until at least one account is calibrated. Tooltip notes partial calibration. |
-| **Investiert** | Confirmed investment cost basis (`getInvestedTotal`); see [`investments.md`](investments.md). Info-(i): not counted in Ausgaben. |
-| **Einnahmen** | Sum of positive `betrag` in the **current filtered set** (not only the current page); **excludes** confirmed investments |
-| **Ausgaben** | Sum of abs(negative `betrag`) in that set; **excludes** confirmed investments |
+| **Kontostand** | Calibrated wealth for **currently selected** bank/konto filters (roll-forward via `getAccounts`). Empty filters = all accounts. Shows „—“ until at least one matching account is calibrated. Tooltip lists per-account balances. |
+| **Investiert** | Confirmed investment EK for **selected** bank/konto filters (`getInvestedTotal`); see [`investments.md`](investments.md). Info-(i): not counted in Ausgaben. |
+| **Einnahmen** | Sum of positive `betrag` in the **current filtered set** (not only the current page); **excludes** confirmed investments; **related netting** like Analyse ([`analysis.md`](analysis.md)) |
+| **Ausgaben** | Sum of abs(negative `betrag`) after same exclusions + netting |
 | **Netto** | Einnahmen − Ausgaben (signed) |
-| **Buchungen** | Count of rows in that set (flow set — excludes confirmed investments from the summary count) |
+| **Buchungen** | Count of rows **after** investment exclusion + related netting (table still lists all filtered rows) |
 
-**Defaults:** no date filter → **all imported transactions** (unlike Analyse, which defaults to the current calendar year).
+**Filter persistence:** Bank/Konto/Typ/Kategorie/Zeitraum/Suche/Seitengröße are stored in `localStorage` (`zm-tx-filters-v1`) and restored on reload. Relative date presets (e.g. Dieser Monat) recompute the range on load.
 
 Per-account calibrate/edit remains under Einstellungen → Konten.
 
-## Filters & Optionen
+## Filter
 
 Compact toolbar (desktop: one row; mobile: sheet/drawer). **Collapsed by default**; summary + table stay usable when closed.
 
@@ -55,15 +55,15 @@ Compact toolbar (desktop: one row; mobile: sheet/drawer). **Collapsed by default
 | Filter | Behavior |
 |---|---|
 | **Bank / Konto** | Multi-select; empty = all |
-| **Zeitraum** | Optional from–to (or presets). Empty = all time |
+| **Zeitraum** | Presets like Analyse: Dieses Jahr, Letztes Jahr, **Dieser Monat** (default), Letzter Monat, Vorletzter Monat, Letzte 3 Monate, **Alle Zeiten**, Benutzerdefiniert + Von/Bis |
 | **Typ** | Alle / Ausgaben / Einnahmen |
-| **Kategorie / Unterkategorie** | Optional |
+| **Kategorie / Unterkategorie** | Dropdowns; Unterkategorie nur wenn Kategorie gewählt |
 | **Konfidenz / Quelle** | Optional: manual / learned / keyword / none / low — for cleaning up bad auto-cats |
 | **Suche** | Optional free text over Verwendungszweck, Sender, Empfänger |
 | **Nur unverknüpfte** | Optional checkbox — help related-detect cleanup |
 | **Saldo-Buchungen ausblenden** | Hide `isBalanceAdjustment` opening/calibration rows (default **on**) |
 
-Changing filters refetches the list query and recomputes the summary for the filtered set (server-side).
+Changing filters refetches the list query and recomputes the summary for the filtered set (server-side). Summary applies the same **related-pair netting** as Analyse (transfers drop both legs; PayPal↔bank counts once). The **table** still shows every matching row including both legs.
 
 ### Column visibility (Optionen)
 
@@ -243,9 +243,21 @@ Footer: Schließen (keeps already confirmed links; unfinished suggestions are si
 - Click partner: `getTransactionNav` → jump list page if needed → **scroll to row** + highlight. Does **not** open Details.
 - Overlays (Details, Zusammengehörige erkennen, Balance): centered over the **frosted content panel (page)**, not the full browser viewport/display.
 
-#### Unlink (v1 nice-to-have)
+#### Manual link
 
-In Details of a linked row: **Verknüpfung lösen** → clear both directions. Re-detect may suggest the pair again unless we also write a reject — prefer clear link only; user can reject on next detect if needed.
+In Details of an **unlinked** row: **Manuell verknüpfen…** → search/select **1 or 2** partners (±**10 days** of the row’s date) + type (Umbuchung / PayPal↔Bank / PayPal-Kauf / Ähnlich; type suggested, overrideable) → `confirmRelatedPair` with `ids` (2 or 3). Clears prior `RelatedRejection` pairs for the group. Groups share `relatedGroupId`; categorizing one member updates all.
+
+#### Detector D — PayPal-Kauf (3 legs)
+
+Match unlinked triad with same abs amount (±0.01) and date span ≤ 3 days:
+
+| Role | Match |
+|---|---|
+| Kauf | `bank=paypal`, betrag &lt; 0 |
+| Funding | `bank=paypal`, betrag &gt; 0 |
+| Bank | not paypal, betrag &lt; 0 |
+
+Type `paypal_purchase`. Runs **before** pairwise `paypal_bank` so the three legs are not split. **No Analyse netting** for this type (all three count; −/−/+ already nets economically).
 
 ---
 
@@ -395,7 +407,7 @@ Set both `relatedTransactionId` to null; do not auto-create rejection.
 | `detectRelatedTransactions` | Runs pipeline; returns `{ suggestions, stages?, truncated }` — may take seconds; UI shows progress. If too slow later → Jobs. |
 | `confirmRelatedPair` | Bidirectional link; invalidate caches |
 | `rejectRelatedPair` | Persist rejection |
-| `unlinkRelatedPair` | Optional v1 |
+| `unlinkRelatedPair` | Details: clear both + rejection |
 
 Progress reporting v1 options (pick one):
 
@@ -462,7 +474,9 @@ Synthetic opening / calibration transactions:
 | `getTransactionsSummary` | query | Einnahmen / Ausgaben / Netto / count for **same filters** (all matching rows, not one page) |
 | `categorizeTransaction` | action | Set category/subcategory/source/score on row **and related partner**; optional `remember: true` → LearnedRule |
 | `detectRelatedTransactions` | action | Run detectors; return suggestion list (may be chunked later) |
-| `confirmRelatedPair` / `rejectRelatedPair` | actions | Persist link (and **sync category** to both legs) or rejection |
+| `confirmRelatedPair` / `rejectRelatedPair` | actions | Persist group of 2–3 (`relatedGroupId` + type; pairs also set bidirectional `relatedTransactionId`) or reject all member pairs |
+| `searchRelatedLinkCandidates` | query | Manual link picker (`excludeIds`, `aroundDate` ±10 days) |
+| `unlinkRelatedPair` | action | Details: clear entire group + rejection pairs |
 | `getTransactionNav` | query | Resolve partner row + list page under current filters (related-link navigation) |
 
 List + summary share one filter input type. Categorize invalidates list/summary queries.
@@ -473,7 +487,7 @@ Captured from product feedback; keep these when changing UI:
 
 1. **Partner navigation** — Verknüpfung column: scroll + highlight (not Details; edit icon opens Details).
 2. **Overlay placement** — Details / Zusammengehörige erkennen / Balance open centered on the **content page** (frosted panel), not the middle of the full display.
-3. **Shared category on related pairs** — editing category on one leg updates the other; confirming a pair aligns categories.
+3. **Shared category on related groups** — editing category on one member updates all in `relatedGroupId`; confirming a group aligns categories.
 
 ---
 
@@ -502,3 +516,5 @@ Captured from product feedback; keep these when changing UI:
 ## Export
 
 **CSV export** from the toolbar respects the current filters (semicolon, UTF-8 BOM for Excel). Cap: 100 000 rows.
+
+**PDF export** — printable report (logo, date, version, summary, filters, table). Cap: 2 000 rows; see [`reports.md`](reports.md).

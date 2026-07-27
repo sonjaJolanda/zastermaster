@@ -270,6 +270,25 @@ function toSlices(aggs: Agg[], total: number): AnalysisCategorySlice[] {
     }));
 }
 
+/** Slices with signed amounts; pie weight = |amount|, % of Σ|amount|. */
+function toSignedSlices(aggs: Agg[]): AnalysisCategorySlice[] {
+  const totalAbs = aggs.reduce((s, a) => s + Math.abs(a.amount), 0);
+  return [...aggs]
+    .filter((a) => Math.abs(a.amount) > 0.0001)
+    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      color: a.color,
+      amount: a.amount.toFixed(2),
+      percent:
+        totalAbs > 0
+          ? Math.round((Math.abs(a.amount) / totalAbs) * 1000) / 10
+          : 0,
+      count: a.count,
+    }));
+}
+
 function aggregateSide(
   rows: LoadedTx[],
   mode: "category" | "subcategory",
@@ -294,6 +313,27 @@ function aggregateSide(
     }
   }
   return toSlices([...map.values()], total);
+}
+
+/** Net per category = Σ betrag (income − expense). */
+function aggregateNet(
+  rows: LoadedTx[],
+  mode: "category" | "subcategory",
+): AnalysisCategorySlice[] {
+  const map = new Map<string, Agg>();
+  for (const row of rows) {
+    if (row.betrag === 0) continue;
+    const g = groupKey(row, mode);
+    const key = g.id == null ? `n:${g.name}` : `i:${g.id}`;
+    const cur = map.get(key);
+    if (cur) {
+      cur.amount += row.betrag;
+      cur.count += 1;
+    } else {
+      map.set(key, { ...g, amount: row.betrag, count: 1 });
+    }
+  }
+  return toSignedSlices([...map.values()]);
 }
 
 function buildBreakdown(
@@ -375,6 +415,94 @@ function buildBreakdown(
     }));
 }
 
+function buildNetBreakdown(
+  rows: LoadedTx[],
+  mode: "category" | "subcategory",
+): AnalysisBreakdownRow[] {
+  type ChildAgg = {
+    id: number | null;
+    name: string;
+    color: string;
+    amount: number;
+    count: number;
+  };
+  type ParentAgg = Agg & { children: Map<string, ChildAgg> };
+
+  const parents = new Map<string, ParentAgg>();
+
+  for (const row of rows) {
+    if (row.betrag === 0) continue;
+    const parent = groupKey(row, mode);
+    const pKey = parent.id == null ? `n:${parent.name}` : `i:${parent.id}`;
+    let p = parents.get(pKey);
+    if (!p) {
+      p = { ...parent, amount: 0, count: 0, children: new Map() };
+      parents.set(pKey, p);
+    }
+    p.amount += row.betrag;
+    p.count += 1;
+
+    if (mode === "category") {
+      const childId = row.subcategoryId;
+      const childName = row.subcategoryName ?? FALLBACK_NAME;
+      const childColor =
+        row.subcategoryColor ?? row.categoryColor ?? FALLBACK_COLOR;
+      const cKey = childId == null ? `n:${childName}` : `i:${childId}`;
+      const c = p.children.get(cKey);
+      if (c) {
+        c.amount += row.betrag;
+        c.count += 1;
+      } else {
+        p.children.set(cKey, {
+          id: childId,
+          name: childName,
+          color: childColor,
+          amount: row.betrag,
+          count: 1,
+        });
+      }
+    }
+  }
+
+  const list = [...parents.values()].filter(
+    (p) => Math.abs(p.amount) > 0.0001,
+  );
+  const totalAbs = list.reduce((s, p) => s + Math.abs(p.amount), 0);
+
+  return list
+    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+    .map((p) => {
+      const children = [...p.children.values()].filter(
+        (c) => Math.abs(c.amount) > 0.0001,
+      );
+      const childAbs = children.reduce((s, c) => s + Math.abs(c.amount), 0);
+      return {
+        id: p.id,
+        name: p.name,
+        color: p.color,
+        amount: p.amount.toFixed(2),
+        percent:
+          totalAbs > 0
+            ? Math.round((Math.abs(p.amount) / totalAbs) * 1000) / 10
+            : 0,
+        count: p.count,
+        children: children
+          .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+          .map((c) => ({
+            id: c.id,
+            name: c.name,
+            color: c.color,
+            amount: c.amount.toFixed(2),
+            percent:
+              childAbs > 0
+                ? Math.round((Math.abs(c.amount) / childAbs) * 1000) / 10
+                : 0,
+            count: c.count,
+          })),
+      };
+    });
+}
+
 /** Period flow summary with related-pair netting. */
 export const getAnalysisSummary: GetAnalysisSummary<
   AnalysisFilterArgs,
@@ -446,6 +574,7 @@ export const getAnalysisByCategory: GetAnalysisByCategory<
     mode,
     expenses: aggregateSide(kept, mode, "expense"),
     income: aggregateSide(kept, mode, "income"),
+    net: aggregateNet(kept, mode),
   };
 };
 
@@ -462,6 +591,7 @@ export const getAnalysisBreakdown: GetAnalysisBreakdown<
     mode,
     expenses: buildBreakdown(kept, "expense", mode),
     income: buildBreakdown(kept, "income", mode),
+    net: buildNetBreakdown(kept, mode),
   };
 };
 

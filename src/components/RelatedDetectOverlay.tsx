@@ -9,6 +9,7 @@ import type {
   RelatedTxPublic,
 } from "../features/related/types";
 import { CloseIconButton } from "./PageChrome";
+import { OverlayPortal } from "./OverlayPortal";
 
 const eur = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -24,6 +25,7 @@ const dateDe = new Intl.DateTimeFormat("de-DE", {
 
 const STAGE_LABELS = [
   "Daten laden…",
+  "PayPal-Käufe prüfen…",
   "PayPal ↔ Bank prüfen…",
   "Umbuchungen prüfen…",
   "Ähnliche Buchungen prüfen…",
@@ -32,6 +34,7 @@ const STAGE_LABELS = [
 
 const TYPE_BADGE: Record<RelatedSuggestion["type"], string> = {
   paypal_bank: "PayPal↔Bank",
+  paypal_purchase: "PayPal-Kauf",
   transfer: "Umbuchung",
   near_duplicate: "Ähnlich",
 };
@@ -163,8 +166,7 @@ export function RelatedDetectOverlay({ onClose, onChanged }: Props) {
     setError(null);
     try {
       await confirmRelatedPair({
-        aId: current.a.id,
-        bId: current.b.id,
+        ids: current.members.map((m) => m.id),
         type: current.type,
       });
       onChanged();
@@ -182,8 +184,7 @@ export function RelatedDetectOverlay({ onClose, onChanged }: Props) {
     setError(null);
     try {
       await rejectRelatedPair({
-        aId: current.a.id,
-        bId: current.b.id,
+        ids: current.members.map((m) => m.id),
       });
       removeCurrent();
     } catch (err) {
@@ -194,94 +195,99 @@ export function RelatedDetectOverlay({ onClose, onChanged }: Props) {
   }
 
   return (
-    <div
-      className="zm-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="zm-related-title"
-      onClick={onClose}
-    >
-      <div className="zm-overlay-anchor">
-        <div
-          className="zm-overlay-panel zm-related-panel"
-          onClick={(e) => e.stopPropagation()}
-        >
-        <div className="zm-overlay-header">
-          <h2 id="zm-related-title">Zusammengehörige Transaktionen</h2>
-          <CloseIconButton onClick={onClose} />
-        </div>
-
-        {state === "running" && (
-          <div className="zm-related-progress" aria-live="polite">
-            <div className="zm-related-spinner" aria-hidden />
-            <p>{STAGE_LABELS[stageIdx]}</p>
-            <p className="zm-page-lead">Bitte warten…</p>
-          </div>
-        )}
-
-        {state === "error" && (
-          <div className="zm-related-progress">
-            <p className="zm-status-error" role="alert">
-              {error ?? "Erkennung fehlgeschlagen."}
-            </p>
-          </div>
-        )}
-
-        {state === "empty" && (
-          <div className="zm-related-progress">
-            <p className="zm-page-lead">Keine neuen Vorschläge.</p>
-          </div>
-        )}
-
-        {state === "review" && current && (
-          <>
-            <div className="zm-related-meta">
-              <span className="zm-related-badge">
-                {TYPE_BADGE[current.type]}
-              </span>
-              <span className="zm-page-lead">
-                Trefferqualität: {scoreLabel(current.score)}
-              </span>
-              <span className="zm-page-lead">
-                {index + 1} / {remaining}
-                {truncated ? " (Liste gekürzt)" : ""}
-              </span>
-            </div>
-            <p className="zm-related-reason">{current.reason}</p>
-
-            <div className="zm-related-pair">
-              <LegCard tx={current.a} />
-              <LegCard tx={current.b} />
+    <OverlayPortal>
+      <div
+        className="zm-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="zm-related-title"
+        onClick={onClose}
+      >
+        <div className="zm-overlay-anchor">
+          <div
+            className="zm-overlay-panel zm-related-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="zm-overlay-header">
+              <h2 id="zm-related-title">Zusammengehörige Transaktionen</h2>
+              <CloseIconButton onClick={onClose} />
             </div>
 
-            {error && (
-              <p className="zm-status-error" role="alert">
-                {error}
-              </p>
+            {state === "running" && (
+              <div className="zm-related-progress" aria-live="polite">
+                <div className="zm-related-spinner" aria-hidden />
+                <p>{STAGE_LABELS[stageIdx]}</p>
+                <p className="zm-page-lead">Bitte warten…</p>
+              </div>
             )}
 
-            <div className="zm-btn-row">
-              <button
-                type="button"
-                className="zm-btn zm-btn-ghost"
-                disabled={busy}
-                onClick={() => void handleReject()}
-              >
-                Ablehnen
-              </button>
-              <button
-                type="button"
-                className="zm-btn zm-btn-primary"
-                disabled={busy}
-                onClick={() => void handleConfirm()}
-              >
-                {busy ? "Speichern…" : "Bestätigen"}
-              </button>
-            </div>
-          </>
-        )}
+            {state === "error" && (
+              <div className="zm-related-progress">
+                <p className="zm-status-error" role="alert">
+                  {error ?? "Erkennung fehlgeschlagen."}
+                </p>
+              </div>
+            )}
+
+            {state === "empty" && (
+              <div className="zm-related-progress">
+                <p className="zm-page-lead">Keine neuen Vorschläge.</p>
+              </div>
+            )}
+
+            {state === "review" && current && (
+              <>
+                <div className="zm-related-meta">
+                  <span className="zm-related-badge">
+                    {TYPE_BADGE[current.type]}
+                  </span>
+                  <span className="zm-page-lead">
+                    Trefferqualität: {scoreLabel(current.score)}
+                  </span>
+                  <span className="zm-page-lead">
+                    {index + 1} / {remaining}
+                    {truncated ? " (Liste gekürzt)" : ""}
+                  </span>
+                </div>
+                <p className="zm-related-reason">{current.reason}</p>
+
+                <div
+                  className={`zm-related-pair${current.members.length > 2 ? " zm-related-pair--triple" : ""}`}
+                >
+                  {current.members.map((m) => (
+                    <LegCard key={m.id} tx={m} />
+                  ))}
+                </div>
+
+                {error && (
+                  <p className="zm-status-error" role="alert">
+                    {error}
+                  </p>
+                )}
+
+                <div className="zm-btn-row">
+                  <button
+                    type="button"
+                    className="zm-btn zm-btn-ghost"
+                    disabled={busy}
+                    onClick={() => void handleReject()}
+                  >
+                    Ablehnen
+                  </button>
+                  <button
+                    type="button"
+                    className="zm-btn zm-btn-primary"
+                    disabled={busy}
+                    onClick={() => void handleConfirm()}
+                  >
+                    {busy ? "Speichern…" : "Bestätigen"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </OverlayPortal>
   );
 }

@@ -1,5 +1,6 @@
 import { HttpError } from "wasp/server";
 import type {
+  ClearInvestment,
   ConfirmInvestment,
   DetectInvestments,
   GetInvestedTotal,
@@ -73,12 +74,30 @@ export const setInvestmentKeywords: SetInvestmentKeywords<
   return cleaned.sort((a, b) => a.localeCompare(b, "de"));
 };
 
-export const getInvestedTotal: GetInvestedTotal<void, InvestedTotal> = async (
-  _args,
-  context,
-) => {
+export type InvestedTotalArgs = {
+  banks?: string[];
+  konten?: string[];
+};
+
+export const getInvestedTotal: GetInvestedTotal<
+  InvestedTotalArgs | void,
+  InvestedTotal
+> = async (args, context) => {
+  const banks =
+    args && typeof args === "object" && args.banks?.length
+      ? args.banks
+      : undefined;
+  const konten =
+    args && typeof args === "object" && args.konten?.length
+      ? args.konten
+      : undefined;
+
   const rows = await context.entities.Transaction.findMany({
-    where: { isInvestment: true },
+    where: {
+      isInvestment: true,
+      ...(banks ? { bank: { in: banks } } : {}),
+      ...(konten ? { konto: { in: konten } } : {}),
+    },
     select: { betrag: true },
   });
   if (rows.length === 0) {
@@ -172,6 +191,35 @@ export const rejectInvestment: RejectInvestment<
   if (!args?.transactionId) {
     throw new HttpError(400, "transactionId ist erforderlich.");
   }
+  await context.entities.InvestmentRejection.upsert({
+    where: { transactionId: args.transactionId },
+    create: { transactionId: args.transactionId },
+    update: {},
+  });
+  return { ok: true };
+};
+
+/** Remove investment flag (Details); also reject so detect won't re-offer. */
+export const clearInvestment: ClearInvestment<
+  InvestmentIdArgs,
+  { ok: true }
+> = async (args, context) => {
+  if (!args?.transactionId) {
+    throw new HttpError(400, "transactionId ist erforderlich.");
+  }
+  const tx = await context.entities.Transaction.findUnique({
+    where: { id: args.transactionId },
+    select: { id: true, isInvestment: true },
+  });
+  if (!tx) throw new HttpError(404, "Transaktion nicht gefunden.");
+  if (!tx.isInvestment) {
+    throw new HttpError(400, "Transaktion ist keine Investition.");
+  }
+
+  await context.entities.Transaction.update({
+    where: { id: args.transactionId },
+    data: { isInvestment: false },
+  });
   await context.entities.InvestmentRejection.upsert({
     where: { transactionId: args.transactionId },
     create: { transactionId: args.transactionId },

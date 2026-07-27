@@ -121,8 +121,8 @@ If **Diese Zuordnung merken** (Thick): upsert `LearnedRule` with fragment = Verw
 
 | Moment | Behavior |
 |---|---|
-| `categorizeTransaction` | Write category to the edited row **and** `relatedTransactionId` partner |
-| `confirmRelatedPair` | After linking, copy the stronger existing category onto the other leg (`manual` > `learned` > `keyword` > `none`; tie → prefer A) |
+| `categorizeTransaction` | Write category to the edited row **and all** `relatedGroupId` members (fallback: `relatedTransactionId` partner) |
+| `confirmRelatedPair` | After linking 2–3 txs, copy the stronger existing category onto the whole group (`manual` > `learned` > `keyword` > `none`) |
 
 ## Konfidenz UI
 
@@ -153,8 +153,8 @@ Pair color with text/icon (a11y). Optional filter by source on Transaktionen (Sl
 |---|---|---|
 | `getCategories` | query | Full tree + keywords (with ids) |
 | `seedCategoriesIfEmpty` | action | Idempotent seed |
-| `createCategory` / `updateCategory` / `deleteCategory` | actions | Main category CRUD; new category gets default sub **Unbekannt**; delete blocked if txs reference it |
-| `createSubcategory` / `updateSubcategory` / `deleteSubcategory` | actions | Sub CRUD; delete blocked if in use or last sub |
+| `createCategory` / `updateCategory` / `deleteCategory` | actions | Main category CRUD; new category gets default sub **Unbekannt**; delete with optional `reassignToSubcategoryId` when txs still reference it |
+| `createSubcategory` / `updateSubcategory` / `deleteSubcategory` | actions | Sub CRUD; last sub blocked; delete with optional reassign to any other subcategory |
 | `setKeywords` | action | Replace keyword list for category **or** subcategory |
 | `categorizeTransaction` | action | Manual assign on row **and related partner**; `remember?: boolean` |
 | (internal) `categorizeRow(text fields)` | pure fn | Used by import |
@@ -195,4 +195,4 @@ Editing main/sub keywords in the UI = **Slice 1 Thick** (Einstellungen), not Sli
 2. Unknown merchant → Sonstige / Unbekannt / none  
 3. Manual save → green / score 1.0  
 4. Merken (Thick) → second import with same purpose → learned  
-5. Delete category with txs → blocked or reassigned per policy  
+5. Delete category/sub with txs → modal offers reassign to any other subcategory, then delete

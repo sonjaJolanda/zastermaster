@@ -14,6 +14,8 @@ export function PageTitle({ icon, children }: PageTitleProps) {
   );
 }
 
+import { Trash2 } from "lucide-react";
+
 type EditIconButtonProps = {
   label: string;
   onClick: () => void;
@@ -37,6 +39,26 @@ export function EditIconButton({
       onClick={onClick}
     >
       <img src="/design/Edit.svg" alt="" className="zm-edit-icon" aria-hidden />
+    </button>
+  );
+}
+
+export function DeleteIconButton({
+  label,
+  onClick,
+  className = "",
+  disabled,
+}: EditIconButtonProps) {
+  return (
+    <button
+      type="button"
+      className={`zm-btn zm-btn-ghost zm-btn-icon${className ? ` ${className}` : ""}`}
+      title={label}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <Trash2 size={16} aria-hidden />
     </button>
   );
 }

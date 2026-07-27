@@ -42,7 +42,7 @@ Useful app **before** related-detect and fancy Analyse:
 
 Do **not** duplicate slice tables here. Follow and check off:
 
-→ **[`implementation-plan.md`](implementation-plan.md)** (slices 0–11, Thin DoD, Thick, out of scope)
+→ **[`implementation-plan.md`](implementation-plan.md)** (slices 0–13, Thin DoD, Thick, out of scope)
 
 **MVP complete** = Thin of slices **0–6** done.
 
@@ -65,5 +65,6 @@ Do **not** duplicate slice tables here. Follow and check off:
 | [`analysis.md`](analysis.md) | Analyse + netting |
 | [`categorization.md`](categorization.md) | Categorizer + tree |
 | [`investments.md`](investments.md) | Investiert (EK) + confirm flow |
+| [`reports.md`](reports.md) | PDF reports (TX + Analyse) |
 | [`testing.md`](testing.md) | Automated + manual test concept |
 | `categories_seed.json` | Seed data |

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { setAccountBalance } from "wasp/client/operations";
 import { defaultAccountColor } from "../features/accounts/colors";
 import { CloseIconButton } from "./PageChrome";
+import { OverlayPortal } from "./OverlayPortal";
 
 type Props = {
   accountId: number;
@@ -72,18 +73,19 @@ export function BalanceCalibrationModal({
   }
 
   return (
-    <div
-      className="zm-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="zm-balance-title"
-    >
-      <div className="zm-overlay-anchor">
-        <div className="zm-overlay-panel zm-overlay-panel--narrow">
-          <header className="zm-overlay-header">
-            <h2 id="zm-balance-title">Konto bearbeiten</h2>
-            <CloseIconButton disabled={busy} onClick={onSkip} />
-          </header>
+    <OverlayPortal>
+      <div
+        className="zm-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="zm-balance-title"
+      >
+        <div className="zm-overlay-anchor">
+          <div className="zm-overlay-panel zm-overlay-panel--narrow">
+            <header className="zm-overlay-header">
+              <h2 id="zm-balance-title">Konto bearbeiten</h2>
+              <CloseIconButton disabled={busy} onClick={onSkip} />
+            </header>
           <p className="zm-page-lead">
             <strong>
               {bank.toUpperCase()} · {konto}
@@ -142,5 +144,6 @@ export function BalanceCalibrationModal({
         </div>
       </div>
     </div>
+    </OverlayPortal>
   );
 }

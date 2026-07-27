@@ -50,6 +50,8 @@ export type AnalysisByCategory = {
   mode: "category" | "subcategory";
   expenses: AnalysisCategorySlice[];
   income: AnalysisCategorySlice[];
+  /** Per-category net (income − expense); amounts are signed. */
+  net: AnalysisCategorySlice[];
 };
 
 export type AnalysisBreakdownChild = {
@@ -75,4 +77,6 @@ export type AnalysisBreakdown = {
   mode: "category" | "subcategory";
   expenses: AnalysisBreakdownRow[];
   income: AnalysisBreakdownRow[];
+  /** Per-category net (income − expense); amounts are signed. */
+  net: AnalysisBreakdownRow[];
 };

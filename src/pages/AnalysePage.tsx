@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   exportAnalysisCsv,
@@ -6,75 +6,40 @@ import {
   getAnalysisByCategory,
   getAnalysisSummary,
   getAnalysisTimeSeries,
+  getAccounts,
   getCategories,
+  getInvestedTotal,
   getTransactionFilterOptions,
   useQuery,
 } from "wasp/client/operations";
 import {
   AnalysisCategoryPie,
   AnalysisTrendChart,
+  type ChartExportHandle,
 } from "../components/AnalysisCharts";
 import { AnalysisBreakdownTable } from "../components/AnalysisBreakdownTable";
 import { PageTitle } from "../components/PageChrome";
 import { InvestiertSummaryStat } from "../components/InvestiertSummaryStat";
 import { KontostandSummaryStat } from "../components/KontostandSummaryStat";
 import { downloadCsv } from "../features/export/csv";
+import { buildAndDownloadAnalysisPdf } from "../features/export/analysisPdf";
 import type { AnalysisTyp } from "../features/analysis/types";
+import {
+  DATE_PRESET_CHIPS,
+  monthRange,
+  rangeForPreset,
+  type DatePreset,
+} from "../features/dates/presets";
+import {
+  loadAnalyseFilters,
+  saveAnalyseFilters,
+} from "../features/filters/persist";
 import { useClearNavPendingWhen } from "../features/shell/NavPendingContext";
 
 const eur = new Intl.NumberFormat("de-DE", {
   style: "currency",
   currency: "EUR",
 });
-
-type Preset =
-  | "year"
-  | "lastYear"
-  | "month"
-  | "lastMonth"
-  | "last3Months"
-  | "custom";
-
-function isoDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function yearStart(year: number): string {
-  return `${year}-01-01`;
-}
-
-function monthRange(now = new Date()): { from: string; to: string } {
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  const from = new Date(y, m, 1);
-  const to = new Date();
-  return { from: isoDate(from), to: isoDate(to) };
-}
-
-function defaultYearRange(now = new Date()): { from: string; to: string } {
-  return { from: yearStart(now.getFullYear()), to: isoDate(now) };
-}
-
-function lastYearRange(now = new Date()): { from: string; to: string } {
-  const y = now.getFullYear() - 1;
-  return { from: yearStart(y), to: `${y}-12-31` };
-}
-
-function lastMonthRange(now = new Date()): { from: string; to: string } {
-  const firstThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastPrev = new Date(firstThisMonth.getTime() - 86_400_000);
-  const firstPrev = new Date(lastPrev.getFullYear(), lastPrev.getMonth(), 1);
-  return { from: isoDate(firstPrev), to: isoDate(lastPrev) };
-}
-
-/** Current month + previous two calendar months, through today. */
-function last3MonthsRange(now = new Date()): { from: string; to: string } {
-  const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-  return { from: isoDate(from), to: isoDate(now) };
-}
 
 function toggleValue(list: string[], value: string): string[] {
   return list.includes(value)
@@ -83,20 +48,63 @@ function toggleValue(list: string[], value: string): string[] {
 }
 
 export function AnalysePage() {
-  const initial = defaultYearRange();
-  const [preset, setPreset] = useState<Preset>("year");
-  const [dateFrom, setDateFrom] = useState(initial.from);
-  const [dateTo, setDateTo] = useState(initial.to);
-  const [banks, setBanks] = useState<string[]>([]);
-  const [konten, setKonten] = useState<string[]>([]);
-  const [typ, setTyp] = useState<AnalysisTyp>("all");
-  const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [subcategoryId, setSubcategoryId] = useState<number | null>(null);
+  const defaults = useMemo(() => {
+    const month = monthRange();
+    return {
+      banks: [] as string[],
+      konten: [] as string[],
+      typ: "all" as AnalysisTyp,
+      categoryId: null as number | null,
+      subcategoryId: null as number | null,
+      preset: "month" as DatePreset,
+      dateFrom: month.from,
+      dateTo: month.to,
+    };
+  }, []);
+
+  const initial = useMemo(() => loadAnalyseFilters(defaults), [defaults]);
+
+  const [preset, setPreset] = useState<DatePreset>(initial.preset);
+  const [dateFrom, setDateFrom] = useState(initial.dateFrom);
+  const [dateTo, setDateTo] = useState(initial.dateTo);
+  const [banks, setBanks] = useState<string[]>(initial.banks);
+  const [konten, setKonten] = useState<string[]>(initial.konten);
+  const [typ, setTyp] = useState<AnalysisTyp>(
+    (["all", "income", "expense"] as const).includes(
+      initial.typ as AnalysisTyp,
+    )
+      ? (initial.typ as AnalysisTyp)
+      : "all",
+  );
+  const [categoryId, setCategoryId] = useState<number | null>(
+    initial.categoryId,
+  );
+  const [subcategoryId, setSubcategoryId] = useState<number | null>(
+    initial.subcategoryId,
+  );
   const [exportBusy, setExportBusy] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const trendChartRef = useRef<ChartExportHandle>(null);
+  const expensePieRef = useRef<ChartExportHandle>(null);
+  const incomePieRef = useRef<ChartExportHandle>(null);
+  const netPieRef = useRef<ChartExportHandle>(null);
+
+  useEffect(() => {
+    saveAnalyseFilters({
+      banks,
+      konten,
+      typ,
+      categoryId,
+      subcategoryId,
+      preset,
+      dateFrom,
+      dateTo,
+    });
+  }, [banks, konten, typ, categoryId, subcategoryId, preset, dateFrom, dateTo]);
 
   const { data: options } = useQuery(getTransactionFilterOptions);
   const { data: categories } = useQuery(getCategories);
+  const { data: accounts } = useQuery(getAccounts);
 
   const filterArgs = useMemo(
     () => ({
@@ -142,19 +150,10 @@ export function AnalysePage() {
   const selectedCategory = categories?.find((c) => c.id === categoryId);
   const subOptions = selectedCategory?.subcategories ?? [];
 
-  function applyPreset(next: Preset) {
+  function applyPreset(next: DatePreset) {
     setPreset(next);
-    if (next === "custom") return;
-    const r =
-      next === "year"
-        ? defaultYearRange()
-        : next === "lastYear"
-          ? lastYearRange()
-          : next === "month"
-            ? monthRange()
-            : next === "lastMonth"
-              ? lastMonthRange()
-              : last3MonthsRange();
+    if (next === "custom" || next === "all") return;
+    const r = rangeForPreset(next);
     setDateFrom(r.from);
     setDateTo(r.to);
   }
@@ -168,6 +167,11 @@ export function AnalysePage() {
       setSubcategoryId(id);
     }
   }
+
+  const showIncome = typ !== "expense";
+  const showExpense = typ !== "income";
+  const showNet = typ === "all";
+  const hasData = (summary?.count ?? 0) > 0;
 
   async function handleExportCsv() {
     setExportBusy(true);
@@ -183,10 +187,102 @@ export function AnalysePage() {
     }
   }
 
-  const showIncome = typ !== "expense";
-  const showExpense = typ !== "income";
-  const showNet = typ === "all";
-  const hasData = (summary?.count ?? 0) > 0;
+  async function handleExportPdf() {
+    setExportBusy(true);
+    try {
+      const invested = await getInvestedTotal({
+        banks: banks.length ? banks : undefined,
+        konten: konten.length ? konten : undefined,
+      });
+      const balanceAccounts = (accounts ?? []).filter((a) => {
+        if (banks.length > 0 && !banks.includes(a.bank)) return false;
+        if (konten.length > 0 && !konten.includes(a.konto)) return false;
+        return a.displayBalance != null;
+      });
+      const balanceTotal =
+        balanceAccounts.length > 0
+          ? balanceAccounts.reduce(
+              (sum, a) => sum + Number(a.displayBalance),
+              0,
+            )
+          : null;
+
+      const typLabel =
+        typ === "income" ? "Einnahmen" : typ === "expense" ? "Ausgaben" : "Alle";
+      const catName =
+        categories?.find((c) => c.id === categoryId)?.name ?? null;
+      const subName =
+        selectedCategory?.subcategories.find((s) => s.id === subcategoryId)
+          ?.name ?? null;
+
+      const filterLines = [
+        `Zeitraum: ${dateFrom} bis ${dateTo}`,
+        `Bank: ${banks.length ? banks.join(", ") : "alle"}`,
+        `Konto: ${konten.length ? konten.join(", ") : "alle"}`,
+        `Typ: ${typLabel}`,
+        catName ? `Kategorie: ${catName}` : null,
+        subName ? `Unterkategorie: ${subName}` : null,
+      ].filter((x): x is string => Boolean(x));
+
+      const metrics = [
+        {
+          label: "Kontostand",
+          value:
+            balanceTotal != null ? eur.format(balanceTotal) : "—",
+        },
+        {
+          label: "Investiert",
+          value:
+            invested?.total != null
+              ? eur.format(Number(invested.total))
+              : "—",
+        },
+      ];
+      if (showIncome) {
+        metrics.push({
+          label: "Einnahmen",
+          value: eur.format(Number(summary?.income ?? 0)),
+        });
+      }
+      if (showExpense) {
+        metrics.push({
+          label: "Ausgaben",
+          value: eur.format(Number(summary?.expense ?? 0)),
+        });
+      }
+      if (showNet) {
+        metrics.push({
+          label: "Netto",
+          value: eur.format(Number(summary?.net ?? 0)),
+        });
+      }
+      metrics.push({
+        label: "Buchungen",
+        value: (summary?.count ?? 0).toLocaleString("de-DE"),
+      });
+
+      await buildAndDownloadAnalysisPdf({
+        metrics,
+        filterLines,
+        trendImage: trendChartRef.current?.toDataUrl() ?? null,
+        expensePieImage: expensePieRef.current?.toDataUrl() ?? null,
+        incomePieImage: incomePieRef.current?.toDataUrl() ?? null,
+        netPieImage: netPieRef.current?.toDataUrl() ?? null,
+        expenseBreakdown: breakdown?.expenses ?? [],
+        incomeBreakdown: breakdown?.income ?? [],
+        netBreakdown: breakdown?.net ?? [],
+        showExpense,
+        showIncome,
+        showNet,
+      });
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "PDF-Export fehlgeschlagen.",
+      );
+    } finally {
+      setExportBusy(false);
+    }
+  }
 
   return (
     <section className="zm-analyse-page">
@@ -194,8 +290,8 @@ export function AnalysePage() {
 
       <div className="zm-tx-topbar" aria-live="polite">
         <div className="zm-summary-inline">
-          <KontostandSummaryStat />
-          <InvestiertSummaryStat />
+          <KontostandSummaryStat banks={banks} konten={konten} />
+          <InvestiertSummaryStat banks={banks} konten={konten} />
           {showIncome && (
             <div>
               <span className="zm-summary-label">Einnahmen</span>
@@ -238,11 +334,33 @@ export function AnalysePage() {
         <div className="zm-tx-topbar-actions">
           <button
             type="button"
-            className="zm-btn zm-btn-ghost"
+            className="zm-btn zm-btn-ghost zm-btn-with-icon"
             disabled={exportBusy || isLoading}
             onClick={() => void handleExportCsv()}
+            aria-label="CSV exportieren"
           >
-            {exportBusy ? "Export…" : "CSV exportieren"}
+            <img
+              src="/design/Export.svg"
+              alt=""
+              className="zm-btn-export"
+              aria-hidden
+            />
+            CSV
+          </button>
+          <button
+            type="button"
+            className="zm-btn zm-btn-ghost zm-btn-with-icon"
+            disabled={exportBusy || isLoading}
+            onClick={() => void handleExportPdf()}
+            aria-label="PDF exportieren"
+          >
+            <img
+              src="/design/Export.svg"
+              alt=""
+              className="zm-btn-export"
+              aria-hidden
+            />
+            PDF
           </button>
           <button
             type="button"
@@ -266,16 +384,7 @@ export function AnalysePage() {
         <div className="zm-filter-group">
           <span className="zm-field-label">Zeitraum</span>
           <div className="zm-chip-row">
-            {(
-              [
-                ["year", "Dieses Jahr"],
-                ["lastYear", "Letztes Jahr"],
-                ["month", "Dieser Monat"],
-                ["lastMonth", "Letzter Monat"],
-                ["last3Months", "Letzte 3 Monate"],
-                ["custom", "Benutzerdefiniert"],
-              ] as const
-            ).map(([key, label]) => (
+            {DATE_PRESET_CHIPS.filter((c) => c.analyse).map(({ key, label }) => (
               <button
                 key={key}
                 type="button"
@@ -464,6 +573,7 @@ export function AnalysePage() {
                 : ""}
             </h2>
             <AnalysisTrendChart
+              ref={trendChartRef}
               labels={(series?.points ?? []).map((p) => p.label)}
               income={(series?.points ?? []).map((p) => Number(p.income))}
               expense={(series?.points ?? []).map((p) => Number(p.expense))}
@@ -472,8 +582,28 @@ export function AnalysePage() {
             />
           </section>
 
-          {(showExpense || showIncome) && (
-            <div className="zm-analyse-pies">
+          {(showExpense || showIncome || showNet) && (
+            <div
+              className={`zm-analyse-pies${showExpense && showIncome && showNet ? " zm-analyse-pies--triple" : ""}`}
+            >
+              {showNet && (
+                <section className="zm-analyse-section">
+                  <h2 className="zm-analyse-heading">
+                    Total nach{" "}
+                    {byCategory?.mode === "subcategory"
+                      ? "Unterkategorie"
+                      : "Kategorie"}
+                  </h2>
+                  <AnalysisCategoryPie
+                    ref={netPieRef}
+                    slices={byCategory?.net ?? []}
+                    emptyLabel="Kein Netto in diesem Filter."
+                    onSliceClick={
+                      subcategoryId == null ? drillToCategory : undefined
+                    }
+                  />
+                </section>
+              )}
               {showExpense && (
                 <section className="zm-analyse-section">
                   <h2 className="zm-analyse-heading">
@@ -483,6 +613,7 @@ export function AnalysePage() {
                       : "Kategorie"}
                   </h2>
                   <AnalysisCategoryPie
+                    ref={expensePieRef}
                     slices={byCategory?.expenses ?? []}
                     emptyLabel="Keine Ausgaben in diesem Filter."
                     onSliceClick={
@@ -500,6 +631,7 @@ export function AnalysePage() {
                       : "Kategorie"}
                   </h2>
                   <AnalysisCategoryPie
+                    ref={incomePieRef}
                     slices={byCategory?.income ?? []}
                     emptyLabel="Keine Einnahmen in diesem Filter."
                     onSliceClick={
@@ -509,6 +641,18 @@ export function AnalysePage() {
                 </section>
               )}
             </div>
+          )}
+
+          {showNet && (
+            <AnalysisBreakdownTable
+              title="Total-Aufschlüsselung"
+              rows={breakdown?.net ?? []}
+              emptyLabel="Kein Netto zum Aufschlüsseln."
+              signedAmounts
+              onCategoryClick={
+                byCategory?.mode === "category" ? drillToCategory : undefined
+              }
+            />
           )}
 
           {showExpense && (

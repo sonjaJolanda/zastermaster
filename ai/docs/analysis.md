@@ -11,22 +11,20 @@ Answer, without paying for AI:
 3. What is the detailed breakdown under a category?
 4. Across several banks/Konten, am I **double-counting** PayPal↔bank or Giro↔Tagesgeld? (No — confirmed related pairs are netted.)
 
-**Not** the job of Analyse in v1: reconstructing a full ledger from day one, editing transactions (that’s Transaktionen), or YoY report PDFs (later).
+**Not** the job of Analyse in v1: reconstructing a full ledger from day one, or editing transactions (that’s Transaktionen).
 
 ## Page layout
 
 ```
 ┌─ Top bar ────────────────────────────────────────────────┐
 │ Kontostand · Investiert · Einnahmen · Ausgaben · Netto · Buchungen │
-│                         CSV exportieren · Filter (toggle)│
+│                    CSV · PDF exportieren · Filter (toggle)│
 ├─ Filters (collapsible, default closed) ──────────────────┤
 │ Zeitraum · Typ · Kategorie · Banken/Konten · …           │
 ├─ Sections (scroll) ──────────────────────────────────────┤
 │ 1. Zeitlicher Trend (line)                               │
-│ 2. Ausgaben nach Kategorie (pie + legend)                │
-│ 3. Einnahmen nach Kategorie (pie + legend)               │
-│ 4. Ausgaben-Aufschlüsselung (expandable table)           │
-│ 5. Einnahmen-Aufschlüsselung (expandable table)          │
+│ 2. Total · Ausgaben · Einnahmen (pies, side by side)     │
+│ 3. Total- / Ausgaben- / Einnahmen-Aufschlüsselung        │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -36,13 +34,13 @@ One frosted content panel; summary + actions under the title (same pattern as Tr
 
 | Filter | Default |
 |---|---|
-| Zeitraum | Current calendar year: **1 Jan of current year → end of today** |
+| Zeitraum | **Dieser Monat**: 1st of current month → today |
 | Granularity for trend | Auto from range length (table below) |
 | Kategorie / Unterkategorie | All |
 | Banken / Konten | All imported accounts |
 | Typ | All (income + expenses) |
 
-Changing any filter refetches analysis queries (no stale charts). **Route loading:** clicking any side-nav link shows a full-panel spinner immediately; the destination page clears it when its data is ready (Analyse waits for analysis queries).
+Changing any filter refetches analysis queries (no stale charts). Filters are persisted in `localStorage` (`zm-analyse-filters-v1`) and restored on reload; relative presets recompute their date range. **Route loading:** clicking any side-nav link shows a full-panel spinner immediately; the destination page clears it when its data is ready (Analyse waits for analysis queries).
 
 ## Filters (detailed)
 
@@ -58,13 +56,14 @@ Three complementary controls (German labels):
 
 Simplest v1 UX that still matches the brief:
 
-- Preset chips: **Dieses Jahr** | **Letztes Jahr** | **Dieser Monat** | **Letzter Monat** | **Letzte 3 Monate** | **Benutzerdefiniert**
+- Preset chips: **Dieses Jahr** | **Letztes Jahr** | **Dieser Monat** | **Letzter Monat** | **Vorletzter Monat** | **Letzte 3 Monate** | **Benutzerdefiniert**
   - Dieses Jahr: 1 Jan current year → today
   - Letztes Jahr: 1 Jan–31 Dec previous calendar year
   - Dieser Monat: 1st of current month → today
   - Letzter Monat: full previous calendar month
+  - Vorletzter Monat: full calendar month before last
   - Letzte 3 Monate: 1st of the month two months ago → today
-- Benutzerdefiniert: date-from + date-to (required if custom)
+  - Benutzerdefiniert: date-from + date-to (required if custom)
 - Year/month pickers can implement the presets under the hood
 
 ### Grouping (for the time trend)
@@ -96,7 +95,7 @@ Each bucket sums income and expenses separately for the line chart.
 
 | Value | Meaning |
 |---|---|
-| `all` | Summary shows Einnahmen + Ausgaben + Netto; both pies; both breakdowns; trend shows both lines |
+| `all` | Summary shows Einnahmen + Ausgaben + Netto; three pies (Total, Ausgaben, Einnahmen); three breakdowns; trend shows both lines |
 | `expenses` | Summary: show **Ausgaben** (+ Buchungen); hide or zero-out Einnahmen/Netto in the strip; hide income pie + income breakdown; trend = expenses only |
 | `income` | Symmetric for income |
 
@@ -110,8 +109,8 @@ Always for the **current filters** (after netting):
 
 | Metric | Definition |
 |---|---|
-| **Kontostand** | Calibrated wealth (`getHeaderBalance`); same as Transaktionen — **not** period-filtered |
-| **Investiert** | Confirmed investment EK (`getInvestedTotal`); see [`investments.md`](investments.md) — excluded from Ausgaben |
+| **Kontostand** | Calibrated wealth for **selected** bank/konto filters (same as Transaktionen); **not** period-filtered |
+| **Investiert** | Confirmed investment EK for selected bank/konto filters (`getInvestedTotal`); see [`investments.md`](investments.md) — excluded from Ausgaben |
 | **Einnahmen** | Sum of positive `betrag` (display abs as EUR); excludes confirmed investments |
 | **Ausgaben** | Sum of absolute values of negative `betrag`; excludes confirmed investments |
 | **Saldo / Netto** | Einnahmen − Ausgaben (signed) |
@@ -119,7 +118,7 @@ Always for the **current filters** (after netting):
 
 Calibrated wealth is shown for orientation; Analyse flow metrics still describe the **period** under filters. Edit balances under Einstellungen → Konten.
 
-## The five analyses
+## The analyses
 
 ### 1. Zeitlicher Trend
 
@@ -128,29 +127,21 @@ Calibrated wealth is shown for orientation; Analyse flow metrics still describe 
 - Tooltip: period, both amounts, optional net.
 - Empty range → empty state copy, not a broken chart.
 
-### 2. Ausgaben nach Kategorie
+### 2–4. Pies: Total · Ausgaben · Einnahmen
 
-- Pie (or doughnut) of **expense** totals by **main category**.
-- Colors from category records in DB.
-- Legend: name + amount + %.
-- Click legend/slice (nice-to-have v1): set category filter to that category and refresh (drill-down).
+- Three doughnuts side by side when Typ is **Alle** (order: Total, Ausgaben, Einnahmen).
+- Ausgaben / Einnahmen: absolute totals by category (as before).
+- **Total:** per category net = Σ `betrag` (Einnahmen − Ausgaben). Slice size = `|net|`; legend shows signed amount (green/red).
+- Colors from category records. Click slice drills into category when not already on a subcategory.
 
-### 3. Einnahmen nach Kategorie
+### 5–7. Aufschlüsselung
 
-- Same as (2) for **income**.
-
-### 4. Ausgaben-Aufschlüsselung
-
-- Expandable table: main category → subcategories → optional top merchants/keywords later.
-- Columns: Name (with **color swatch** for category and subcategory), Betrag, Anteil %, Anzahl Buchungen.
-- Sorted by amount descending.
+- Expandable tables for **Total**, Ausgaben, and Einnahmen (signed amounts for Total). Each Aufschlüsselung section is **collapsed by default** and toggled independently via its heading.
+- Columns: Name (with color swatch), Betrag, Anteil %, Anzahl Buchungen.
+- Sorted by amount descending (Total: by `|amount|`).
 - Uncategorized (`Sonstige` / `Unbekannt`) always visible if non-zero.
 
-### 5. Einnahmen-Aufschlüsselung
-
-- Same structure for income.
-
-When `transaction_type` is `expenses` or `income`, hide the opposite pie + breakdown (see Typ table). Do not leave empty opposite sections visible.
+When `transaction_type` is `expenses` or `income`, hide the opposite pie/breakdown **and** Total (see Typ table). Do not leave empty opposite sections visible.
 
 ## Related-transaction netting (critical)
 
@@ -161,8 +152,9 @@ Confirmed related pairs must **not** inflate Analyse when both legs would otherw
 1. Only **confirmed** links count (not suggestions).
 2. **Transfer between own accounts** (amounts ≈ opposite): if **both** legs are in the filtered set, **exclude both** from income/expense aggregates and from pies/breakdowns/trend (they are not real income/expense). They may still appear in Transaktionen.
 3. **PayPal ↔ bank** (same economic payment, usually same-sign expenses): if both legs are in the filtered set, count **once**. **v1 lock:** keep the **PayPal** (or wallet) merchant leg when present; otherwise keep the **earlier** `datum` (then lower id). Drop the other from aggregates only — both rows remain in Transaktionen.
-4. If the filter includes **only one** leg of a pair, count that leg normally (user intentionally scoped one account).
-5. Opening-balance / calibration synthetic rows: **exclude** from Analyse income/expense (they are balance plumbing, not spending). Tag them in data (e.g. `isBalanceAdjustment`) so filters can hide them consistently.
+4. **PayPal-Kauf** (`paypal_purchase`, 3 legs: paypal− + bank− + paypal+): **do not net** — all three remain in aggregates (they already cancel to the purchase amount).
+5. If the filter includes **only one** leg of a pair, count that leg normally (user intentionally scoped one account).
+6. Opening-balance / calibration synthetic rows: **exclude** from Analyse income/expense (they are balance plumbing, not spending). Tag them in data (e.g. `isBalanceAdjustment`) so filters can hide them consistently.
 
 Netting applies to **summary, trend, pies, and breakdowns** consistently.
 
@@ -201,7 +193,7 @@ All aggregation and netting happen **on the server**. Client only renders.
 
 ## Out of scope (v1) / later
 
-- Excel/PDF export of Analyse (CSV export of summary + breakdown is available)
+- Excel export of Analyse (CSV + PDF available — see [`reports.md`](reports.md))
 - Click-through from breakdown row → filtered Transaktionen (nice follow-up)
 
 ## Open / known issues
