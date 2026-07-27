@@ -66,5 +66,6 @@ Do **not** duplicate slice tables here. Follow and check off:
 | [`categorization.md`](categorization.md) | Categorizer + tree |
 | [`investments.md`](investments.md) | Investiert (EK) + confirm flow |
 | [`reports.md`](reports.md) | PDF reports (TX + Analyse) |
+| [`shipping-plan.md`](shipping-plan.md) | Distribute locally via Docker (requirements + checklist) |
 | [`testing.md`](testing.md) | Automated + manual test concept |
 | `categories_seed.json` | Seed data |

@@ -16,13 +16,13 @@ Full design requirements: [ai/docs/design.md](mdc:ai/docs/design.md).
 
 ## Brand & layout
 
-- Full-app background: `Design/BackgroundImage_Office.JPEG` (cover; fixed on desktop)
-- Logo: `Design/Zaster_Master_Logo.svg` fixed top-left (no full header bar)
+- Full-app background: `public/design/BackgroundImage_Office.JPEG` (cover; fixed on desktop; per-tab override via settings)
+- Logo: `public/design/Zaster_Master_Logo.svg` fixed top-left (no full header bar)
 - Side nav (right, sticky, centered): custom SVGs top→bottom `Tables` / `Analysis` / `Upload` / `Settings` — **no** frosted boxes
 - Content on **frosted/semi-opaque surfaces** — never small body text on bare photo
 - No Kontostand in chrome; no tab carousel
 - Einstellungen/Kategorien: edit category = subcategories + keywords (main and/or sub), not name-only
-- Lucide only for remaining in-page controls (e.g. chevrons); chrome + edit actions use `Design/*.svg`
+- Lucide only for remaining in-page controls (e.g. chevrons); chrome + edit actions use `public/design/*.svg`
 
 ## UI kit & Tailwind
 

@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { extname, join, basename } from "node:path";
 import type { GetBackgroundOptions } from "wasp/server/operations";
 
@@ -42,34 +42,11 @@ function labelFromFileName(fileName: string): string {
   return stem || fileName;
 }
 
-async function syncDesignBackgroundsToPublic(): Promise<void> {
-  const designDir = await firstExistingDir(repoPathCandidates("Design"));
-  const publicDesignDir =
-    (await firstExistingDir(repoPathCandidates("public", "design"))) ??
-    repoPathCandidates("public", "design")[0]!;
-
-  if (!designDir) return;
-  await mkdir(publicDesignDir, { recursive: true });
-
-  const files = await readdir(designDir, { withFileTypes: true });
-  for (const file of files) {
-    if (!file.isFile() || !isBackgroundImageFile(file.name)) continue;
-    const from = join(designDir, file.name);
-    const to = join(publicDesignDir, file.name);
-    try {
-      await copyFile(from, to);
-    } catch {
-      // ignore and continue with remaining files
-    }
-  }
-}
-
+/** List background rasters from `public/design/` (source of truth for assets). */
 export const getBackgroundOptions: GetBackgroundOptions<
   void,
   BackgroundOption[]
 > = async () => {
-  await syncDesignBackgroundsToPublic();
-
   const publicDesignDir = await firstExistingDir(
     repoPathCandidates("public", "design"),
   );

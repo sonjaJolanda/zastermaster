@@ -101,7 +101,7 @@ export function EinstellungenPage() {
   } = useQuery(getBackgroundOptions);
 
   const [backgroundPrefs, setBackgroundPrefs] = useState<BackgroundPrefs>(() =>
-    loadBackgroundPrefs("/design/BackgroundImage_Office%20-%20Kopie.JPEG"),
+    loadBackgroundPrefs("/design/BackgroundImage_Office.JPEG"),
   );
 
   useClearNavPendingWhen(
@@ -544,8 +544,8 @@ function BackgroundSettingsPanel({
     <div className="zm-accounts-panel" style={{ marginTop: "1.25rem" }}>
       <h2 className="zm-cat-section-title">Hintergrundbilder</h2>
       <p className="zm-page-lead">
-        Für jeden Tab separat. Neue JPEG-, PNG- oder WebP-Dateien im
-        Design-Ordner erscheinen nach dem Neuladen automatisch in der Auswahl.
+        Für jeden Tab separat. Neue JPEG-, PNG- oder WebP-Dateien in
+        `public/design` erscheinen nach dem Neuladen automatisch in der Auswahl.
       </p>
       <div className="zm-cat-editor" style={{ marginTop: "0.75rem" }}>
         {tabs.map(([tabKey, label]) => (

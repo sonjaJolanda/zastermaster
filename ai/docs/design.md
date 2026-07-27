@@ -4,24 +4,26 @@ Visual and UX requirements for the UI. Product behavior lives in [`../README.md`
 
 ## Brand assets
 
+Source of truth: [`public/design/`](../../public/design/). Served as `/design/…` (favicon: `public/favicon.svg`).
+
 | Asset | Path | Use |
 |---|---|---|
-| Logo | [`Design/Zaster_Master_Logo.svg`](../../Design/Zaster_Master_Logo.svg) | Fixed top-left brand mark only (icon); clickable home → Transaktionen. Black circular “Z” monogram — keep crisp. **Do not** show the wordmark “Zaster Master”. Also served as tab favicon (`public/favicon.svg`). |
-| Upload icon | [`Design/Upload.svg`](../../Design/Upload.svg) | Side nav → Upload; also page title |
-| Settings icon | [`Design/Settings.svg`](../../Design/Settings.svg) | Side nav → Einstellungen; also page title |
-| Tables icon | [`Design/Tables.svg`](../../Design/Tables.svg) | Side nav → Transaktionen; also page title |
-| Analysis icon | [`Design/Analysis.svg`](../../Design/Analysis.svg) | Side nav → Analyse; also page title |
-| Edit icon | [`Design/Edit.svg`](../../Design/Edit.svg) | Edit actions: category cards, Konten kalibrieren/anpassen, Transaktionen row action (opens Details overlay) |
-| Close icon | [`Design/Close.svg`](../../Design/Close.svg) | Dismiss overlays / expanded editors (top-right): TX details, related detect, account calibration, category card expand |
-| Backgrounds | Raster files in [`Design/`](../../Design/) matching `BackgroundImage_*` (JPEG/PNG/WebP) | **Per-tab** full-viewport background (fixed/cover), softly blurred (~6px). Default historically: office photo; user picks separately for Transaktionen / Analyse / Upload / Einstellungen under Einstellungen. |
+| Logo | [`public/design/Zaster_Master_Logo.svg`](../../public/design/Zaster_Master_Logo.svg) | Fixed top-left brand mark only (icon); clickable home → Transaktionen. Black circular “Z” monogram — keep crisp. **Do not** show the wordmark “Zaster Master”. Also served as tab favicon (`public/favicon.svg`). |
+| Upload icon | [`public/design/Upload.svg`](../../public/design/Upload.svg) | Side nav → Upload; also page title |
+| Settings icon | [`public/design/Settings.svg`](../../public/design/Settings.svg) | Side nav → Einstellungen; also page title |
+| Tables icon | [`public/design/Tables.svg`](../../public/design/Tables.svg) | Side nav → Transaktionen; also page title |
+| Analysis icon | [`public/design/Analysis.svg`](../../public/design/Analysis.svg) | Side nav → Analyse; also page title |
+| Edit icon | [`public/design/Edit.svg`](../../public/design/Edit.svg) | Edit actions: category cards, Konten kalibrieren/anpassen, Transaktionen row action (opens Details overlay) |
+| Close icon | [`public/design/Close.svg`](../../public/design/Close.svg) | Dismiss overlays / expanded editors (top-right): TX details, related detect, account calibration, category card expand |
+| Backgrounds | Raster files in [`public/design/`](../../public/design/) matching `BackgroundImage_*` (JPEG/PNG/WebP) | **Per-tab** full-viewport background (fixed/cover), softly blurred (~6px). Default: `BackgroundImage_Office.JPEG`; user picks per tab under Einstellungen. |
 
-Served copies live under `public/design/` (and `public/favicon.svg` for the logo). Do not replace these with generic gradients, stock “fintech purple” themes, or Lucide icons for chrome nav. Photos remain atmosphere, not competition for the content panel.
+Do not replace these with generic gradients, stock “fintech purple” themes, or Lucide icons for chrome nav. Photos remain atmosphere, not competition for the content panel.
 
 ### Per-tab background selection
 
 - **UI:** Einstellungen → **Hintergrundbilder** — one select per tab.
 - **Storage:** `localStorage` key `zm-backgrounds-v1` (event `zm-backgrounds-changed` so `App` updates without reload).
-- **Options:** query `getBackgroundOptions` lists raster files from `Design/`, sync-copies them into `public/design/`, and returns `/design/…` URLs. **New images dropped into `Design/` appear after reload** (no code change).
+- **Options:** query `getBackgroundOptions` lists rasters from `public/design/` and returns `/design/…` URLs. **New images dropped into `public/design/` appear after reload.**
 - **Apply:** `App` sets `--zm-bg-image` from the preference for the current route.
 
 ## Visual direction
@@ -188,6 +190,6 @@ No continuous parallax on the background; keep the photo still.
 
 ## Implementation notes
 
-- Nav/chrome SVGs: keep copies under `public/design/`. Background rasters: prefer files in `Design/`; `getBackgroundOptions` syncs them to `public/design/` when Einstellungen (or App prefs refresh) loads options.
+- All chrome SVGs and background rasters live under `public/design/` only (no separate `Design/` folder).
 - Token values live in `src/App.css`; tweak against the real photos (`--zm-bg-image` overridden per tab from prefs).
 - When design decisions change, update this file (and Slice 10 DoD in [`implementation-plan.md`](implementation-plan.md)).

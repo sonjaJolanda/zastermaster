@@ -12,7 +12,7 @@ Local personal finance app for importing German bank exports, categorizing trans
 | **DB runtime** | PostgreSQL via Docker Compose (`docker compose up -d db`) |
 | **Windows** | **WSL required** for Wasp; Docker Desktop for the DB |
 
-Sample exports: [`Bankauszüge/`](../Bankauszüge/). Design assets: [`Design/`](../Design/). Feature specs: [`docs/`](docs/) (filled as features are built).
+Sample exports: [`Bankauszüge/`](../Bankauszüge/). Design assets: [`public/design/`](../public/design/). Feature specs: [`docs/`](docs/) (filled as features are built).
 
 This README ([ai/README.md](ai/README.md)) is the product and architecture source of truth. Cursor rules in [`.cursor/rules/`](../.cursor/rules/) must match it.
 
@@ -91,7 +91,7 @@ wasp start
 
 **Privacy:** Do not publish `Bankauszüge/` or DB dumps. Keep the app on localhost.
 
-**Design assets:** Serve logo + background from the client (`Design/` or `public/`).
+**Design assets:** Serve logo + backgrounds from `public/design/`.
 
 **Docker scope:** Postgres only in v1. Do not containerize the whole Wasp app for normal development.
 
@@ -224,7 +224,7 @@ Parsing of messy German CSV/TXT lives in TypeScript server modules under `src/fe
 
 | Element | Role |
 |---|---|
-| Logo | Brand mark from `Design/Zaster_Master_Logo.svg` (default route: Transaktionen) |
+| Logo | Brand mark from `public/design/Zaster_Master_Logo.svg` (default route: Transaktionen) |
 | Balance | Calibrated total, `de-DE` EUR |
 | Upload icon | Upload page |
 | Settings icon | Einstellungen → Kategorien (v1) |
@@ -265,7 +265,7 @@ Full spec: [`ai/docs/analysis.md`](docs/analysis.md).
 
 **Netting:** confirmed related pairs/groups must not double-count; own-account transfers drop both legs when both are in scope; PayPal↔bank counts the PayPal/wallet leg once when both are in scope; PayPal-Kauf (`paypal_purchase`) nets nothing. Server-side aggregation only.
 
-**Background:** per-tab image under Einstellungen (from `Design/` rasters); see [`design.md`](docs/design.md).
+**Background:** per-tab image under Einstellungen (rasters in `public/design/`); see [`design.md`](docs/design.md).
 
 ---
 
@@ -333,7 +333,7 @@ zastermaster/
     components/             # Shadcn + shared UI
     App.tsx                 # root: header + Outlet
   categories_seed.json      # category tree seed (repo root)
-  Design/
+  public/design/            # logo, nav icons, background images
   Bankauszüge/
   .cursor/rules/
 ```
@@ -351,14 +351,14 @@ zastermaster/
 - Header icon nav; Transaktionen / Analyse / Upload
 - Related detect → confirm + analysis netting (action + progress UI, no job queue)
 - Account balance calibration
-- Design background + logo (per-tab background pick from `Design/`), German UI ([`ai/docs/design.md`](docs/design.md))
+- Design background + logo (per-tab pick from `public/design/`), German UI ([`ai/docs/design.md`](docs/design.md))
 - Cursor rules aligned with this README
 
 ### Later
 
+- **Local distribution** to other Windows users via Docker + Git — requirements locked in [`docs/shipping-plan.md`](docs/shipping-plan.md) (not implemented yet)
 - Auth (Wasp built-in), if sharing or remote access is needed
-- Cloud deploy (e.g. Fly.io), if leaving pure local-only
-- Optional Docker packaging / Compose
+- Cloud deploy (e.g. Fly.io), only if leaving pure local-only
 - Wasp Jobs for long related-detect / heavy import / ML
 - Stronger transfer netting
 - Optional local ML / optional cloud AI categorization

@@ -39,14 +39,14 @@ function AppShell() {
   const copy =
     LOADING_COPY[pendingTo ?? ""] ?? { title: "Seite wird geladen…" };
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(() => {
-    const prefs = loadBackgroundPrefs("/design/BackgroundImage_Office%20-%20Kopie.JPEG");
+    const prefs = loadBackgroundPrefs("/design/BackgroundImage_Office.JPEG");
     return prefs[tabKeyForPath(pathname)];
   });
 
   useEffect(() => {
     const refresh = () => {
       const prefs = loadBackgroundPrefs(
-        "/design/BackgroundImage_Office%20-%20Kopie.JPEG",
+        "/design/BackgroundImage_Office.JPEG",
       );
       setBackgroundUrl(prefs[tabKeyForPath(pathname)]);
     };

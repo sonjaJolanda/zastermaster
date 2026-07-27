@@ -61,8 +61,8 @@ Slice **13** is client PDF reports for Transaktionen + Analyse ([`reports.md`](r
 2. Confirm `wasp start` works.
 3. Set `app.client.rootComponent` → shell with `<Outlet />`.
 4. Add routes/pages: Upload, Einstellungen, Transaktionen (default), Analyse.
-5. Header: logo (`Design/Zaster_Master_Logo.svg`), placeholder balance, 4 nav icons; active state; German tooltips.
-6. Full-app background (`Design/BackgroundImage_Office.JPEG`); frosted content panel wrapper.
+5. Header: logo (`public/design/Zaster_Master_Logo.svg`), placeholder balance, 4 nav icons; active state; German tooltips.
+6. Full-app background (`public/design/BackgroundImage_Office.JPEG`); frosted content panel wrapper.
 7. Remove any auth/template cruft if present.
 
 ### Thin DoD
@@ -554,4 +554,5 @@ Prefer Wasp queries/actions; no auth; German UI; design.md for shell.
 | [`testing.md`](testing.md) | Unit tests + manuelle `_Tester`-Bankdateien |
 | [`investments.md`](investments.md) | Investiert (EK), Keywords, Confirm-Flow |
 | [`reports.md`](reports.md) | PDF export (TX + Analyse) |
+| [`shipping-plan.md`](shipping-plan.md) | Local Docker distribution to other Windows users |
 | `categories_seed.json` | Slice 1 seed |
