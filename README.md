@@ -4,8 +4,8 @@ Persönliche Finanz-App für Windows. Daten bleiben **lokal** auf deinem PC.
 
 ## Brauchst du
 
-1. [Docker Desktop](https://www.docker.com/products/docker-desktop/) — installieren und **starten**
-2. [Git](https://git-scm.com/download/win)
+1. <a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener noreferrer">Docker Desktop</a> — installieren und **starten**
+2. <a href="https://git-scm.com/download/win" target="_blank" rel="noopener noreferrer">Git</a>
 
 ## Einrichten
 
@@ -16,7 +16,7 @@ cd zastermaster
 
 1. **`setup-hosts.bat`** als Administrator ausführen (einmalig)
 2. **`start.bat`** starten (erster Build kann einige Minuten dauern)
-3. Öffnen: **http://zastermaster** — Fallback: http://127.0.0.1:3080
+3. Öffnen: <a href="http://zastermaster" target="_blank" rel="noopener noreferrer">http://zastermaster</a> — Fallback: <a href="http://127.0.0.1:3080" target="_blank" rel="noopener noreferrer">http://127.0.0.1:3080</a>
 
 | Aktion | Datei |
 |---|---|
@@ -26,6 +26,22 @@ cd zastermaster
 | Backup | `backup.bat` → `backups\` |
 
 Keine Bank-Exporte oder `.env.ship` committen/teilen.
+
+## Updates (neue Versionen)
+
+Du musst **keine Versionsnummer** irgendwo eintragen.
+
+Wenn im Git-Repo neue Änderungen liegen:
+
+1. Docker Desktop starten
+2. **`update.bat`** ausführen
+
+Das Skript macht automatisch:
+
+1. `git pull` — holt den neuen Code
+2. `docker compose … up --build -d` — baut die Images bei Bedarf neu und startet den Stack neu
+
+Deine Datenbank (Docker-Volume) bleibt dabei erhalten. Nur bei sehr großen Änderungen kann der Rebuild länger dauern.
 
 ## Entwickler
 
