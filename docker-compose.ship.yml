@@ -22,7 +22,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
-    # No host port — only reachable from other compose services.
+    # Localhost only — for Beekeeper / tools; 5433 avoids clash with dev DB on 5432
+    ports:
+      - "127.0.0.1:5433:5432"
 
   server:
     build:
