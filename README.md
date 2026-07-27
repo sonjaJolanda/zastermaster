@@ -23,7 +23,8 @@ cd zastermaster
 | Starten | `start.bat` |
 | Stoppen | `stop.bat` |
 | Update | `update.bat` |
-| Backup | `backup.bat` → `backups\` |
+| Backup (Ship) | `backup.bat` → `backups\` |
+| Backup (Dev) | `backup-dev.bat` → `backups\` |
 
 Keine Bank-Exporte oder `.env.ship` committen/teilen.
 
@@ -39,3 +40,21 @@ Das Skript pulled automatisch den neuen Code und baut die Images + Stack neu. Di
 ## Entwickler
 
 Produkt-Doku: [`ai/README.md`](ai/README.md) · Shipping: [`ai/docs/shipping-plan.md`](ai/docs/shipping-plan.md)
+
+Um die DB aus einem Backup zu nutzen: 
+
+```bash
+docker cp "<dir>\zastermaster\backups\zastermaster_dev_2026-07-27_150812.sql" 88:/backup
+```
+
+```bash
+docker exec -it 88 bash
+```
+
+```bash
+psql -U zaster -d zastermaster -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+```
+
+```bash
+psql -U zaster -d zastermaster -f zastermaster_dev_2026-07-27_150812.sql
+```
