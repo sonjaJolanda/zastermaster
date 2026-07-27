@@ -29,19 +29,12 @@ Keine Bank-Exporte oder `.env.ship` committen/teilen.
 
 ## Updates (neue Versionen)
 
-Du musst **keine Versionsnummer** irgendwo eintragen.
-
 Wenn im Git-Repo neue Änderungen liegen:
 
 1. Docker Desktop starten
 2. **`update.bat`** ausführen
 
-Das Skript macht automatisch:
-
-1. `git pull` — holt den neuen Code
-2. `docker compose … up --build -d` — baut die Images bei Bedarf neu und startet den Stack neu
-
-Deine Datenbank (Docker-Volume) bleibt dabei erhalten. Nur bei sehr großen Änderungen kann der Rebuild länger dauern.
+Das Skript pulled automatisch den neuen Code und baut die Images + Stack neu. Die Datenbank (Docker-Volume) bleibt dabei erhalten. Nur bei sehr großen Änderungen kann der Rebuild länger dauern.
 
 ## Entwickler
 
