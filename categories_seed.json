@@ -45,7 +45,8 @@
           "dm",
           "rossmann",
           "budni",
-          "mueller"
+          "mueller",
+          "müller"
         ]
       },
       "Bäcker": {
@@ -73,7 +74,8 @@
           "amplifon",
           "dr med",
           "zahnarzt",
-          "optiker"
+          "optiker",
+          "gynäk"
         ]
       },
       "Wohnen": {
@@ -98,13 +100,12 @@
           "saturn",
           "mediamarkt",
           "lenovo",
-          "apple",
           "samsung",
           "dell"
         ]
       },
-      "Kleidung": {
-        "color": "#FECACA",
+      "Kleidung/Schmuck": {
+        "color": "#fecaca",
         "keywords": [
           "kleidung",
           "schmuck",
@@ -114,23 +115,10 @@
           "zalando",
           "siemes",
           "H M DE0169",
-          "H amp M"
-        ]
-      },
-      "Abos und Apps": {
-        "color": "#A91A1A",
-        "keywords": [
-          "cartograph",
-          "icloud",
-          "netflix",
-          "spotify",
-          "chatgpt"
-        ]
-      },
-      "Mobilfunk": {
-        "color": "#FEE2E2",
-        "keywords": [
-          "fraenk"
+          "H amp M",
+          "hunkemöller",
+          "h&m",
+          "h & m"
         ]
       },
       "Uni und Bildung": {
@@ -142,14 +130,6 @@
           "studieren",
           "sprachstandstest",
           "HTWG"
-        ]
-      },
-      "Online-Shopping": {
-        "color": "#B91C1C",
-        "keywords": [
-          "Amazon",
-          "Etsy",
-          "SKROUTZ"
         ]
       }
     }
@@ -173,7 +153,8 @@
           "cartograph",
           "icloud",
           "netflix",
-          "spotify"
+          "spotify",
+          "abbo"
         ]
       },
       "Mobilfunk": {
@@ -206,12 +187,6 @@
           "incoming transfer"
         ]
       },
-      "Altersvorsorge": {
-        "color": "#C4B5FD",
-        "keywords": [
-          "rente"
-        ]
-      },
       "Versicherungen": {
         "color": "#9333EA",
         "keywords": [
@@ -233,13 +208,6 @@
         "keywords": [
           "paypal"
         ]
-      },
-      "Abonnements": {
-        "color": "#581C87",
-        "keywords": [
-          "beitrag",
-          "abo"
-        ]
       }
     }
   },
@@ -247,7 +215,7 @@
     "color": "#38A169",
     "keywords": [],
     "subcategories": {
-      "Restaurant": {
+      "Restaurant/Bar/Cafe/Späti": {
         "color": "#059669",
         "keywords": [
           "bar",
@@ -384,11 +352,12 @@
       "Spenden": {
         "color": "#D1FAE5",
         "keywords": [
-          "spenden"
+          "spenden",
+          "WILDERNESS"
         ]
       },
-      "Reisen": {
-        "color": "#16A085",
+      "Reisen/Urlaub": {
+        "color": "#16a085",
         "keywords": [
           "booking com",
           "hostelworld",
@@ -474,6 +443,10 @@
           "agip",
           "aral"
         ]
+      },
+      "Fahrrad": {
+        "color": "#3182ce",
+        "keywords": []
       }
     }
   },
@@ -484,7 +457,8 @@
       "atm",
       "bargeld",
       "abhebung",
-      "auszahlung"
+      "auszahlung",
+      "bar"
     ],
     "subcategories": {}
   },
