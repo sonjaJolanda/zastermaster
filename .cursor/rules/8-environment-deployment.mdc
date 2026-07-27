@@ -21,7 +21,7 @@ wasp start
 
 ## Shipping / end-user run (full Docker stack)
 
-- Spec: [`ai/docs/shipping-plan.md`](mdc:ai/docs/shipping-plan.md) · setup: [`ANLEITUNG.md`](mdc:ANLEITUNG.md)
+- Spec: [`ai/docs/shipping-plan.md`](mdc:ai/docs/shipping-plan.md) · setup (GitHub root): [`README.md`](mdc:README.md)
 - Stack: `docker-compose.ship.yml` + `ship/Dockerfile` — **db + server + client** all in containers
 - Host needs **Docker Desktop + Git only** (no WSL/Node/Wasp for recipients)
 - Bind **`127.0.0.1` only**; URL `http://zastermaster` (hosts + port 80; fallback `3080`)

@@ -3,7 +3,7 @@
 How to **distribute the app to other people** without putting bank data online.  
 Status: **ready for local ship** — checklist complete (smoke-tested 2026-07-27).
 
-Related: [`../README.md`](../README.md) · [`../../ANLEITUNG.md`](../../ANLEITUNG.md) · [`.cursor/rules/8-environment-deployment.mdc`](../../.cursor/rules/8-environment-deployment.mdc) · [`design.md`](design.md)
+Related: [`../../README.md`](../../README.md) (setup / GitHub landing) · [`../README.md`](../README.md) (product) · [`.cursor/rules/8-environment-deployment.mdc`](../../.cursor/rules/8-environment-deployment.mdc) · [`design.md`](design.md)
 
 ---
 
@@ -168,7 +168,7 @@ You can leave `docker compose up -d db` (dev) and even `wasp start` running; shi
 | Doc | Audience | Content |
 |---|---|---|
 | **This file** [`shipping-plan.md`](shipping-plan.md) | Maintainer / agents | Requirements + architecture + checklist |
-| Setup guide e.g. `ANLEITUNG.md` (root or `docs/`) | End users | Docker, Git, clone, start, update, URL, backup, troubleshooting — **setup only** |
+| Setup guide [`../../README.md`](../../README.md) (repo root) | End users | Docker, Git, clone, start, update, URL, backup, troubleshooting — **setup only** (shown on GitHub) |
 | Update [`../README.md`](../README.md) + env Cursor rule | Devs | Point to ship path; keep “dev = Postgres-only Compose” |
 
 **Not** an end-user product handbook.
@@ -194,7 +194,7 @@ Static design assets live only under **`public/design/`** (logos, nav SVGs, back
 - [x] Localhost-only publish + `zastermaster` hosts helper — `setup-hosts.bat`
 - [x] `start` / `stop` / `update` / `backup` `.bat`
 - [x] `.env.ship.example` + first-run copy in `start.bat`
-- [x] End-user **setup** guide (`ANLEITUNG.md`)
+- [x] End-user **setup** guide (repo-root `README.md`)
 - [x] Link from README + environment Cursor rule
 - [x] Smoke test: `docker compose -f docker-compose.ship.yml up --build` — client `:80`/`:3080`, server host `:3002`, migrations + backgrounds OK (2026-07-27)
 - [x] Pre-public repo scan — `Bankauszüge/`, `.env.ship`, `.env.server`, `backups/` gitignored; only `.env.*.example` for env templates (confirm before making repo public)

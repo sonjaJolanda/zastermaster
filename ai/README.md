@@ -14,7 +14,9 @@ Local personal finance app for importing German bank exports, categorizing trans
 
 Sample exports: [`Bankauszüge/`](../Bankauszüge/). Design assets: [`public/design/`](../public/design/). Feature specs: [`docs/`](docs/) (filled as features are built).
 
-This README ([ai/README.md](ai/README.md)) is the product and architecture source of truth. Cursor rules in [`.cursor/rules/`](../.cursor/rules/) must match it.
+This README ([ai/README.md](ai/README.md)) is the product and architecture source of truth.  
+**GitHub landing / setup for end users:** repo-root [`../README.md`](../README.md).  
+Cursor rules in [`.cursor/rules/`](../.cursor/rules/) must match this file.
 
 ---
 
@@ -50,7 +52,7 @@ This README ([ai/README.md](ai/README.md)) is the product and architecture sourc
 | Database | **PostgreSQL** via Prisma (`schema.prisma`) |
 | DB process (dev) | **PostgreSQL in Docker** (`docker compose up -d db`); `DATABASE_URL` in `.env.server` |
 | App process (dev) | `wasp start` — on Windows, run this **inside WSL** |
-| Distribution (ship) | Full stack in Docker: `docker-compose.ship.yml` (db + server + client). Host needs Docker Desktop + Git only — see [`docs/shipping-plan.md`](docs/shipping-plan.md) / [`../ANLEITUNG.md`](../ANLEITUNG.md) |
+| Distribution (ship) | Full stack in Docker: `docker-compose.ship.yml` (db + server + client). Host needs Docker Desktop + Git only — see [`docs/shipping-plan.md`](docs/shipping-plan.md) / root [`../README.md`](../README.md) |
 | Network | Localhost only in v1 |
 
 **Why this stack:** Full-stack TypeScript with Wasp, Prisma models, typed operations, and a clear path to auth later. PostgreSQL fits Prisma well. **Two run modes:** (1) **Dev** — Docker = Postgres only, app via Wasp CLI in WSL. (2) **Ship** — db + Node server + static client all in Docker so recipients do not need WSL/Node/Wasp.
@@ -357,7 +359,7 @@ zastermaster/
 - Account balance calibration
 - Design background + logo (per-tab pick from `public/design/`), German UI ([`ai/docs/design.md`](docs/design.md))
 - Cursor rules aligned with this README
-- **Local distribution** via full Docker stack + Git — [`docs/shipping-plan.md`](docs/shipping-plan.md), setup [`../ANLEITUNG.md`](../ANLEITUNG.md)
+- **Local distribution** via full Docker stack + Git — [`docs/shipping-plan.md`](docs/shipping-plan.md), setup in root [`../README.md`](../README.md)
 
 ### Later
 

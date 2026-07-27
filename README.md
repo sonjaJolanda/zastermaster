@@ -1,9 +1,9 @@
 # Zaster Master — Einrichtung (Windows)
 
-Nur **Setup**: Installieren, starten, updaten, Backup.  
-Keine Erklärung der App-Funktionen (Transaktionen, Analyse, …).
+Persönliche Finanz-App: Bankdaten bleiben **lokal** auf deinem PC.  
+Diese Seite ist die **Setup-Anleitung** (Installieren, starten, updaten, Backup) — keine Erklärung der App-Funktionen.
 
-Daten bleiben **lokal** auf deinem PC. Der Code darf aus einem öffentlichen Git-Repo kommen.
+Der Code darf aus einem öffentlichen Git-Repo kommen; deine Daten nicht.
 
 ---
 
@@ -103,9 +103,12 @@ Auf dem PC brauchst du dafür **kein** WSL, kein Node und kein Wasp — nur Dock
 
 ---
 
-## Für Entwickler (Ship parallel zur Dev-Umgebung)
+## Für Entwickler
 
-Ship und Dev sind **getrennte** Compose-Projekte und Volumes — deine Dev-DB (`zastermaster_pgdata` / Port `5432`) bleibt unberührt.
+Produkt- und Architektur-Doku: [`ai/README.md`](ai/README.md)  
+Shipping-Plan: [`ai/docs/shipping-plan.md`](ai/docs/shipping-plan.md)
+
+Ship und Dev sind **getrennte** Compose-Projekte und Volumes — die Dev-DB (`zastermaster_pgdata` / Port `5432`) bleibt unberührt.
 
 | | Dev | Ship |
 |---|---|---|
@@ -113,6 +116,4 @@ Ship und Dev sind **getrennte** Compose-Projekte und Volumes — deine Dev-DB (`
 | Compose | `docker-compose.yml` | `docker-compose.ship.yml` |
 | Daten | Volume `zastermaster_pgdata` | Volume `zastermaster_ship_pgdata` |
 
-**Vor dem Ausprobieren von Ship:** nichts Spezielles nötig — Ship-API liegt auf Port **3002**, Dev/`wasp start` weiter auf **3001**. Bei Bedarf `stop.bat`, dann wieder normal entwickeln.
-
-Details: [`ai/docs/shipping-plan.md`](ai/docs/shipping-plan.md).
+Ship-API: Port **3002** · Dev/`wasp start`: Port **3001** — beides kann parallel laufen.
