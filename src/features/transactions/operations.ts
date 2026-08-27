@@ -58,14 +58,9 @@ function parseOptionalIsoDate(raw: string | undefined): Date | null {
   return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
 }
 
-function buildWhere(
-  args: TransactionFilterArgs | void,
-  opts?: { excludeInvestments?: boolean },
-): PrismaWhere {
+function buildWhere(args: TransactionFilterArgs | void): PrismaWhere {
   if (!args || typeof args !== "object") {
-    return opts?.excludeInvestments
-      ? { isBalanceAdjustment: false, isInvestment: false }
-      : { isBalanceAdjustment: false };
+    return { isBalanceAdjustment: false };
   }
 
   const clauses: PrismaWhere[] = [];
@@ -92,9 +87,6 @@ function buildWhere(
   }
   if (!args.includeBalanceAdjustments) {
     clauses.push({ isBalanceAdjustment: false });
-  }
-  if (opts?.excludeInvestments) {
-    clauses.push({ isInvestment: false });
   }
 
   const dateFrom = parseOptionalIsoDate(args.dateFrom);
@@ -264,7 +256,7 @@ export const getTransactionsSummary: GetTransactionsSummary<
   TransactionFilterArgs | void,
   TransactionsSummary
 > = async (args, context) => {
-  const base = buildWhere(args, { excludeInvestments: true });
+  const base = buildWhere(args);
 
   const rows = await context.entities.Transaction.findMany({
     where: base,

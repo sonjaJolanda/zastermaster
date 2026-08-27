@@ -941,9 +941,8 @@ export function TransaktionenPage() {
               <tbody>
                 {items.map((tx) => {
                   const amount = Number(tx.betrag);
-                  const amountClass = tx.isInvestment
-                    ? "zm-amount-investment"
-                    : amount > 0
+                  const amountClass =
+                    amount > 0
                       ? "zm-amount-income"
                       : amount < 0
                         ? "zm-amount-expense"
@@ -1067,6 +1066,14 @@ export function TransaktionenPage() {
                       {show("betrag") && (
                         <td className={`zm-num ${amountClass}`}>
                           {eur.format(amount)}
+                          {tx.isInvestment ? (
+                            <span
+                              className="zm-invest-badge"
+                              title="Zählt in den Ausgaben und unter Investiert"
+                            >
+                              Investition
+                            </span>
+                          ) : null}
                         </td>
                       )}
                       <td>

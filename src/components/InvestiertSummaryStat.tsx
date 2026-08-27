@@ -7,7 +7,7 @@ const eur = new Intl.NumberFormat("de-DE", {
 });
 
 const INFO =
-  "Bestätigter Kapitaleinsatz (EK), nicht Marktwert. Zählt nicht in Ausgaben/Einnahmen — Vermögensumschichtung, kein Konsum. So bleiben Sparen & Analyse ohne Doppelzählung.";
+  "Bestätigter Kapitaleinsatz (EK), nicht Marktwert. Zusätzlich zu den normalen Ausgaben/Einnahmen — die Buchungen bleiben in den Summen und Charts.";
 
 type Props = {
   banks?: string[];

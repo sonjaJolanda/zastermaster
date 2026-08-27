@@ -47,6 +47,7 @@ Config: repo-root [`vitest.config.ts`](../../vitest.config.ts) — includes `src
 | Hybrid categorizer | `src/features/categorization/categorizeRow.test.ts` | `categorizeRow.ts`, match helpers |
 | Related detectors | `src/features/related/detect.test.ts` | `related/detect.ts` |
 | Analyse netting | `src/features/analysis/netting.test.ts` | `analysis/netting.ts` |
+| Analyse time series (month bars) | `src/features/analysis/series.test.ts` | `analysis/series.ts` |
 | TX Summen | `src/features/transactions/summary.test.ts` | `transactions/summary.ts` (used by `getTransactionsSummary`) |
 
 ### What must stay green (P0)

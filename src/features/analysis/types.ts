@@ -28,11 +28,15 @@ export type AnalysisTimeSeriesPoint = {
   label: string;
   income: string;
   expense: string;
+  /** Confirmed investment buys (abs), also included in `expense`. */
+  invested: string;
 };
 
 export type AnalysisTimeSeries = {
   grouping: AnalysisGrouping;
   points: AnalysisTimeSeriesPoint[];
+  /** Always calendar-month buckets for the bar chart under the daily trend. */
+  monthlyPoints: AnalysisTimeSeriesPoint[];
 };
 
 export type AnalysisCategorySlice = {

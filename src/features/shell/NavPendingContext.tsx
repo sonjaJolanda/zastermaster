@@ -28,6 +28,7 @@ export function NavPendingProvider({ children }: { children: ReactNode }) {
   const beginPending = useCallback((to: string) => {
     setPendingStartedAt(Date.now());
     setPendingTo(to);
+    window.scrollTo(0, 0);
   }, []);
 
   const clearPending = useCallback(() => {

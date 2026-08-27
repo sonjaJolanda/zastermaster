@@ -14,6 +14,8 @@ export type AnalysisPdfInput = {
   filterLines: string[];
   trendImage?: string | null;
   trendAspectRatio?: number | null;
+  monthBarImage?: string | null;
+  monthBarAspectRatio?: number | null;
   expensePieImage?: string | null;
   incomePieImage?: string | null;
   netPieImage?: string | null;
@@ -73,6 +75,14 @@ export async function buildAndDownloadAnalysisPdf(
     "Zeitlicher Trend",
     65,
     input.trendAspectRatio,
+  );
+  y = addChartImage(
+    doc,
+    y,
+    input.monthBarImage,
+    "Vergleich pro Monat",
+    65,
+    input.monthBarAspectRatio,
   );
   const pieCharts: {
     title: string;

@@ -176,7 +176,7 @@ No continuous parallax on the background; keep the photo still.
 
 ### Analyse
 
-- Sticky-ish top bar: **Kontostand · Investiert** + period summary left; CSV + collapsible **Filter** right (default collapsed); sections below (see [`analysis.md`](analysis.md)).
+- Sticky-ish top bar: **Kontostand · Investiert** + period summary left; CSV + collapsible **Filter** right (default collapsed); sections below: daily **Zeitlicher Trend** (line), **Vergleich pro Monat** (bars), then pies / Aufschlüsselungen (see [`analysis.md`](analysis.md)).
 - While queries run: visible loading (spinner + German copy). **Any side-nav click** shows a full content-panel spinner until that page reports ready. *(Perf of that wait with many queries is still open — see [`analysis.md`](analysis.md) “Open / known issues”.)*
 - When Typ is **Alle**: **three pies side-by-side** (Total · Ausgaben · Einnahmen). When Typ is Ausgaben or Einnahmen, show only that pie (+ matching breakdown); hide Total and the opposite.
 - Charts use category DB colors and income/expense tokens; flat legends, no 3D.

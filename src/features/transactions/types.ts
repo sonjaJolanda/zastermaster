@@ -33,7 +33,7 @@ export type TransactionListItem = {
     | "transfer"
     | "near_duplicate"
     | null;
-  /** Confirmed investment — amount shown neutrally (not as expense red). */
+  /** Confirmed investment — still counts in flow totals; badge + Investiert strip. */
   isInvestment: boolean;
 };
 

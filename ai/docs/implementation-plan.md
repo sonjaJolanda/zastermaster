@@ -271,10 +271,10 @@ Time series, pies, breakdowns, Typ hide, category drill-down; apply related nett
 
 ### Thick DoD
 
-- [x] Zeitlicher Trend (auto day/month/year) + Ausgaben/Einnahmen-Pies
+- [x] Zeitlicher Trend (auto day/month/year) + **Vergleich pro Monat** (bars) + Ausgaben/Einnahmen-Pies
 - [x] Expandable category breakdowns; Typ hides opposite sections
 - [x] Category filter + pie/legend drill-down to subcategory view
-- [x] Related-pair netting applied to summary, trend, pies, breakdowns
+- [x] Related-pair netting applied to summary, trend, monthly bars, pies, breakdowns
 
 ### Out of scope
 
@@ -469,7 +469,7 @@ UI/CSS regression, full operation coverage via Prisma, CI pipeline (can add late
 
 ## Slice 12 — Investments (EK)
 
-**Goal:** Mark ETF/depot purchases as investments; show **Investiert** (cost basis) next to Kontostand; exclude confirmed investments from Konsum-Summen / Analyse-Flow.
+**Goal:** Mark ETF/depot purchases as investments; show **Investiert** (cost basis) next to Kontostand. Confirmed rows **stay** in Einnahmen/Ausgaben/Netto and Analyse charts (extra label, not an exclusion).
 
 **Specs:** [`investments.md`](investments.md) · [`transactions.md`](transactions.md) · [`analysis.md`](analysis.md)
 
@@ -477,7 +477,7 @@ UI/CSS regression, full operation coverage via Prisma, CI pipeline (can add late
 
 1. Schema: `Transaction.isInvestment`; models `InvestmentKeyword`, `InvestmentRejection`; migrate.
 2. Ops: keywords CRUD, `getInvestedTotal`, detect / confirm / reject.
-3. Exclude `isInvestment` from TX summary + Analyse netted flow (still visible in TX table; amount styled black).
+3. Keep `isInvestment` rows in TX summary + Analyse netted flow; table amount uses income/expense colors + **Investition** badge.
 4. UI: Einstellungen keywords; Transaktionen „Investitionen erkennen“ overlay; **Investiert** summary + info-(i).
 5. Docs: [`investments.md`](investments.md); link from TX / Analyse strips.
 
@@ -485,8 +485,8 @@ UI/CSS regression, full operation coverage via Prisma, CI pipeline (can add late
 
 - [x] Keywords + detect/confirm/reject flow works
 - [x] **Investiert** = −Σ(betrag) over confirmed investments
-- [x] Confirmed investments out of Einnahmen/Ausgaben/Netto (TX + Analyse)
-- [x] Table still shows them (black amount); info-(i) explains exclusion
+- [x] Confirmed investments **included** in Einnahmen/Ausgaben/Netto (TX + Analyse); also shown as **Investiert**
+- [x] Table: signed amount colors + Investition badge; info-(i) explains EK is additional
 
 ### Out of scope
 

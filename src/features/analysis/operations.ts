@@ -9,13 +9,17 @@ import type {
 import { toSemicolonCsv } from "../export/csv";
 import type { CsvExportResult } from "../export/types";
 import { idsToDropForNetting, summarizeNetted, type NettedTx } from "./netting";
+import {
+  autoGrouping,
+  fillSeriesBuckets,
+  toSeriesPoints,
+} from "./series";
 import type {
   AnalysisBreakdown,
   AnalysisBreakdownRow,
   AnalysisByCategory,
   AnalysisCategorySlice,
   AnalysisFilterArgs,
-  AnalysisGrouping,
   AnalysisSummary,
   AnalysisTimeSeries,
 } from "./types";
@@ -39,6 +43,7 @@ type LoadedTx = NettedTx & {
   categoryColor: string | null;
   subcategoryName: string | null;
   subcategoryColor: string | null;
+  isInvestment: boolean;
 };
 
 const FALLBACK_COLOR = "#78716c";
@@ -62,7 +67,6 @@ function buildWhere(args: AnalysisFilterArgs): PrismaWhere {
   const clauses: PrismaWhere[] = [
     { datum: { gte: dateFrom, lte: dateTo } },
     { isBalanceAdjustment: false },
-    { isInvestment: false },
   ];
 
   if (args.banks && args.banks.length > 0) {
@@ -93,77 +97,6 @@ function requireRange(args: AnalysisFilterArgs | void): AnalysisFilterArgs {
   return args;
 }
 
-function autoGrouping(dateFrom: Date, dateTo: Date): AnalysisGrouping {
-  const days =
-    Math.floor((dateTo.getTime() - dateFrom.getTime()) / 86_400_000) + 1;
-  // Up to ~1 calendar year: daily points so trends within/between months are visible.
-  if (days <= 400) return "day";
-  if (days <= 365 * 3) return "month";
-  return "year";
-}
-
-function enumeratePeriodKeys(
-  dateFrom: Date,
-  dateTo: Date,
-  grouping: AnalysisGrouping,
-): string[] {
-  const keys: string[] = [];
-  if (grouping === "day") {
-    const cur = new Date(dateFrom.getTime());
-    while (cur.getTime() <= dateTo.getTime()) {
-      keys.push(periodKey(cur, "day"));
-      cur.setUTCDate(cur.getUTCDate() + 1);
-    }
-    return keys;
-  }
-  if (grouping === "month") {
-    const cur = new Date(
-      Date.UTC(dateFrom.getUTCFullYear(), dateFrom.getUTCMonth(), 1),
-    );
-    const end = new Date(
-      Date.UTC(dateTo.getUTCFullYear(), dateTo.getUTCMonth(), 1),
-    );
-    while (cur.getTime() <= end.getTime()) {
-      keys.push(periodKey(cur, "month"));
-      cur.setUTCMonth(cur.getUTCMonth() + 1);
-    }
-    return keys;
-  }
-  for (let y = dateFrom.getUTCFullYear(); y <= dateTo.getUTCFullYear(); y++) {
-    keys.push(String(y));
-  }
-  return keys;
-}
-
-function periodKey(d: Date, grouping: AnalysisGrouping): string {
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  if (grouping === "day") return `${y}-${m}-${day}`;
-  if (grouping === "month") return `${y}-${m}`;
-  return String(y);
-}
-
-function periodLabel(key: string, grouping: AnalysisGrouping): string {
-  if (grouping === "year") return key;
-  if (grouping === "month") {
-    const [y, m] = key.split("-");
-    const d = new Date(Date.UTC(Number(y), Number(m) - 1, 1));
-    return d.toLocaleDateString("de-DE", {
-      month: "short",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-  }
-  const [y, m, day] = key.split("-");
-  const d = new Date(Date.UTC(Number(y), Number(m) - 1, Number(day)));
-  return d.toLocaleDateString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "UTC",
-  });
-}
-
 async function loadNettedRows(
   args: AnalysisFilterArgs,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -179,6 +112,7 @@ async function loadNettedRows(
       bank: true,
       relatedTransactionId: true,
       relatedType: true,
+      isInvestment: true,
       categoryId: true,
       subcategoryId: true,
       category: { select: { id: true, name: true, color: true } },
@@ -194,6 +128,7 @@ async function loadNettedRows(
       bank: string;
       relatedTransactionId: number | null;
       relatedType: RelatedType | null;
+      isInvestment: boolean;
       categoryId: number | null;
       subcategoryId: number | null;
       category: { id: number; name: string; color: string } | null;
@@ -205,6 +140,7 @@ async function loadNettedRows(
       bank: r.bank,
       relatedTransactionId: r.relatedTransactionId,
       relatedType: r.relatedType,
+      isInvestment: r.isInvestment,
       categoryId: r.categoryId,
       subcategoryId: r.subcategoryId,
       categoryName: r.category?.name ?? null,
@@ -533,32 +469,17 @@ export const getAnalysisTimeSeries: GetAnalysisTimeSeries<
   const grouping = filter.grouping ?? autoGrouping(dateFrom, dateTo);
   const { rows, drop } = await loadNettedRows(filter, context);
 
-  const buckets = new Map<string, { income: number; expense: number }>();
-  for (const key of enumeratePeriodKeys(dateFrom, dateTo, grouping)) {
-    buckets.set(key, { income: 0, expense: 0 });
-  }
-  for (const row of rows) {
-    if (drop.has(row.id)) continue;
-    const key = periodKey(row.datum, grouping);
-    let b = buckets.get(key);
-    if (!b) {
-      b = { income: 0, expense: 0 };
-      buckets.set(key, b);
-    }
-    if (row.betrag > 0) b.income += row.betrag;
-    else if (row.betrag < 0) b.expense += Math.abs(row.betrag);
-  }
-
-  const points = [...buckets.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([period, v]) => ({
-      period,
-      label: periodLabel(period, grouping),
-      income: v.income.toFixed(2),
-      expense: v.expense.toFixed(2),
-    }));
-
-  return { grouping, points };
+  return {
+    grouping,
+    points: toSeriesPoints(
+      fillSeriesBuckets(dateFrom, dateTo, grouping, rows, drop),
+      grouping,
+    ),
+    monthlyPoints: toSeriesPoints(
+      fillSeriesBuckets(dateFrom, dateTo, "month", rows, drop),
+      "month",
+    ),
+  };
 };
 
 export const getAnalysisByCategory: GetAnalysisByCategory<

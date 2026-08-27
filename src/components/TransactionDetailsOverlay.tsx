@@ -330,13 +330,11 @@ export function TransactionDetailsOverlay({ tx, onClose, onSaved }: Props) {
                   <dt>Betrag</dt>
                   <dd
                     className={
-                      tx.isInvestment
-                        ? "zm-amount-investment"
-                        : amount > 0
-                          ? "zm-amount-income"
-                          : amount < 0
-                            ? "zm-amount-expense"
-                            : ""
+                      amount > 0
+                        ? "zm-amount-income"
+                        : amount < 0
+                          ? "zm-amount-expense"
+                          : ""
                     }
                   >
                     {eur.format(amount)}

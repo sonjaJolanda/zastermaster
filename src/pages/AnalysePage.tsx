@@ -13,6 +13,7 @@ import {
   useQuery,
 } from "wasp/client/operations";
 import {
+  AnalysisBarChart,
   AnalysisCategoryPie,
   AnalysisTrendChart,
   type ChartExportHandle,
@@ -25,6 +26,7 @@ import { SummaryApproxInfo } from "../components/SummaryApproxInfo";
 import { downloadCsv } from "../features/export/csv";
 import { buildAndDownloadAnalysisPdf } from "../features/export/analysisPdf";
 import type { AnalysisTyp } from "../features/analysis/types";
+import { resolveMonthlyPoints } from "../features/analysis/series";
 import {
   DATE_PRESET_CHIPS,
   monthRange,
@@ -86,6 +88,7 @@ export function AnalysePage() {
   const [exportBusy, setExportBusy] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const trendChartRef = useRef<ChartExportHandle>(null);
+  const monthBarChartRef = useRef<ChartExportHandle>(null);
   const expensePieRef = useRef<ChartExportHandle>(null);
   const incomePieRef = useRef<ChartExportHandle>(null);
   const netPieRef = useRef<ChartExportHandle>(null);
@@ -137,6 +140,17 @@ export function AnalysePage() {
     getAnalysisBreakdown,
     filterArgs,
   );
+  const investedTotalArgs = useMemo(
+    () => ({
+      banks: banks.length ? banks : undefined,
+      konten: konten.length ? konten : undefined,
+    }),
+    [banks, konten],
+  );
+  const { data: investedAllTime } = useQuery(
+    getInvestedTotal,
+    investedTotalArgs,
+  );
 
   const isLoading =
     summaryFetching ||
@@ -171,8 +185,30 @@ export function AnalysePage() {
 
   const showIncome = typ !== "expense";
   const showExpense = typ !== "income";
+  const showInvestment = typ !== "income";
   const showNet = typ === "all";
   const hasData = (summary?.count ?? 0) > 0;
+  const monthPoints = useMemo(
+    () => resolveMonthlyPoints(series),
+    [series],
+  );
+  const periodInvested = useMemo(
+    () =>
+      (series?.points ?? []).reduce(
+        (sum, p) => sum + Number(p.invested ?? 0),
+        0,
+      ),
+    [series],
+  );
+  const hasConfirmedInvestments = (investedAllTime?.count ?? 0) > 0;
+  const investedKnown = investedAllTime !== undefined;
+  const showPeriodInvestHint =
+    showInvestment &&
+    investedKnown &&
+    hasConfirmedInvestments &&
+    periodInvested < 0.005;
+  const showUnconfirmedInvestHint =
+    showInvestment && investedKnown && !hasConfirmedInvestments;
 
   async function handleExportCsv() {
     setExportBusy(true);
@@ -267,6 +303,8 @@ export function AnalysePage() {
         filterLines,
         trendImage: trendChartRef.current?.toDataUrl() ?? null,
         trendAspectRatio: trendChartRef.current?.getAspectRatio() ?? null,
+        monthBarImage: monthBarChartRef.current?.toDataUrl() ?? null,
+        monthBarAspectRatio: monthBarChartRef.current?.getAspectRatio() ?? null,
         expensePieImage: expensePieRef.current?.toDataUrl() ?? null,
         incomePieImage: incomePieRef.current?.toDataUrl() ?? null,
         netPieImage: netPieRef.current?.toDataUrl() ?? null,
@@ -565,6 +603,20 @@ export function AnalysePage() {
         <p className="zm-page-lead">
           Keine Buchungen im gewählten Zeitraum. Zeitraum anpassen oder Daten
           importieren.
+          {hasConfirmedInvestments && (
+            <>
+              {" "}
+              Bestätigte Investments liegen außerhalb dieses Zeitraums — z. B.{" "}
+              <button
+                type="button"
+                className="zm-linkish"
+                onClick={() => applyPreset("year")}
+              >
+                Dieses Jahr anzeigen
+              </button>
+              .
+            </>
+          )}
         </p>
       )}
 
@@ -583,13 +635,52 @@ export function AnalysePage() {
                   })`
                 : ""}
             </h2>
+            {showPeriodInvestHint && (
+              <p className="zm-page-lead zm-analyse-invest-hint">
+                Die Charts zeigen nur bestätigte Investments im gewählten
+                Zeitraum. „Investiert“ in der Leiste zählt alle Zeiten — z. B.{" "}
+                <button
+                  type="button"
+                  className="zm-linkish"
+                  onClick={() => applyPreset("year")}
+                >
+                  Dieses Jahr anzeigen
+                </button>
+                .
+              </p>
+            )}
+            {showUnconfirmedInvestHint && (
+              <p className="zm-page-lead zm-analyse-invest-hint">
+                Investitionen werden nicht automatisch markiert. Unter
+                Transaktionen „Investitionen erkennen“, dann bestätigen — erst
+                danach erscheinen sie als schwarze Punkte/Säulen.
+              </p>
+            )}
             <AnalysisTrendChart
               ref={trendChartRef}
               labels={(series?.points ?? []).map((p) => p.label)}
               income={(series?.points ?? []).map((p) => Number(p.income))}
               expense={(series?.points ?? []).map((p) => Number(p.expense))}
+              invested={(series?.points ?? []).map((p) =>
+                Number(p.invested ?? 0),
+              )}
               showIncome={showIncome}
               showExpense={showExpense}
+              showInvestment={showInvestment}
+            />
+          </section>
+
+          <section className="zm-analyse-section">
+            <h2 className="zm-analyse-heading">Vergleich pro Monat</h2>
+            <AnalysisBarChart
+              ref={monthBarChartRef}
+              labels={monthPoints.map((p) => p.label)}
+              income={monthPoints.map((p) => Number(p.income))}
+              expense={monthPoints.map((p) => Number(p.expense))}
+              invested={monthPoints.map((p) => Number(p.invested ?? 0))}
+              showIncome={showIncome}
+              showExpense={showExpense}
+              showInvestment={showInvestment}
             />
           </section>
 

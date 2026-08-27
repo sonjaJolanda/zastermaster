@@ -267,7 +267,7 @@ Full spec: [`ai/docs/analysis.md`](docs/analysis.md).
 
 **Filters:** Zeitraum (year / month / vorletzter Monat / custom from–to), optional Kategorie / Unterkategorie, multi bank/Konto, Typ (alle / Ausgaben / Einnahmen).
 
-**Views:** (1) Zeitlicher Trend · (2–4) pies Total / Ausgaben / Einnahmen · (5–7) matching Aufschlüsselungen — plus summary strip (Kontostand, Investiert, Einnahmen, Ausgaben, Netto, Buchungen).
+**Views:** (1) Zeitlicher Trend (line: income / expense / investments) · (2) Vergleich pro Monat (bars, same three series) · (3–5) pies Total / Ausgaben / Einnahmen · (6–8) matching Aufschlüsselungen — plus summary strip (Kontostand, Investiert, Einnahmen, Ausgaben, Netto, Buchungen). **Bilanz** (Aktiva/Passiva vs Perioden-GuV) is **not built** — options and locks in [`analysis.md`](docs/analysis.md) § Bilanz.
 
 **Netting:** confirmed related pairs/groups must not double-count; own-account transfers drop both legs when both are in scope; PayPal↔bank counts the PayPal/wallet leg once when both are in scope; PayPal-Kauf (`paypal_purchase`) nets nothing. Server-side aggregation only.
 
