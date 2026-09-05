@@ -631,6 +631,23 @@ textarea:focus-visible {
   font-size: 0.8rem;
 }
 
+.zm-keyword-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.zm-keyword-suggest-target {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--zm-text-muted);
+}
+
+.zm-keyword-suggest-target strong {
+  color: var(--zm-text);
+  font-weight: 600;
+}
+
 .zm-select {
   font: inherit;
   padding: 0.5rem 0.65rem;

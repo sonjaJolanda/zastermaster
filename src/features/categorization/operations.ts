@@ -1,13 +1,14 @@
 import { HttpError } from "wasp/server";
 import type { CategorizeTransaction } from "wasp/server/operations";
-import { fragmentFromTransaction } from "./matchLearnedRules";
+import { normalizeForMatch } from "./matchKeywords";
+import { suggestKeywordsFromTransaction } from "./suggestKeywords";
 
 export type CategorizeTransactionInput = {
   transactionId: number;
   categoryId: number;
   subcategoryId: number;
-  /** Persist a LearnedRule from Verwendungszweck (else sender/empfaenger). */
-  remember?: boolean;
+  /** Selected keyword suggestions to append to the chosen subcategory. */
+  rememberKeywords?: string[];
 };
 
 export const categorizeTransaction: CategorizeTransaction<
@@ -82,34 +83,46 @@ export const categorizeTransaction: CategorizeTransaction<
     ids.find((id) => id !== existing.id) ?? null;
 
   let remembered = false;
-  if (args.remember) {
-    const fragment = fragmentFromTransaction({
-      sender: existing.sender,
-      empfaenger: existing.empfaenger,
-      verwendungszweck: existing.verwendungszweck,
-    });
-    if (!fragment) {
-      throw new HttpError(
-        400,
-        "Zum Merken braucht die Buchung Verwendungszweck, Sender oder Empfänger.",
-      );
+  const requested = (args.rememberKeywords ?? [])
+    .map((k) => k.trim().replace(/\s+/g, " "))
+    .filter(Boolean);
+
+  if (requested.length > 0) {
+    const allowed = new Set(
+      suggestKeywordsFromTransaction({
+        sender: existing.sender,
+        empfaenger: existing.empfaenger,
+        verwendungszweck: existing.verwendungszweck,
+      }).map((k) => normalizeForMatch(k)),
+    );
+    const toAdd: string[] = [];
+    const seen = new Set<string>();
+    for (const kw of requested) {
+      const key = normalizeForMatch(kw);
+      if (!key || seen.has(key) || !allowed.has(key)) continue;
+      seen.add(key);
+      toAdd.push(kw);
     }
-    await context.entities.LearnedRule.upsert({
-      where: { descriptionFragment: fragment },
-      create: {
-        descriptionFragment: fragment,
-        categoryId: args.categoryId,
-        subcategoryId: args.subcategoryId,
-        confidence: 1,
-        usageCount: 0,
-      },
-      update: {
-        categoryId: args.categoryId,
-        subcategoryId: args.subcategoryId,
-        confidence: 1,
-      },
-    });
-    remembered = true;
+
+    if (toAdd.length > 0) {
+      const existingKws = await context.entities.CategoryKeyword.findMany({
+        where: { subcategoryId: args.subcategoryId },
+        select: { keyword: true },
+      });
+      const have = new Set(
+        existingKws.map((k) => normalizeForMatch(k.keyword)),
+      );
+      const fresh = toAdd.filter((k) => !have.has(normalizeForMatch(k)));
+      if (fresh.length > 0) {
+        await context.entities.CategoryKeyword.createMany({
+          data: fresh.map((keyword) => ({
+            keyword,
+            subcategoryId: args.subcategoryId,
+          })),
+        });
+      }
+      remembered = fresh.length > 0 || toAdd.length > 0;
+    }
   }
 
   return { id: existing.id, syncedRelatedId, remembered };

@@ -31,11 +31,13 @@ describe("parseDkbCsv", () => {
       "",
       "Buchungsdatum;Wertstellung;Status;Zahlungspflichtige*r;Zahlungsempfänger*in;Verwendungszweck;Umsatztyp;IBAN;Betrag (€);Gläubiger-ID;Mandatsreferenz;Kundenreferenz",
       "24.07.2026;24.07.2026;Gebucht;Arbeitgeber;Alice;Bonus;Eingang;DE00999999999999999999;1.234,56;;;REF1",
+      "23.07.2026;23.07.2026;Gebucht;Arbeitgeber;Alice;Überweisung;Eingang;DE00999999999999999999;1.200;;;REF2",
     ].join("\n");
 
     const result = parseDkbCsv(csv);
     expect(result.balance).toBe("12345.67");
     expect(result.rows[0]!.betrag).toBe("1234.56");
+    expect(result.rows[1]!.betrag).toBe("1200.00");
   });
 });
 

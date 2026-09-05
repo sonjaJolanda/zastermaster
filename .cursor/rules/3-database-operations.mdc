@@ -9,7 +9,7 @@ alwaysApply: true
 - Provider: **postgresql**; `DATABASE_URL` in `.env.server`
 - Run Postgres with **Docker Compose** (`docker compose up -d db`); `DATABASE_URL` in `.env.server`
 - After schema edits: `wasp db migrate-dev`
-- Define `@relation`s in Prisma; categories/transactions/learned rules/accounts as in README
+- Define `@relation`s in Prisma; categories/transactions/accounts as in README
 
 ## Operations + entities
 

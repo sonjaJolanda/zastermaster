@@ -272,18 +272,6 @@ export const deleteCategory: DeleteCategory<
       },
     });
 
-    await context.entities.LearnedRule.updateMany({
-      where: {
-        OR: [
-          { categoryId: args.id },
-          ...(subIds.length > 0 ? [{ subcategoryId: { in: subIds } }] : []),
-        ],
-      },
-      data: {
-        categoryId: target.categoryId,
-        subcategoryId: target.id,
-      },
-    });
   }
 
   await context.entities.Category.delete({ where: { id: args.id } });
@@ -410,13 +398,6 @@ export const deleteSubcategory: DeleteSubcategory<
       },
     });
 
-    await context.entities.LearnedRule.updateMany({
-      where: { subcategoryId: args.id },
-      data: {
-        categoryId: target.categoryId,
-        subcategoryId: target.id,
-      },
-    });
   }
 
   await context.entities.Subcategory.delete({ where: { id: args.id } });

@@ -17,6 +17,7 @@ import type {
   RelatedType,
 } from "../features/related/types";
 import type { TransactionListItem } from "../features/transactions/types";
+import { suggestKeywordsFromTransaction } from "../features/categorization/suggestKeywords";
 
 const eur = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -62,7 +63,7 @@ export function TransactionDetailsOverlay({ tx, onClose, onSaved }: Props) {
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [remember, setRemember] = useState(false);
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkSearchInput, setLinkSearchInput] = useState("");
   const [linkSearch, setLinkSearch] = useState("");
@@ -85,7 +86,7 @@ export function TransactionDetailsOverlay({ tx, onClose, onSaved }: Props) {
   useEffect(() => {
     setCategoryId(tx.categoryId ?? "");
     setSubcategoryId(tx.subcategoryId ?? "");
-    setRemember(false);
+    setSelectedKeywords([]);
     setError(null);
     setLinkOpen(false);
     setLinkSearchInput("");
@@ -135,6 +136,42 @@ export function TransactionDetailsOverlay({ tx, onClose, onSaved }: Props) {
       categories.find((c) => c.id === categoryId)?.subcategories ?? []
     );
   }, [categories, categoryId]);
+
+  const selectedCategory = useMemo(() => {
+    if (!categories || categoryId === "") return undefined;
+    return categories.find((c) => c.id === categoryId);
+  }, [categories, categoryId]);
+
+  const selectedSubcategory = useMemo(() => {
+    if (!selectedCategory || subcategoryId === "") return undefined;
+    return selectedCategory.subcategories.find((s) => s.id === subcategoryId);
+  }, [selectedCategory, subcategoryId]);
+
+  const existingKeywords = useMemo(() => {
+    return [
+      ...(selectedCategory?.keywords ?? []).map((k) => k.keyword),
+      ...(selectedSubcategory?.keywords ?? []).map((k) => k.keyword),
+    ];
+  }, [selectedCategory, selectedSubcategory]);
+
+  const keywordSuggestions = useMemo(
+    () =>
+      suggestKeywordsFromTransaction(
+        {
+          sender: tx.sender,
+          empfaenger: tx.empfaenger,
+          verwendungszweck: tx.verwendungszweck,
+        },
+        existingKeywords,
+      ),
+    [tx.sender, tx.empfaenger, tx.verwendungszweck, existingKeywords],
+  );
+
+  useEffect(() => {
+    setSelectedKeywords((prev) =>
+      prev.filter((k) => keywordSuggestions.includes(k)),
+    );
+  }, [keywordSuggestions]);
 
   useEffect(() => {
     if (categoryId === "") {
@@ -193,7 +230,8 @@ export function TransactionDetailsOverlay({ tx, onClose, onSaved }: Props) {
         transactionId: tx.id,
         categoryId: Number(categoryId),
         subcategoryId: Number(subcategoryId),
-        remember,
+        rememberKeywords:
+          selectedKeywords.length > 0 ? selectedKeywords : undefined,
       });
       onSaved();
       onClose();
@@ -598,21 +636,52 @@ export function TransactionDetailsOverlay({ tx, onClose, onSaved }: Props) {
                   </select>
                 </label>
 
-                <label className="zm-field zm-field-check">
-                  <input
-                    type="checkbox"
-                    checked={remember}
-                    disabled={busy}
-                    onChange={(e) => setRemember(e.target.checked)}
-                  />
-                  <span>
-                    Diese Zuordnung merken
-                    <span className="zm-field-hint">
-                      {" "}
-                      (für ähnliche Buchungen beim nächsten Import)
-                    </span>
-                  </span>
-                </label>
+                {keywordSuggestions.length > 0 && (
+                  <div className="zm-keyword-suggest">
+                    <p className="zm-keyword-suggest-target">
+                      {categoryId !== "" && subcategoryId !== "" ? (
+                        <>
+                          Stichwörter für{" "}
+                          <strong>
+                            {selectedCategory?.name} / {selectedSubcategory?.name}
+                          </strong>
+                        </>
+                      ) : (
+                        <>Zuerst Kategorie und Unterkategorie wählen.</>
+                      )}
+                    </p>
+                    <div
+                      className="zm-chip-row"
+                      role="group"
+                      aria-label="Stichwort-Vorschläge"
+                    >
+                      {keywordSuggestions.map((kw) => {
+                        const active = selectedKeywords.includes(kw);
+                        return (
+                          <button
+                            key={kw}
+                            type="button"
+                            className={`zm-chip${active ? " is-active" : ""}`}
+                            disabled={busy || subcategoryId === ""}
+                            aria-pressed={active}
+                            onClick={() => {
+                              setSelectedKeywords((prev) =>
+                                prev.includes(kw)
+                                  ? prev.filter((k) => k !== kw)
+                                  : [...prev, kw],
+                              );
+                            }}
+                          >
+                            {kw}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="zm-field-hint">
+                      Antippen zum Hinzufügen — gilt für künftige Importe.
+                    </p>
+                  </div>
+                )}
 
                 {error && (
                   <p className="zm-status-error" role="alert">

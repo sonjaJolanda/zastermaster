@@ -5,8 +5,8 @@ Free hybrid categorization (no cloud tokens). Overview in [`../README.md`](../RE
 ## Purpose
 
 1. Assign every imported transaction a **Kategorie** + **Unterkategorie**.
-2. Do it **locally** with keywords + learned rules (no paid AI in the core path).
-3. Let the user **correct** assignments and optionally **teach** the system (“merken”).
+2. Do it **locally** with keywords (no paid AI in the core path).
+3. Let the user **correct** assignments and optionally add Stichwörter from the booking (Details-Chips).
 4. Keep the category **tree editable** in Einstellungen (structure + keywords).
 
 **Not** this doc: bank file parsing (README import), Analyse charts, related-tx linking.
@@ -15,12 +15,12 @@ Free hybrid categorization (no cloud tokens). Overview in [`../README.md`](../RE
 
 | Principle | Meaning |
 |---|---|
-| Free by default | Keywords + learned rules; no API tokens required |
+| Free by default | Keywords only; no API tokens required |
 | Source of truth for tree | **PostgreSQL**, not a live JSON file |
 | Seed once | [`categories_seed.json`](../../categories_seed.json) on empty DB |
 | Color = source | Konfidenz UI follows `categorySource`, not only the numeric score |
 | Edit tree ≠ pick on tx | Tree CRUD in Einstellungen; row assign in Transaktionen Details |
-| Merken is Thick | Slice 3 Thin = keywords + manual; learned rules come in Slice 3 Thick ([`implementation-plan.md`](implementation-plan.md)) |
+| Teach from a booking | Details overlay: Stichwort-Chips (no checkbox) → append to the chosen **Unterkategorie** |
 
 ## Data model
 
@@ -34,13 +34,11 @@ Free hybrid categorization (no cloud tokens). Overview in [`../README.md`](../RE
 
 Ensure seeded defaults include usable **Sonstige** / **Unbekannt** (or create them in code if missing from seed) for fallback.
 
-### LearnedRule (Slice 3 Thick+)
+### LearnedRule
 
-| Field | Notes |
-|---|---|
-| `descriptionFragment` | Unique; usually full Verwendungszweck, else sender/empfaenger fallback |
-| `categoryId`, `subcategoryId` | Target FKs |
-| `confidence`, `usageCount` | Strengthen with reuse |
+Removed. Teaching the categorizer = adding **CategoryKeyword** rows on the chosen subcategory (same list as Einstellungen).
+
+The Prisma enum value `categorySource = learned` remains for old rows; new writes never set it.
 
 ### Transaction fields
 
@@ -76,22 +74,7 @@ Run on each new row **before** insert (and optionally “re-categorize all uncat
 
 **Order:**
 
-### 1. Learned rules (if any exist)
-
-For each rule, test whether `descriptionFragment` is a substring of (case-insensitive) `verwendungszweck`, else `sender`, else `empfaenger`.
-
-```
-weighted = (len(fragment) / len(text)) * (1 + usageCount * 0.1)
-```
-
-Accept best rule with `weighted > 0.3`.
-
-- Set category/subcategory from rule  
-- `categorySource = learned`  
-- `confidenceScore = min(1, weighted)` (or store rule.confidence)  
-- Increment `usageCount` on match (Thick+)
-
-### 2. Keywords
+### 1. Keywords
 
 Normalize: case-insensitive; multi-word keywords allow flexible separators (spaces/punctuation).
 
@@ -105,7 +88,7 @@ Keyword sources:
 On subcategory keyword hit → that category + subcategory, score `0.7`, source `keyword`.  
 On main-only keyword hit → that category + subcategory **Unbekannt** (or “Allgemein” if present), score `0.7`, source `keyword`.
 
-### 3. Fallback
+### 2. Fallback
 
 - Category Sonstige, subcategory Unbekannt  
 - `confidenceScore = 0.0`, `categorySource = none`
@@ -115,14 +98,26 @@ On main-only keyword hit → that category + subcategory **Unbekannt** (or “Al
 User picks category/sub in Details → `categorySource = manual`, `confidenceScore = 1.0`.  
 If the row has a **confirmed related partner**, apply the same category/sub/source/score to the partner as well (linked pairs always share one category).
 
-If **Diese Zuordnung merken** (Thick): upsert `LearnedRule` with fragment = Verwendungszweck if non-empty, else sender, else empfaenger.
+### Keyword suggestions (Details)
+
+Always shown when there are candidates (no checkbox). `suggestKeywordsFromTransaction` in `suggestKeywords.ts`.
+
+**Order on screen:** single words first, then optional two-word phrases.
+
+**Sources:** Empfänger (card merchants), leftover Verwendungszweck after bank templates, then Sender.
+
+**Skip:** ISSUER, PayPal-own-email, VISA-Standardtexte, unique SEPA refs, payment facilitators (SumUp, Zettle, …) as standalone tokens, legal suffixes (GmbH, AG, …), keywords already on that sub/main.
+
+**Examples:** `SumUp PadelCity GmbH` → `PadelCity` (not SumUp, not GmbH). `1.200` in a DKB amount is import parsing, not this matcher.
+
+Selected chips are **appended** to the chosen **Unterkategorie** on Speichern (same `CategoryKeyword` list as Einstellungen). Do not store full Verwendungszweck as a hidden rule.
 
 ### Related-pair category sync
 
 | Moment | Behavior |
 |---|---|
 | `categorizeTransaction` | Write category to the edited row **and all** `relatedGroupId` members (fallback: `relatedTransactionId` partner) |
-| `confirmRelatedPair` | After linking 2–3 txs, copy the stronger existing category onto the whole group (`manual` > `learned` > `keyword` > `none`) |
+| `confirmRelatedPair` | After linking 2–3 txs, copy the stronger existing category onto the whole group (`manual` > `learned` (legacy) > `keyword` > `none`) |
 
 ## Konfidenz UI
 
@@ -133,7 +128,7 @@ If **Diese Zuordnung merken** (Thick): upsert `LearnedRule` with fragment = Verw
 | `keyword` | Yellow/amber | Stichwort |
 | `none` | Gray | Keine |
 
-Do **not** paint a learned match red just because `weighted` is 0.35 — source wins.
+Do **not** treat `learned` as a live source — it is legacy only.
 
 Pair color with text/icon (a11y). Optional filter by source on Transaktionen (Slice 5 Thick).
 
@@ -142,9 +137,9 @@ Pair color with text/icon (a11y). Optional filter by source on Transaktionen (Sl
 | Moment | Behavior |
 |---|---|
 | Import | Auto hybrid pipeline on each new row |
-| Details save | Manual (+ optional merken); sync to related partner if linked |
+| Details save | Manual; selected Stichwort-Chips append to the subcategory |
 | Confirm related pair | Align both legs to one category (stronger source wins) |
-| Re-import deduped row | Do **not** overwrite an existing manual/learned category on duplicate skip |
+| Re-import deduped row | Do **not** overwrite an existing manual/keyword category on duplicate skip |
 | Bulk re-categorize | Out of scope v1 (nice later: only `none`/`keyword` rows) |
 
 ## Operations (Wasp)
@@ -156,19 +151,18 @@ Pair color with text/icon (a11y). Optional filter by source on Transaktionen (Sl
 | `createCategory` / `updateCategory` / `deleteCategory` | actions | Main category CRUD; new category gets default sub **Unbekannt**; delete with optional `reassignToSubcategoryId` when txs still reference it |
 | `createSubcategory` / `updateSubcategory` / `deleteSubcategory` | actions | Sub CRUD; last sub blocked; delete with optional reassign to any other subcategory |
 | `setKeywords` | action | Replace keyword list for category **or** subcategory |
-| `categorizeTransaction` | action | Manual assign on row **and related partner**; `remember?: boolean` |
+| `categorizeTransaction` | action | Manual assign on row **and related partner**; optional `rememberKeywords[]` → append to subcategory |
 | (internal) `categorizeRow(text fields)` | pure fn | Used by import |
-
-Learned-rule CRUD can stay internal to `categorizeTransaction` + matcher.
+| (internal) `suggestKeywordsFromTransaction` | pure fn | Details Stichwort-Chips |
 
 ## Module layout
 
 ```
 src/features/categorization/
   matchKeywords.ts
-  matchLearnedRules.ts      # Thick
-  categorizeRow.ts          # orchestrates order
-  operations.ts             # categorizeTransaction, seed helpers if colocated
+  suggestKeywords.ts        # Details chips
+  categorizeRow.ts          # keywords → fallback
+  operations.ts             # categorizeTransaction
 src/features/categories/
   operations.ts             # tree CRUD + getCategories
 ```
@@ -177,8 +171,8 @@ src/features/categories/
 
 | Thin (Slice 3) | Thick |
 |---|---|
-| Keyword match on import (sub **and** main keywords from seed/DB) | Learned rules + merken checkbox |
-| Manual Details categorize | Konfidenz source filter; usageCount updates; bulk re-run |
+| Keyword match on import (sub **and** main keywords from seed/DB) | Details: Stichwort-Chips an die Unterkategorie |
+| Manual Details categorize | Konfidenz source filter |
 | Konfidenz colors by source | — |
 
 Editing main/sub keywords in the UI = **Slice 1 Thick** (Einstellungen), not Slice 3.
@@ -187,12 +181,12 @@ Editing main/sub keywords in the UI = **Slice 1 Thick** (Einstellungen), not Sli
 
 - Local ML on your history (free, offline)
 - Optional cloud AI (paid tokens, opt-in)
-- Neither replaces the free hybrid path — plug in as an extra stage after learned/keywords if ever added
+- Neither replaces the free hybrid path — plug in as an extra stage after keywords if ever added
 
 ## Test ideas
 
 1. Seed loads; “rewe” → Einkaufen / Supermärkte  
 2. Unknown merchant → Sonstige / Unbekannt / none  
 3. Manual save → green / score 1.0  
-4. Merken (Thick) → second import with same purpose → learned  
+4. Chips: Empfänger singles, not „VISA Debitkartenumsatz“; SumUp+GmbH → PadelCity; selected keyword hits on next import  
 5. Delete category/sub with txs → modal offers reassign to any other subcategory, then delete

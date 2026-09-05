@@ -169,7 +169,7 @@ Other banks; related-detect; full filters; Analyse.
 
 ### Thick (later)
 
-- [x] “Merken” → `LearnedRule`; learned-rule pass before keywords on import; `usageCount` increments
+- [x] Details: Stichwort-Chips an die Unterkategorie; Import nur noch Keywords
 - [x] Konfidenz filter on Transaktionen (`manual` / `learned` / `keyword` / `none`)
 
 ### Out of scope
@@ -438,7 +438,7 @@ New features; DB wipe / fixtures (separate manual test prep); auth/Jobs/deploy.
 1. Wire Vitest (`vitest.config.ts`, `npm test` / `npm run test:watch`); document the command in README (one short line).
 2. Synthetic fixtures only under e.g. `src/features/**/__fixtures__/` — **no** real `Bankauszüge/` / private data in git.
 3. **Parsers + helpers** — German amount/date; per bank 1–2 happy paths + 1 edge (BOM, Status≠Gebucht, empty/skip row).
-4. **Categorizer** — learned-rule priority → keyword hit → Sonstiges/Unbekannt fallback.
+4. **Categorizer** — keyword hit → Sonstiges/Unbekannt fallback.
 5. **Related detect** — PayPal↔Bank, Umbuchung, Near-Dup: je 1 positiv + 1 negativ.
 6. **Analyse netting** — transfer drops both legs; PayPal↔Bank keeps one side.
 7. **Transaktionen-Summen** — extract pure helper from `getTransactionsSummary` (Einnahmen / Ausgaben / Netto / Buchungen) and unit-test:

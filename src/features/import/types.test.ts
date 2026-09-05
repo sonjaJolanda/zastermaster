@@ -22,6 +22,16 @@ describe("parseGermanAmount", () => {
     expect(parseGermanAmount("1.234,56")).toBe("1234.56");
   });
 
+  it("parses German thousands without a decimal comma", () => {
+    expect(parseGermanAmount("1.200")).toBe("1200.00");
+    expect(parseGermanAmount("-1.200")).toBe("-1200.00");
+    expect(parseGermanAmount("1.200.000")).toBe("1200000.00");
+  });
+
+  it("does not treat a two-digit fraction as thousands", () => {
+    expect(parseGermanAmount("1.20")).toBe("1.20");
+  });
+
   it("parses negative amounts", () => {
     expect(parseGermanAmount("-12,34")).toBe("-12.34");
   });

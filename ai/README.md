@@ -145,6 +145,8 @@ Define models in `schema.prisma`. Apply with `wasp db migrate-dev`.
 
 Importers normalize to the same logical columns: Datum, Betrag, Sender\*in, Empfänger\*in, Verwendungszweck, IBAN, Kundenreferenz, Bank, Konto, balance.
 
+German amounts: comma is decimal (`1.234,56` → 1234.56). A dot **without** a comma and groups of three digits is thousands (`1.200` → 1200.00), not 1.20. See `parseGermanAmount` in `src/features/import/types.ts`.
+
 ### Account & balance calibration
 
 Incomplete history is expected. Accounts are first-class:
@@ -160,7 +162,7 @@ Not “balance of the currently filtered Konto” unless we add that later.
 
 Ask for balance on first upload of a new account.
 
-### Categories & learned rules
+### Categories & keywords
 
 Full model + editing + algorithm: [`docs/categorization.md`](docs/categorization.md).  
 Seed: [`categories_seed.json`](../categories_seed.json). PostgreSQL is source of truth (not live JSON).
@@ -173,7 +175,7 @@ Bidirectional pair link and/or shared `relatedGroupId` + `relatedType`. Used for
 2. **Analyse netting** — confirmed pairs do not double-count (PayPal↔bank keeps PayPal leg when both in filter; transfers drop both when both in filter).
 3. **Shared category** — linked legs always share the same category/subcategory:
    - Manual categorize on either leg updates **both**.
-   - On **confirm**, copy the stronger category (`manual` > `learned` > `keyword` > `none`) onto the other leg.
+   - On **confirm**, copy the stronger category (`manual` > `learned` (legacy) > `keyword` > `none`) onto the other leg.
 4. **Detectors** — PayPal↔bank (same sign), Umbuchung (opposite sign + keyword/token), near-duplicate (same account/day).
 
 Rejects persist in `RelatedRejection` so the same pair is not suggested again.
@@ -184,7 +186,7 @@ Full UI/detect: [`docs/transactions.md`](docs/transactions.md). Netting: [`docs/
 
 Full spec: [`ai/docs/categorization.md`](docs/categorization.md).
 
-**Order:** learned rules (if any) → keywords (sub then main) → Sonstige/Unbekannt. Manual → `1.0` + optional “merken” (Slice 3 Thick). Konfidenz color follows **source**. Tree CRUD in Einstellungen; seed from `categories_seed.json`.
+**Order:** keywords (sub then main) → Sonstige/Unbekannt. Manual → `1.0`. Details overlay shows Stichwort-Chips; selected ones append to the subcategory. Konfidenz color follows **source**. Tree CRUD in Einstellungen; seed from `categories_seed.json`.
 
 ---
 
@@ -254,7 +256,7 @@ Full spec: [`ai/docs/transactions.md`](docs/transactions.md).
 
 - Wide filterable/paginated table; summary strip for **current table filters** (default: all time).
 - Default columns + optional IBAN / Kundenreferenz / Verknüpfung via Filter.
-- Details overlay (categorize; “merken” = Slice 3 Thick); related-detect overlay (progress → confirm/reject).
+- Details overlay (categorize + Stichwort-Chips an die Unterkategorie); related-detect overlay (progress → confirm/reject).
 - Both legs of a link stay visible here; Analyse does the netting.
 - Partner column: clickable link → scroll to partner row + open Details (page jump via `getTransactionNav` when needed).
 - Categorize one linked row → category syncs to the partner.
@@ -297,7 +299,7 @@ Analysis aggregates must net related pairs. Paginate large lists.
 - Signed amounts; UI `de-DE` EUR.
 - Export row balance = snapshot; wealth = account calibration.
 - Re-uploads must not duplicate rows.
-- Manual edits can create learned rules.
+- Manual edits can add subcategory keywords (Details chips).
 - Related pairs must not double-count in totals/charts.
 - Keep umlauts / text fidelity on import.
 - Update `ai/docs/` when features change.
@@ -313,7 +315,7 @@ Analysis aggregates must net related pairs. Paginate large lists.
 | PayPal + bank double count | Related links + analysis netting |
 | Own-account transfers | Same |
 | Format drift | Versioned importers + validation |
-| No paid AI | Hybrid keywords + learned rules |
+| No paid AI | Keywords (+ Details chips into the same list) |
 | Overlapping exports | Dedup key |
 | Long related-detect | v1: action + progress UI; later: Wasp Jobs if needed |
 

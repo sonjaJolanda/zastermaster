@@ -122,20 +122,8 @@ export const importBankFile: ImportBankFile<
 
   const catalog = buildKeywordCatalog(tree);
 
-  const learnedRows = await context.entities.LearnedRule.findMany({
-    select: {
-      id: true,
-      descriptionFragment: true,
-      categoryId: true,
-      subcategoryId: true,
-      confidence: true,
-      usageCount: true,
-    },
-  });
-
   let importedCount = 0;
   let duplicateCount = 0;
-  const learnedUsage = new Map<number, number>();
 
   for (const row of parsed.rows) {
     const iban = row.iban || "";
@@ -160,22 +148,11 @@ export const importBankFile: ImportBankFile<
       continue;
     }
 
-    const cat = categorizeRow(
-      catalog,
-      {
-        sender: row.sender,
-        empfaenger: row.empfaenger,
-        verwendungszweck,
-      },
-      learnedRows,
-    );
-
-    if (cat.learnedRuleId != null) {
-      learnedUsage.set(
-        cat.learnedRuleId,
-        (learnedUsage.get(cat.learnedRuleId) ?? 0) + 1,
-      );
-    }
+    const cat = categorizeRow(catalog, {
+      sender: row.sender,
+      empfaenger: row.empfaenger,
+      verwendungszweck,
+    });
 
     try {
       await context.entities.Transaction.create({
@@ -205,13 +182,6 @@ export const importBankFile: ImportBankFile<
       }
       throw err;
     }
-  }
-
-  for (const [ruleId, delta] of learnedUsage) {
-    await context.entities.LearnedRule.update({
-      where: { id: ruleId },
-      data: { usageCount: { increment: delta } },
-    });
   }
 
   const account = await context.entities.Account.upsert({

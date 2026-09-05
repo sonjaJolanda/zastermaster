@@ -102,12 +102,12 @@ export default app({
     }),
     action(updateCategory, { entities: ["Category"] }),
     action(deleteCategory, {
-      entities: ["Category", "Subcategory", "Transaction", "LearnedRule"],
+      entities: ["Category", "Subcategory", "Transaction"],
     }),
     action(createSubcategory, { entities: ["Category", "Subcategory"] }),
     action(updateSubcategory, { entities: ["Subcategory"] }),
     action(deleteSubcategory, {
-      entities: ["Subcategory", "Transaction", "LearnedRule"],
+      entities: ["Subcategory", "Transaction"],
     }),
     action(setKeywords, {
       entities: ["Category", "Subcategory", "CategoryKeyword"],
@@ -136,14 +136,18 @@ export default app({
         "Subcategory",
         "CategoryKeyword",
         "Account",
-        "LearnedRule",
       ],
     }),
     //#endregion
 
     //#region Categorization
     action(categorizeTransaction, {
-      entities: ["Transaction", "Category", "Subcategory", "LearnedRule"],
+      entities: [
+        "Transaction",
+        "Category",
+        "Subcategory",
+        "CategoryKeyword",
+      ],
     }),
     //#endregion
 

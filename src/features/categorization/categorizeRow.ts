@@ -5,17 +5,12 @@ import {
   type CategoryTreeForMatch,
   type KeywordCatalog,
 } from "./matchKeywords";
-import {
-  matchLearnedRules,
-  type LearnedRuleForMatch,
-} from "./matchLearnedRules";
 
 export type { CategorizeResult, CategoryTreeForMatch, KeywordCatalog };
-export type { LearnedRuleForMatch };
-export { buildKeywordCatalog, matchKeywords, matchLearnedRules };
+export { buildKeywordCatalog, matchKeywords };
 
 /**
- * Hybrid pipeline: learned rules → keywords → Sonstiges/Unbekannt fallback.
+ * Hybrid pipeline: keywords → Sonstiges/Unbekannt fallback.
  */
 export function categorizeRow(
   catalog: KeywordCatalog,
@@ -24,19 +19,7 @@ export function categorizeRow(
     empfaenger: string;
     verwendungszweck: string;
   },
-  learnedRules: LearnedRuleForMatch[] = [],
-): CategorizeResult & { learnedRuleId?: number } {
-  const learned = matchLearnedRules(learnedRules, fields);
-  if (learned) {
-    return {
-      categoryId: learned.categoryId,
-      subcategoryId: learned.subcategoryId,
-      confidenceScore: learned.confidenceScore,
-      categorySource: "learned",
-      learnedRuleId: learned.ruleId,
-    };
-  }
-
+): CategorizeResult {
   const hit = matchKeywords(catalog, fields);
   if (hit) return hit;
 

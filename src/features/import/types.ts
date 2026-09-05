@@ -49,9 +49,20 @@ export function parseGermanAmount(raw: string): string {
   if (cleaned.endsWith("-")) {
     cleaned = `-${cleaned.slice(0, -1)}`;
   }
-  if (cleaned.includes(",")) {
-    cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+
+  const negative = cleaned.startsWith("-");
+  const unsigned = cleaned.replace(/^[+-]/, "");
+
+  // Comma = decimal (1.234,56). Dots without comma and groups of 3 =
+  // thousands (1.200 → 1200). Otherwise leave as-is (1200 or 12.34).
+  if (unsigned.includes(",")) {
+    cleaned = `${negative ? "-" : ""}${unsigned.replace(/\./g, "").replace(",", ".")}`;
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(unsigned)) {
+    cleaned = `${negative ? "-" : ""}${unsigned.replace(/\./g, "")}`;
+  } else {
+    cleaned = `${negative ? "-" : ""}${unsigned}`;
   }
+
   if (!cleaned || cleaned === "-" || cleaned === "+") {
     throw new ImportParseError(
       `Ungültiger Betrag: „${raw}“`,

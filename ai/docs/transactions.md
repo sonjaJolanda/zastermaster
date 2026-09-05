@@ -145,7 +145,7 @@ Balance-adjustment rows: badge “Saldo / Eröffnung” so they’re recognizabl
 
 1. Select **Kategorie** (from DB tree managed in Einstellungen).
 2. Select **Unterkategorie** (filtered by category).
-3. Checkbox: **Diese Zuordnung merken** → create/update `LearnedRule` (fragment rules in [`categorization.md`](categorization.md); Slice 3 Thick).
+3. **Stichwort-Chips** aus Empfänger/Zweck (ohne Haken); ausgewählte werden beim Speichern an die Unterkategorie gehängt (siehe [`categorization.md`](categorization.md)).
 4. Speichern → updates row **and linked partner** (same category/subcategory/source); closes or stays open with success state; table row refreshes.
 
 Categories/subcategories are **not** created here — only chosen. Tree editing = Einstellungen.
@@ -472,7 +472,7 @@ Synthetic opening / calibration transactions:
 |---|---|---|
 | `getTransactions` | query | Paginated list + filter args; returns rows for page |
 | `getTransactionsSummary` | query | Einnahmen / Ausgaben / Netto / count for **same filters** (all matching rows, not one page) |
-| `categorizeTransaction` | action | Set category/subcategory/source/score on row **and related partner**; optional `remember: true` → LearnedRule |
+| `categorizeTransaction` | action | Set category/subcategory/source/score on row **and related partner**; optional `rememberKeywords` → append subcategory keywords |
 | `detectRelatedTransactions` | action | Run detectors; return suggestion list (may be chunked later) |
 | `confirmRelatedPair` / `rejectRelatedPair` | actions | Persist group of 2–3 (`relatedGroupId` + type; pairs also set bidirectional `relatedTransactionId`) or reject all member pairs |
 | `searchRelatedLinkCandidates` | query | Manual link picker (`excludeIds`, `aroundDate` ±10 days) |
