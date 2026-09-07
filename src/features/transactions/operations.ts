@@ -267,6 +267,7 @@ export const getTransactionsSummary: GetTransactionsSummary<
       bank: true,
       relatedTransactionId: true,
       relatedType: true,
+      relatedGroupId: true,
     },
   });
 
@@ -277,6 +278,7 @@ export const getTransactionsSummary: GetTransactionsSummary<
     bank: r.bank,
     relatedTransactionId: r.relatedTransactionId,
     relatedType: r.relatedType,
+    relatedGroupId: r.relatedGroupId,
   }));
 
   const { income, expense, count } = summarizeNetted(netted);

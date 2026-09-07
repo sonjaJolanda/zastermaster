@@ -477,7 +477,7 @@ UI/CSS regression, full operation coverage via Prisma, CI pipeline (can add late
 
 1. Schema: `Transaction.isInvestment`; models `InvestmentKeyword`, `InvestmentRejection`; migrate.
 2. Ops: keywords CRUD, `getInvestedTotal`, detect / confirm / reject.
-3. Keep `isInvestment` rows in TX summary + Analyse netted flow; table amount uses income/expense colors + **Investition** badge.
+3. Keep `isInvestment` rows in TX summary + Analyse netted flow; table amount uses income/expense colors + gray highlight.
 4. UI: Einstellungen keywords; Transaktionen „Investitionen erkennen“ overlay; **Investiert** summary + info-(i).
 5. Docs: [`investments.md`](investments.md); link from TX / Analyse strips.
 
@@ -486,11 +486,12 @@ UI/CSS regression, full operation coverage via Prisma, CI pipeline (can add late
 - [x] Keywords + detect/confirm/reject flow works
 - [x] **Investiert** = −Σ(betrag) over confirmed investments
 - [x] Confirmed investments **included** in Einnahmen/Ausgaben/Netto (TX + Analyse); also shown as **Investiert**
-- [x] Table: signed amount colors + Investition badge; info-(i) explains EK is additional
+- [x] Table: signed amount colors + gray highlight on investment amounts; info-(i) explains EK is additional
+- [x] **Investiert** follows Zeitraum (plus bank/konto), same filters as Einnahmen/Ausgaben
 
 ### Out of scope
 
-Live market value; auto-tag on import; Investiert filtered by date range.
+Live market value; auto-tag on import.
 
 ---
 

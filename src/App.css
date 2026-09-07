@@ -930,21 +930,12 @@ textarea:focus-visible {
   font-weight: 600;
 }
 
-.zm-amount-investment {
-  color: #000000;
-  font-weight: 600;
-}
-
-.zm-invest-badge {
+.zm-amount-invest-mark {
   display: inline-block;
-  margin-left: 0.45rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.1rem 0.4rem;
-  border-radius: 0.3rem;
-  color: var(--zm-text);
-  background: rgba(28, 25, 23, 0.08);
-  vertical-align: middle;
+  padding: 0.12em 0.4em;
+  margin: -0.12em -0.15em;
+  border-radius: 0.15em;
+  background: rgba(120, 113, 108, 0.28);
 }
 
 .zm-conf {

@@ -450,6 +450,8 @@ export function TransaktionenPage() {
         getInvestedTotal({
           banks: banks.length ? banks : undefined,
           konten: konten.length ? konten : undefined,
+          dateFrom: dateFrom || undefined,
+          dateTo: dateTo || undefined,
         }),
       ]);
       const balanceAccounts = (accounts ?? []).filter((a) => {
@@ -539,7 +541,12 @@ export function TransaktionenPage() {
       <div className="zm-tx-topbar" aria-live="polite">
         <div className="zm-summary-inline">
           <KontostandSummaryStat banks={banks} konten={konten} />
-          <InvestiertSummaryStat banks={banks} konten={konten} />
+          <InvestiertSummaryStat
+            banks={banks}
+            konten={konten}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+          />
           <div>
             <span className="zm-summary-label zm-summary-label-with-info">
               Einnahmen <SummaryApproxInfo />
@@ -1065,15 +1072,16 @@ export function TransaktionenPage() {
                       )}
                       {show("betrag") && (
                         <td className={`zm-num ${amountClass}`}>
-                          {eur.format(amount)}
                           {tx.isInvestment ? (
                             <span
-                              className="zm-invest-badge"
-                              title="Zählt in den Ausgaben und unter Investiert"
+                              className="zm-amount-invest-mark"
+                              title="Investition — zählt in den Ausgaben und unter Investiert"
                             >
-                              Investition
+                              {eur.format(amount)}
                             </span>
-                          ) : null}
+                          ) : (
+                            eur.format(amount)
+                          )}
                         </td>
                       )}
                       <td>

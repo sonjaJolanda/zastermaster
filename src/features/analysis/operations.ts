@@ -112,6 +112,7 @@ async function loadNettedRows(
       bank: true,
       relatedTransactionId: true,
       relatedType: true,
+      relatedGroupId: true,
       isInvestment: true,
       categoryId: true,
       subcategoryId: true,
@@ -128,6 +129,7 @@ async function loadNettedRows(
       bank: string;
       relatedTransactionId: number | null;
       relatedType: RelatedType | null;
+      relatedGroupId: string | null;
       isInvestment: boolean;
       categoryId: number | null;
       subcategoryId: number | null;
@@ -140,6 +142,7 @@ async function loadNettedRows(
       bank: r.bank,
       relatedTransactionId: r.relatedTransactionId,
       relatedType: r.relatedType,
+      relatedGroupId: r.relatedGroupId,
       isInvestment: r.isInvestment,
       categoryId: r.categoryId,
       subcategoryId: r.subcategoryId,

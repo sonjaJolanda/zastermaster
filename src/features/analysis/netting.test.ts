@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { idsToDropForNetting, type NettedTx } from "./netting";
+import { idsToDropForNetting, summarizeNetted, type NettedTx } from "./netting";
 
 function row(
   partial: Partial<NettedTx> & Pick<NettedTx, "id" | "betrag">,
@@ -9,6 +9,7 @@ function row(
     bank: "dkb",
     relatedTransactionId: null,
     relatedType: null,
+    relatedGroupId: null,
     ...partial,
   };
 }
@@ -57,31 +58,79 @@ describe("idsToDropForNetting", () => {
     expect(drop.has(2)).toBe(true);
   });
 
-  it("does not drop any paypal_purchase legs", () => {
+  it("keeps PayPal purchase and drops wallet credit + bank funding", () => {
     const rows = [
       row({
         id: 1,
         betrag: -25,
         bank: "paypal",
-        relatedTransactionId: null,
+        relatedGroupId: "g1",
         relatedType: "paypal_purchase",
       }),
       row({
         id: 2,
         betrag: 25,
         bank: "paypal",
-        relatedTransactionId: null,
+        relatedGroupId: "g1",
         relatedType: "paypal_purchase",
       }),
       row({
         id: 3,
         betrag: -25,
         bank: "dkb",
-        relatedTransactionId: null,
+        relatedGroupId: "g1",
         relatedType: "paypal_purchase",
       }),
     ];
     const drop = idsToDropForNetting(rows);
-    expect(drop.size).toBe(0);
+    expect(drop.has(1)).toBe(false);
+    expect(drop.has(2)).toBe(true);
+    expect(drop.has(3)).toBe(true);
+    expect(summarizeNetted(rows)).toEqual({
+      income: 0,
+      expense: 25,
+      count: 1,
+    });
+  });
+
+  it("drops PayPal funding when the purchase is outside the filter", () => {
+    const rows = [
+      row({
+        id: 2,
+        betrag: 25,
+        bank: "paypal",
+        relatedGroupId: "g1",
+        relatedType: "paypal_purchase",
+      }),
+      row({
+        id: 3,
+        betrag: -25,
+        bank: "dkb",
+        relatedGroupId: "g1",
+        relatedType: "paypal_purchase",
+      }),
+    ];
+    expect(summarizeNetted(rows)).toEqual({
+      income: 0,
+      expense: 0,
+      count: 0,
+    });
+  });
+
+  it("keeps a lone PayPal purchase when funding is outside the filter", () => {
+    const rows = [
+      row({
+        id: 1,
+        betrag: -25,
+        bank: "paypal",
+        relatedGroupId: "g1",
+        relatedType: "paypal_purchase",
+      }),
+    ];
+    expect(summarizeNetted(rows)).toEqual({
+      income: 0,
+      expense: 25,
+      count: 1,
+    });
   });
 });

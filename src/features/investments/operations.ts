@@ -77,7 +77,16 @@ export const setInvestmentKeywords: SetInvestmentKeywords<
 export type InvestedTotalArgs = {
   banks?: string[];
   konten?: string[];
+  dateFrom?: string;
+  dateTo?: string;
 };
+
+function parseOptionalIsoDate(raw: string | undefined): Date | null {
+  if (!raw?.trim()) return null;
+  const m = raw.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+}
 
 export const getInvestedTotal: GetInvestedTotal<
   InvestedTotalArgs | void,
@@ -91,12 +100,26 @@ export const getInvestedTotal: GetInvestedTotal<
     args && typeof args === "object" && args.konten?.length
       ? args.konten
       : undefined;
+  const dateFrom =
+    args && typeof args === "object"
+      ? parseOptionalIsoDate(args.dateFrom)
+      : null;
+  const dateTo =
+    args && typeof args === "object" ? parseOptionalIsoDate(args.dateTo) : null;
+  const datum: { gte?: Date; lte?: Date } | undefined =
+    dateFrom || dateTo
+      ? {
+          ...(dateFrom ? { gte: dateFrom } : {}),
+          ...(dateTo ? { lte: dateTo } : {}),
+        }
+      : undefined;
 
   const rows = await context.entities.Transaction.findMany({
     where: {
       isInvestment: true,
       ...(banks ? { bank: { in: banks } } : {}),
       ...(konten ? { konto: { in: konten } } : {}),
+      ...(datum ? { datum } : {}),
     },
     select: { betrag: true },
   });

@@ -36,8 +36,8 @@ Shown **inline in the top bar** (not a separate boxed strip).
 | Metric | Definition |
 |---|---|
 | **Kontostand** | Calibrated wealth for **currently selected** bank/konto filters (roll-forward via `getAccounts`). Empty filters = all accounts. Shows „—“ until at least one matching account is calibrated. Tooltip lists per-account balances. |
-| **Investiert** | Confirmed investment EK for **selected** bank/konto filters (`getInvestedTotal`); see [`investments.md`](investments.md). Info-(i): additional label — rows **still count** in Ausgaben. |
-| **Einnahmen** | Sum of positive `betrag` in the **current filtered set** (not only the current page); includes confirmed investments; **related netting** like Analyse ([`analysis.md`](analysis.md)). Info-(i): rough orientation (same as Analyse). |
+| **Investiert** | Confirmed investment EK for **selected** bank/konto **and Zeitraum** (`getInvestedTotal`); see [`investments.md`](investments.md). Info-(i): additional label — rows **still count** in Ausgaben. |
+| **Einnahmen** | Sum of positive `betrag` in the **current filtered set** (not only the current page); includes confirmed investments; **related netting** like Analyse ([`analysis.md`](analysis.md)). Info-(i): transfers and PayPal-Kauf counted once when all legs are in the filter. |
 | **Ausgaben** | Sum of absolute values of negative `betrag`; includes confirmed investments |
 | **Netto** | Einnahmen − Ausgaben (signed). Info-(i): same caveat. |
 | **Buchungen** | Count of rows **after** related netting (table still lists all filtered rows; investments included) |
@@ -106,7 +106,7 @@ Server-side pagination only — never load all rows into the client for normal b
 
 | Column | Rules |
 |---|---|
-| **Betrag** | `de-DE` EUR; signed; **green** if `> 0`, **red** if `< 0`. Confirmed investments use the same colors plus a small **Investition** badge |
+| **Betrag** | `de-DE` EUR; signed; **green** if `> 0`, **red** if `< 0`. Confirmed investments keep those colors and get a **gray highlight** on the amount (hover explains Investiert) |
 | **Kategorie** | Main name; subcategory secondary (muted) or `Haupt › Unter` |
 | **Konfidenz** | Color + short label (see below). Not color-only (a11y) |
 | **Verknüpfte Transaktion** | Link icon(s) only in the table; partner **IDs on hover** (`title`). Click → `getTransactionNav` → jump list page if needed → **scroll to row** (keep prior row’s screen Y when possible) + brief highlight. Does **not** open Details (use the edit icon for that). |
@@ -257,7 +257,7 @@ Match unlinked triad with same abs amount (±0.01) and date span ≤ 3 days:
 | Funding | `bank=paypal`, betrag &gt; 0 |
 | Bank | not paypal, betrag &lt; 0 |
 
-Type `paypal_purchase`. Runs **before** pairwise `paypal_bank` so the three legs are not split. **No Analyse netting** for this type (all three count; −/−/+ already nets economically).
+Type `paypal_purchase`. Runs **before** pairwise `paypal_bank` so the three legs are not split. Analyse/summary netting keeps the merchant PayPal− and drops funding legs when they are in the filtered set.
 
 ---
 

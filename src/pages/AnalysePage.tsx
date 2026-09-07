@@ -230,6 +230,8 @@ export function AnalysePage() {
       const invested = await getInvestedTotal({
         banks: banks.length ? banks : undefined,
         konten: konten.length ? konten : undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
       });
       const balanceAccounts = (accounts ?? []).filter((a) => {
         if (banks.length > 0 && !banks.includes(a.bank)) return false;
@@ -334,7 +336,12 @@ export function AnalysePage() {
       <div className="zm-tx-topbar" aria-live="polite">
         <div className="zm-summary-inline">
           <KontostandSummaryStat banks={banks} konten={konten} />
-          <InvestiertSummaryStat banks={banks} konten={konten} />
+          <InvestiertSummaryStat
+            banks={banks}
+            konten={konten}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+          />
           {showIncome && (
             <div>
               <span className="zm-summary-label zm-summary-label-with-info">
@@ -637,8 +644,8 @@ export function AnalysePage() {
             </h2>
             {showPeriodInvestHint && (
               <p className="zm-page-lead zm-analyse-invest-hint">
-                Die Charts zeigen nur bestätigte Investments im gewählten
-                Zeitraum. „Investiert“ in der Leiste zählt alle Zeiten — z. B.{" "}
+                Die Charts und „Investiert“ in der Leiste zeigen nur bestätigte
+                Investments im gewählten Zeitraum — z. B.{" "}
                 <button
                   type="button"
                   className="zm-linkish"

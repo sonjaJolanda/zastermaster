@@ -1,7 +1,7 @@
 import { Info } from "lucide-react";
 
 export const SUMMARY_APPROX_HINT =
-  "Hinweis: Diese Zahl ist aktuell noch nicht vollständig korrekt und dient eher als grobe Orientierung.";
+  "Eigene Überweisungen und PayPal-Käufe zählen nur einmal, wenn alle beteiligten Buchungen im Filter liegen.";
 
 /** Info-(i) for Einnahmen / Ausgaben / Netto (Analyse + Transaktionen). */
 export function SummaryApproxInfo() {

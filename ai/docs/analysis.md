@@ -111,13 +111,13 @@ Always for the **current filters** (after netting):
 | Metric | Definition |
 |---|---|
 | **Kontostand** | Calibrated wealth for **selected** bank/konto filters (same as Transaktionen); **not** period-filtered |
-| **Investiert** | Confirmed investment EK for selected bank/konto filters (`getInvestedTotal`); see [`investments.md`](investments.md) — **additional** to Ausgaben, not a replacement |
+| **Investiert** | Confirmed investment EK for selected bank/konto **and Zeitraum** (`getInvestedTotal`); see [`investments.md`](investments.md) — **additional** to Ausgaben, not a replacement |
 | **Einnahmen** | Sum of positive `betrag` (display abs as EUR); includes confirmed investments |
 | **Ausgaben** | Sum of absolute values of negative `betrag`; includes confirmed investments |
 | **Saldo / Netto** | Einnahmen − Ausgaben (signed) |
 | **Buchungen** | Count of transactions **included** after filters and netting (investments included) |
 
-**Caveat (UI):** Einnahmen, Ausgaben, and Netto show an **(i)** tooltip on **Analyse and Transaktionen** (and matching Analyse pie / Aufschlüsselung headings): these figures are still only a **rough orientation**. Kontostand / Investiert / Buchungen do not get that hint.
+**Caveat (UI):** Einnahmen, Ausgaben, and Netto show an **(i)** tooltip on **Analyse and Transaktionen** (and matching Analyse pie / Aufschlüsselung headings): related netting (own-account transfers, PayPal-Kauf funding). Kontostand / Investiert / Buchungen do not get that hint.
 
 Calibrated wealth is shown for orientation; Analyse flow metrics still describe the **period** under filters. Edit balances under Einstellungen → Konten.
 
@@ -126,7 +126,7 @@ Calibrated wealth is shown for orientation; Analyse flow metrics still describe 
 ### 1. Zeitlicher Trend
 
 - Line chart: **Einnahmen** (green) vs **Ausgaben** (red) vs **Investitionen** (black) over buckets (`day` / `month` / `year`).
-- **Investitionen** = confirmed investment **buys** (`isInvestment` and `betrag < 0`, abs). They **remain inside** the red Ausgaben series; black is an extra overlay, not a subtraction. Not auto-tagged on import — only after confirm on Transaktionen. The black series follows the Analyse **Zeitraum** (default Dieser Monat); the header **Investiert** figure is all-time EK (bank/konto filters only). Hint when the strip has a total but the period has none. Line chart marks buys as dots (empty days omitted so sparse buys stay visible).
+- **Investitionen** = confirmed investment **buys** (`isInvestment` and `betrag < 0`, abs). They **remain inside** the red Ausgaben series; black is an extra overlay, not a subtraction. Not auto-tagged on import — only after confirm on Transaktionen. The black series **and** the header **Investiert** figure follow the Analyse **Zeitraum** (default Dieser Monat; bank/konto filters too). Hint when confirmed investments exist all-time but none in the period. Line chart marks buys as dots (empty days omitted so sparse buys stay visible).
 - X = period label (`de-DE`), Y = EUR.
 - Tooltip: period, shown series.
 - Empty range → empty state copy, not a broken chart.
@@ -164,7 +164,7 @@ Confirmed related pairs must **not** inflate Analyse when both legs would otherw
 1. Only **confirmed** links count (not suggestions).
 2. **Transfer between own accounts** (amounts ≈ opposite): if **both** legs are in the filtered set, **exclude both** from income/expense aggregates and from pies/breakdowns/trend/monthly bars (they are not real income/expense). They may still appear in Transaktionen.
 3. **PayPal ↔ bank** (same economic payment, usually same-sign expenses): if both legs are in the filtered set, count **once**. **v1 lock:** keep the **PayPal** (or wallet) merchant leg when present; otherwise keep the **earlier** `datum` (then lower id). Drop the other from aggregates only — both rows remain in Transaktionen.
-4. **PayPal-Kauf** (`paypal_purchase`, 3 legs: paypal− + bank− + paypal+): **do not net** — all three remain in aggregates (they already cancel to the purchase amount).
+4. **PayPal-Kauf** (`paypal_purchase`, 3 legs: paypal− + bank− + paypal+): if the merchant PayPal− is in the filtered set, **keep that purchase** and drop wallet+ and bank− from aggregates (otherwise Einnahmen/Ausgaben inflate). If only funding legs are in the set, drop them (wallet top-up, not consumption). If only one leg is in the filter, count that leg (same as pair rule 5).
 5. If the filter includes **only one** leg of a pair, count that leg normally (user intentionally scoped one account).
 6. Opening-balance / calibration synthetic rows: **exclude** from Analyse income/expense (they are balance plumbing, not spending). Tag them in data (e.g. `isBalanceAdjustment`) so filters can hide them consistently.
 
@@ -230,7 +230,7 @@ Quality of a *real* stock Bilanz is mostly **data practice** (calibrate + confir
 
 A **Bilanz** is a **Stichtag** (Aktiva = Passiva).  
 **Einnahmen vs Ausgaben** is a **Periodenrechnung** (GuV / Haushaltsrechnung).  
-Analyse charts stay period-filtered; Kontostand / Investiert in the strip are **not**.
+Analyse charts **and Investiert** stay period-filtered; **Kontostand** in the strip is a Stichtag (not Zeitraum).
 
 ---
 
@@ -238,7 +238,7 @@ Analyse charts stay period-filtered; Kontostand / Investiert in the strip are **
 
 Follows accounting identity: **Summe Aktiva = Summe Passiva**. Shows **where money is now**, not how it moved.
 
-**Stichtag:** today (same as strip Kontostand / Investiert). **Zeitraum, Typ, Kategorie do not apply.** Bank/Konto filters do (empty = all accounts).
+**Stichtag:** today (same as strip **Kontostand**). A future Bilanz **Investiert (EK)** would be all-time confirmed EK, not the period strip. **Zeitraum, Typ, Kategorie do not apply.** Bank/Konto filters do (empty = all accounts).
 
 ```
 Bilanz  ·  Stichtag: heute  (i)
@@ -304,7 +304,7 @@ Summe                  | Summe
 
 A later variant added a third column **Umschichtung** so PayPal-Funding (Giro− / PayPal+) and **period** investment EK could be **visible** without calling them Konsum. That still is not Aktiva/Passiva.
 
-PayPal-Kauf in period totals today: **no extra netting** (`paypal_purchase`) — the three amounts already cancel to the purchase (−50+50−50=−50). In a T-account that looks like +50 income and 100 expense; net is right, the columns look inflated. A Umschichtung column would show funding separately and keep only the merchant PayPal− as Konsum.
+PayPal-Kauf in period totals: netting keeps the merchant PayPal− and drops wallet+ / bank− when those legs are in the filter (Einnahmen/Ausgaben show the purchase once; net is −50). A Umschichtung column would still be useful later to show funding separately.
 
 ---
 
